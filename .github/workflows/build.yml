@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@latest
 
-      - name: Set up CMake (optional)
-        uses: lukka/get-cmake@v3
+      - name: Set up CMake
+        uses: lukka/get-cmake@latest
 
       - name: Run build script (Linux / macOS)
         if: runner.os != 'Windows'
@@ -30,5 +30,3 @@ jobs:
         shell: pwsh
         run: |
           ./build.ps1
-          # lub jeśli wolisz klasyczny batch:
-          # cmd /c build.bat
