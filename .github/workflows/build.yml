@@ -1,0 +1,34 @@
+name: CMake Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up CMake (optional)
+        uses: lukka/get-cmake@v3
+
+      - name: Run build script (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x ./build.sh
+          ./build.sh
+
+      - name: Run build script (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./build.ps1
+          # lub jeśli wolisz klasyczny batch:
+          # cmd /c build.bat
