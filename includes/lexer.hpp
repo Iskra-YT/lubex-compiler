@@ -9,6 +9,7 @@ enum class TokenType {
     EOF_TOKEN,
     ERR_TOKEN,
     NUMBER_TOKEN,
+    ARITHMETIC_TOKEN,
 };
 
 std::string tokenTypeToString(TokenType type);

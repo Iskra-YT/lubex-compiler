@@ -46,8 +46,11 @@ std::vector<Token> Lexer::lex() {
                 value += currentToken;
                 advance();
             }
-            Position endPos = currentPosition;
-            tokens.push_back({{startPos, endPos}, value, TokenType::NUMBER_TOKEN});
+            tokens.push_back({{startPos, currentPosition}, value, TokenType::NUMBER_TOKEN});
+            continue;
+        } else if (currentToken == '+' || currentToken == '-' || currentToken == '*' || currentToken == '/') {
+            tokens.push_back({{startPos, currentPosition}, std::string(1, currentToken), TokenType::ARITHMETIC_TOKEN});
+            advance();
             continue;
         }
 
