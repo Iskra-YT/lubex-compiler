@@ -22,10 +22,8 @@ jobs:
       - name: Run build script (Linux / macOS)
         if: runner.os != 'Windows'
         run: |
-          chmod +x ./build.sh
-          chmod +x ./test.sh
+          chmod +x ./build.sh 
           ./build.sh
-          ./test.sh
 
       - name: Run build script (Windows, Powershell)
         if: runner.os == 'Windows'
@@ -33,4 +31,16 @@ jobs:
         run: |
           Set-ExecutionPolicy Bypass -Scope Process -Force
           ./build.ps1
+
+      - name: Run test script (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x ./test.sh
+          ./test.sh
+
+      - name: Run test script (Windows, Powershell)
+        if: runner.os == 'Windows'
+        run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          ./test.sh
           ./test.ps1

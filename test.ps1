@@ -1,1 +1,1 @@
-build/lubex_tests.exe
+./build/Debug/lubex_tests.exe
