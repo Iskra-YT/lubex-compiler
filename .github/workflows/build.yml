@@ -1,4 +1,4 @@
-name: CMake Build
+name: CMake Builds
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Set up CMake
         uses: lukka/get-cmake@latest
@@ -23,10 +23,14 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           chmod +x ./build.sh
+          chmod +x ./test.sh
           ./build.sh
+          ./test.sh
 
-      - name: Run build script (Windows)
+      - name: Run build script (Windows, Powershell)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force
           ./build.ps1
+          ./test.ps1

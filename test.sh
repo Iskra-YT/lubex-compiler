@@ -1,0 +1,1 @@
+./build/lubex_tests
