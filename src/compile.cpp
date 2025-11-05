@@ -4,6 +4,7 @@
 #include "config.hpp"
 #include "lexer.hpp"
 #include "error.hpp"
+#include "parser.hpp"
 
 bool compileProject() {
     ProjectConfig config;
@@ -43,6 +44,21 @@ bool compileProject() {
             std::cout << error.returnError() << "\n";
             return false;
         }
+    }
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    if (!parser.getErrors().empty()) {
+        for (auto error : parser.getErrors()) {
+            std::cout << error.returnError() << "\n";
+            return false;
+        }
+    }
+
+    for (const auto& node : nodes) {
+        node->evaluate();
+        std::cout << "\n";
     }
 
     return true;

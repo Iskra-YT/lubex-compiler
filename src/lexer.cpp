@@ -52,6 +52,14 @@ std::vector<Token> Lexer::lex() {
             tokens.push_back({{startPos, currentPosition}, std::string(1, currentToken), TokenType::ARITHMETIC_TOKEN});
             advance();
             continue;
+        } else if (currentToken == '(' || currentToken == ')') {
+            tokens.push_back({{startPos, currentPosition}, std::string(1, currentToken), TokenType::DELIMITER_TOKEN});
+            advance();
+            continue;
+        } else if (currentToken == ';') {
+            tokens.push_back({{startPos, currentPosition}, std::string(1, currentToken), TokenType::DELIMITER_TOKEN});
+            advance();
+            continue;
         }
 
         std::string unknown(1, currentToken);

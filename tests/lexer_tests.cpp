@@ -1,8 +1,7 @@
-#include <gtest/gtest.h>
 #include "lexer.hpp"
 #include "lexer_tests.hpp"
 
-LEXER_TEST(IntNumbers) {
+LEXER_TEST(IntegerLiterals) {
     std::string input = "123 456 1 2 098 112";
     std::vector<char> in(input.begin(), input.end());
 
@@ -30,4 +29,46 @@ LEXER_TEST(IntNumbers) {
     ASSERT_EQ(tokens[5].value, "112");
 
     ASSERT_EQ(tokens[6].type, TokenType::EOF_TOKEN);
+}
+
+LEXER_TEST(ArithmeticSymbols) {
+    std::string input = "+- */";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 5);
+
+    ASSERT_EQ(tokens[0].type, TokenType::ARITHMETIC_TOKEN);
+    ASSERT_EQ(tokens[0].value, "+");
+
+    ASSERT_EQ(tokens[1].type, TokenType::ARITHMETIC_TOKEN);
+    ASSERT_EQ(tokens[1].value, "-");
+
+    ASSERT_EQ(tokens[2].type, TokenType::ARITHMETIC_TOKEN);
+    ASSERT_EQ(tokens[2].value, "*");
+
+    ASSERT_EQ(tokens[3].type, TokenType::ARITHMETIC_TOKEN);
+    ASSERT_EQ(tokens[3].value, "/");
+
+    ASSERT_EQ(tokens[4].type, TokenType::EOF_TOKEN);
+}
+
+LEXER_TEST(Delimiters) {
+    std::string input = "( )";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 3);
+
+    ASSERT_EQ(tokens[0].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[0].value, "(");
+
+    ASSERT_EQ(tokens[1].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[1].value, ")");
+
+    ASSERT_EQ(tokens[2].type, TokenType::EOF_TOKEN);
 }
