@@ -4,6 +4,7 @@
 #include "config.hpp"
 #include "lexer.hpp"
 #include "error.hpp"
+#include "optimizer.hpp"
 #include "parser.hpp"
 
 bool compileProject() {
@@ -55,6 +56,8 @@ bool compileProject() {
             return false;
         }
     }
+
+    getOptimalization(&nodes);
 
     for (const auto& node : nodes) {
         node->evaluate();
