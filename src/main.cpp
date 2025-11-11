@@ -16,7 +16,11 @@ int main(int argc, char** argv) {
 
         initProject(argv[2]);
     } else if (strcmp(argv[1], "build") == 0) {
-        compileProject();
+        if(compileProject()) {
+            return EXIT_SUCCESS;
+        }
+
+        return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;

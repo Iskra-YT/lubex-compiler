@@ -14,7 +14,7 @@ OPTIMIZER_TEST(AlgebraicSimplification) {
     std::vector<std::unique_ptr<ASTNode>> nodes;
     nodes.push_back(std::move(node));
 
-    getOptimalization(&nodes);
+    getOptimization(&nodes);
 
     ASSERT_EQ(nodes.size(), 1);
 

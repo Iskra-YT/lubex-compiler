@@ -7,6 +7,6 @@
 
 #include "parser.hpp"
 
-void getOptimalization(std::vector<std::unique_ptr<ASTNode>>* nodes);
+void getOptimization(std::vector<std::unique_ptr<ASTNode>>* nodes);
 
 #endif //OPTIMIZER_LUBEX_HPP

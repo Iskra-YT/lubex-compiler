@@ -53,3 +53,22 @@ target_include_directories(lubex_tests PRIVATE ${CMAKE_SOURCE_DIR}/includes)
 
 include(GoogleTest)
 gtest_discover_tests(lubex_tests)
+
+find_package(ZLIB REQUIRED)
+find_package(LLVM REQUIRED CONFIG)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
+
+llvm_map_components_to_libnames(LLVM_LIBS
+    core
+    irreader
+    support
+)
+
+target_link_libraries(lubex_lib PUBLIC ${LLVM_LIBS})
+target_link_libraries(lubex PRIVATE ${LLVM_LIBS})
+target_link_libraries(lubex_tests PRIVATE ${LLVM_LIBS})

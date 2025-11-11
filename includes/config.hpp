@@ -14,7 +14,7 @@ struct ProjectConfig {
     std::string name;
     std::string version;
     std::string sourceDir;
-    std::string optimalization;
+    int optimalization;
     std::vector<Target> targets;
 };
 

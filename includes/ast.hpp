@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+#include <llvm/IR/Value.h>
+
 #include "lexer.hpp"
 
 struct ASTNode {
@@ -11,21 +13,21 @@ struct ASTNode {
     ASTNode(PositionSpan pos) : position(pos) {}
 
     virtual ~ASTNode() = default;
-    virtual void evaluate();
+    virtual llvm::Value* evaluate();
 };
 
 struct StatementNode : ASTNode {
     std::unique_ptr<ASTNode> value;
     explicit StatementNode(PositionSpan span, std::unique_ptr<ASTNode> val): ASTNode(span),  value(std::move(val)) {}
 
-    void evaluate() override;
+    llvm::Value* evaluate() override;
 };
 
 struct NumberNode : ASTNode {
     double value;
     explicit NumberNode(PositionSpan span, double val): ASTNode(span),  value(val) {}
 
-    void evaluate() override;
+    llvm::Value* evaluate() override;
 };
 
 struct BinaryNode : ASTNode {
@@ -36,7 +38,7 @@ struct BinaryNode : ASTNode {
     BinaryNode(PositionSpan span, std::string o, std::unique_ptr<ASTNode> l, std::unique_ptr<ASTNode> r)
         : ASTNode(span), op(std::move(o)), left(std::move(l)), right(std::move(r)) {}
 
-    void evaluate() override;
+    llvm::Value* evaluate() override;
 };
 
 #endif // AST_NODE_HPP

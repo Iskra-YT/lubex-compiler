@@ -50,7 +50,7 @@ void optimizeNode(std::unique_ptr<ASTNode>& node) {
     }
 }
 
-void getOptimalization(std::vector<std::unique_ptr<ASTNode>>* nodes) {
+void getOptimization(std::vector<std::unique_ptr<ASTNode>>* nodes) {
     for (auto& node : *nodes) {
         optimizeNode(node);
     }

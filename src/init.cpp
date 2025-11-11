@@ -20,7 +20,7 @@ void createCompilerConfig(const std::filesystem::path& projectDir, const std::st
     config["name"] = projectName;
     config["version"] = "1.0.0";
     config["sourceDir"] = "src";
-    config["optimalization"] = "O0";
+    config["optimalization"] = 1;
 
     config["targets"] = nlohmann::json::array();
     nlohmann::json target;
