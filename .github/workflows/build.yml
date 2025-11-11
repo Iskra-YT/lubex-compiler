@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout repository
@@ -19,28 +19,80 @@ jobs:
       - name: Set up CMake
         uses: lukka/get-cmake@latest
 
+      - name: Install LLVM Dev (Ubuntu)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm-dev clang
+          export LLVM_DIR=/usr/lib/llvm-15/lib/cmake/llvm
+          echo "LLVM_DIR=$LLVM_DIR" >> $GITHUB_ENV
+
+      - name: Install LLVM Dev (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install llvm
+          export LLVM_DIR=$(brew --prefix llvm)/lib/cmake/llvm
+          echo "LLVM_DIR=$LLVM_DIR" >> $GITHUB_ENV
+
+      - name: Install LLVM Dev (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $llvm_dir = "$env:USERPROFILE\llvm-project"
+          git clone --depth=1 https://github.com/llvm/llvm-project.git $llvm_dir
+          mkdir "$llvm_dir\build"
+          cd "$llvm_dir\build"
+          cmake -G "Visual Studio 17 2022" -A x64 `
+            -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_INSTALL_PREFIX="$llvm_dir\install" `
+            "$llvm_dir\llvm"
+          cmake --build . --config Release --target INSTALL
+          $llvm_install = "$llvm_dir\install"
+          echo "LLVM_DIR=$llvm_install\lib\cmake\llvm" >> $env:GITHUB_ENV
+          echo "$llvm_install\bin" >> $env:GITHUB_PATH
+
+      - name: Cache CMake build
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+
       - name: Run build script (Linux / macOS)
         if: runner.os != 'Windows'
+        shell: bash
         run: |
-          chmod +x ./build.sh 
-          ./build.sh
+          chmod +x ./build.sh
+          ./build.sh -DCMAKE_PREFIX_PATH="$LLVM_DIR"
 
-      - name: Run build script (Windows, Powershell)
+      - name: Run build script (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           Set-ExecutionPolicy Bypass -Scope Process -Force
-          ./build.ps1
+          ./build.ps1 -DCMAKE_PREFIX_PATH="$env:LLVM_DIR"
 
       - name: Run test script (Linux / macOS)
         if: runner.os != 'Windows'
+        shell: bash
         run: |
           chmod +x ./test.sh
           ./test.sh
 
-      - name: Run test script (Windows, Powershell)
+      - name: Run test script (Windows)
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           Set-ExecutionPolicy Bypass -Scope Process -Force
-          ./test.sh
           ./test.ps1
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-artifacts
+          path: build/**

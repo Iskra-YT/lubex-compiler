@@ -13,6 +13,19 @@ list(FILTER LIB_SOURCES EXCLUDE REGEX ".*src/main\\.cpp$")
 add_library(lubex_lib ${LIB_SOURCES})
 target_include_directories(lubex_lib PUBLIC ${CMAKE_SOURCE_DIR}/includes)
 
+find_package(LLVM REQUIRED CONFIG)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+# target_include_directories zamiast include_directories
+target_include_directories(lubex_lib PUBLIC ${LLVM_INCLUDE_DIRS})
+target_compile_definitions(lubex_lib PUBLIC ${LLVM_DEFINITIONS})
+
+llvm_map_components_to_libnames(LLVM_LIBS core irreader support)
+
+target_link_libraries(lubex_lib PUBLIC ${LLVM_LIBS})
+
 add_executable(lubex src/main.cpp)
 target_link_libraries(lubex PRIVATE lubex_lib)
 
@@ -27,7 +40,6 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 file(GLOB_RECURSE TEST_SOURCES "${CMAKE_SOURCE_DIR}/tests/*.cpp")
-
 add_executable(lubex_tests ${TEST_SOURCES})
 
 target_link_libraries(lubex_tests

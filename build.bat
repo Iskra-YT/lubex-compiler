@@ -4,6 +4,6 @@ IF EXIST build (
 )
 mkdir build
 cd build
-cmake ..
+cmake .. %*
 cmake --build .
 cd ..

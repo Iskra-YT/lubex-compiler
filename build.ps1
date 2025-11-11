@@ -4,6 +4,6 @@ if (Test-Path build) {
 
 New-Item -ItemType Directory -Path build -ErrorAction SilentlyContinue | Out-Null
 Set-Location build
-cmake ..
+cmake .. $args
 cmake --build .
 Set-Location ..
