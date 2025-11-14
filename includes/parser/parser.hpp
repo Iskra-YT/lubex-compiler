@@ -4,7 +4,19 @@
 #include <vector>
 #include "lexer.hpp"
 #include "error.hpp"
-#include "ast.hpp"
+#include "parser/ast.hpp"
+
+struct InstructionStep {
+    TokenType expectedType;
+    std::string expectedValue;
+    std::function<void(Token&, void*)> action;
+    bool consumesToken = false;
+};
+
+struct InstructionSet {
+    std::vector<InstructionStep> steps;
+    std::function<std::unique_ptr<ASTNode>(PositionSpan, void*)> finalize;
+};
 
 enum class ExpectationType {
     EXPECT_TYPE,
@@ -38,8 +50,14 @@ class Parser {
         std::unique_ptr<ASTNode> parseTerm();
         std::unique_ptr<ASTNode> parseExpr();
         std::unique_ptr<ASTNode> parseStatement();
+
+        std::unique_ptr<ASTNode> parseInstruction(InstructionSet& instrSet, void* context);
+
+        // Instruction Sets
+        InstructionSet varDeclInstr;
+        void initVarDecl();
     public:
-        Parser(std::vector<Token> toks): tokens(toks) {}
+        Parser(std::vector<Token> toks);
         std::vector<std::unique_ptr<ASTNode>> parse();
         std::vector<Error> getErrors();
 };

@@ -56,13 +56,13 @@ LEXER_TEST(ArithmeticSymbols) {
 }
 
 LEXER_TEST(Delimiters) {
-    std::string input = "( )";
+    std::string input = "( ) : ;";
     std::vector<char> in(input.begin(), input.end());
 
     Lexer lexer(in);
     std::vector<Token> tokens = lexer.lex();
 
-    ASSERT_EQ(tokens.size(), 3);
+    ASSERT_EQ(tokens.size(), 5);
 
     ASSERT_EQ(tokens[0].type, TokenType::DELIMITER_TOKEN);
     ASSERT_EQ(tokens[0].value, "(");
@@ -70,5 +70,41 @@ LEXER_TEST(Delimiters) {
     ASSERT_EQ(tokens[1].type, TokenType::DELIMITER_TOKEN);
     ASSERT_EQ(tokens[1].value, ")");
 
-    ASSERT_EQ(tokens[2].type, TokenType::EOF_TOKEN);
+    ASSERT_EQ(tokens[2].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[2].value, ":");
+
+    ASSERT_EQ(tokens[3].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[3].value, ";");
+
+    ASSERT_EQ(tokens[4].type, TokenType::EOF_TOKEN);
+}
+
+LEXER_TEST(Identyfier) {
+    std::string input = "i32 a test _and $e @qwerty";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 7);
+
+    ASSERT_EQ(tokens[0].type, TokenType::IDENTYFIER_TOKEN);
+    ASSERT_EQ(tokens[0].value, "i32");
+
+    ASSERT_EQ(tokens[1].type, TokenType::IDENTYFIER_TOKEN);
+    ASSERT_EQ(tokens[1].value, "a");
+
+    ASSERT_EQ(tokens[2].type, TokenType::IDENTYFIER_TOKEN);
+    ASSERT_EQ(tokens[2].value, "test");
+
+    ASSERT_EQ(tokens[3].type, TokenType::IDENTYFIER_TOKEN);
+    ASSERT_EQ(tokens[3].value, "_and");
+
+    ASSERT_EQ(tokens[4].type, TokenType::IDENTYFIER_TOKEN);
+    ASSERT_EQ(tokens[4].value, "$e");
+
+    ASSERT_EQ(tokens[5].type, TokenType::IDENTYFIER_TOKEN);
+    ASSERT_EQ(tokens[5].value, "@qwerty");
+
+    ASSERT_EQ(tokens[6].type, TokenType::EOF_TOKEN);
 }

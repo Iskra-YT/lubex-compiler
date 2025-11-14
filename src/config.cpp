@@ -18,6 +18,7 @@ ProjectConfig readConfig() {
     config.version = j.value("version", "0.1.0");
     config.sourceDir = j.value("sourceDir", "src");
     config.optimalization = j.value("optimalization", 1);
+    config.entrypoint = j.value("entrypoint", "main.HelloWorldProgram.main");
 
     if (j.contains("targets") && j["targets"].is_array()) {
         for (auto& t : j["targets"]) {

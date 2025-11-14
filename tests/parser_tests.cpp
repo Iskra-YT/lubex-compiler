@@ -1,4 +1,4 @@
-#include "parser.hpp"
+#include "parser/parser.hpp"
 #include "lexer.hpp"
 #include "parser_tests.hpp"
 
@@ -44,4 +44,39 @@ PARSER_TEST(BinaryExpression) {
     ASSERT_EQ(leftNum->value, 1.0);
     ASSERT_EQ(leftMulNum->value, 2.0);
     ASSERT_EQ(rightMulNum->value, 3.0);
+}
+
+PARSER_TEST(VariableDeclaration) {
+    std::vector<Token> tokens = {
+        Token("let", TokenType::KEYWORD_TOKEN),
+        Token("a", TokenType::IDENTYFIER_TOKEN),
+        Token(":", TokenType::DELIMITER_TOKEN),
+        Token("i32", TokenType::IDENTYFIER_TOKEN),
+        Token("=", TokenType::ASSIGNMENT_TOKEN),
+        Token("2", TokenType::NUMBER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto expr = dynamic_cast<VariableDeclarationNode*>(nodes[0].get());
+    ASSERT_NE(expr, nullptr);
+
+    ASSERT_EQ(expr->name, "a");
+
+    auto value = dynamic_cast<NumberNode*>(expr->value.get());
+    ASSERT_NE(value, nullptr);
+    
+    auto type = dynamic_cast<IdentyfierNode*>(expr->type.get());
+    ASSERT_NE(type, nullptr);
+    
+    ASSERT_EQ(type->value, "i32");
+    ASSERT_EQ(value->value, 2.0);
 }

@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <unordered_set>
+
+const std::unordered_set<std::string> keywords = {"let"};
 
 enum class TokenType {
     EOF_TOKEN,
@@ -11,6 +14,12 @@ enum class TokenType {
     NUMBER_TOKEN,
     ARITHMETIC_TOKEN,
     DELIMITER_TOKEN,
+    KEYWORD_TOKEN,
+    IDENTYFIER_TOKEN,
+    ASSIGNMENT_TOKEN,
+
+
+    ANY
 };
 
 std::string tokenTypeToString(TokenType type);

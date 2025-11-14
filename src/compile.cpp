@@ -6,7 +6,7 @@
 #include "error.hpp"
 #include "lexer.hpp"
 #include "optimizer.hpp"
-#include "parser.hpp"
+#include "parser/parser.hpp"
 
 bool compileProject() {
     ProjectConfig config;
@@ -75,7 +75,7 @@ bool compileProject() {
     }
 
     for (const auto& node : nodes) {
-        node->evaluate();
+        node->debug();
         std::cout << "\n";
     }
 

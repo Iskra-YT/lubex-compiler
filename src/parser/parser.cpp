@@ -1,5 +1,10 @@
-#include "parser.hpp"
+#include "parser/parser.hpp"
 #include <exception>
+#include "parser/context.hpp"
+
+Parser::Parser(std::vector<Token> toks): tokens(toks) {
+    initVarDecl();
+}
 
 Token Parser::getCurrent() {
     if (position < tokens.size()) return tokens[position];
@@ -36,14 +41,42 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parse() {
     return nodes;
 }
 
+std::unique_ptr<ASTNode> Parser::parseInstruction(InstructionSet& instrSet, void* context) {
+    Position start = getCurrent().position.start;
+    for (auto& step : instrSet.steps) {
+        Token tok = getCurrent();
+
+        if (step.expectedType != TokenType::ANY) {
+            if (tok.type != step.expectedType ||
+                (!step.expectedValue.empty() && tok.value != step.expectedValue)) {
+                pushError(Error(tok.position, "Unexpected token: " + tok.value));
+                return nullptr;
+            }
+        }
+
+        step.action(tok, context);
+
+        if (!step.consumesToken) {
+            advance();
+        }
+    }
+
+    return instrSet.finalize(PositionSpan(start, getCurrent().position.end), context);
+}
 
 std::unique_ptr<ASTNode> Parser::parseStatement() {
+    Token tok = getCurrent();
+
+    if (tok.match(Token("let", TokenType::KEYWORD_TOKEN))) {
+        VarDeclContext ctx;
+        return parseInstruction(varDeclInstr, &ctx);
+    }
+
     auto node = parseExpr();
     if (!getCurrent().match(Token(";", TokenType::DELIMITER_TOKEN))) {
         pushError(Error(PositionSpan(node->position.start, getCurrent().position.end), "Expected ';' after statement"));
         return nullptr;
     }
-
     advance();
     return std::make_unique<StatementNode>(PositionSpan(node->position.start, getCurrent().position.end), std::move(node));
 }
@@ -115,6 +148,11 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
     if (tok.match(Token("+", TokenType::ARITHMETIC_TOKEN))) {
         advance();
         return parseFactor();
+    }
+
+    if (tok.type == TokenType::IDENTYFIER_TOKEN) {
+        advance();
+        return std::make_unique<IdentyfierNode>(tok.position, tok.value);
     }
 
     pushError(Error(tok.position, "Unexpected token in factor: " + tok.value));

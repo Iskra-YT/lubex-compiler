@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "parser.hpp"
+#include "parser/parser.hpp"
 
 void getOptimization(std::vector<std::unique_ptr<ASTNode>>* nodes);
 
