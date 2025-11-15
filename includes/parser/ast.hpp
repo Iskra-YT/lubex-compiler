@@ -34,11 +34,11 @@ struct NumberNode : ASTNode {
 };
 
 struct VariableDeclarationNode : ASTNode {
-    std::string name;
+    std::unique_ptr<ASTNode> name;
     std::unique_ptr<ASTNode> value;
     std::unique_ptr<ASTNode> type;
 
-    VariableDeclarationNode(PositionSpan span, std::string name, std::unique_ptr<ASTNode> value, std::unique_ptr<ASTNode> type): ASTNode(span), name(name), value(std::move(value)), type(std::move(type)) {}
+    VariableDeclarationNode(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> value, std::unique_ptr<ASTNode> type): ASTNode(span), name(std::move(name)), value(std::move(value)), type(std::move(type)) {}
 
     llvm::Value* evaluate() override;
     void debug() override;
@@ -48,6 +48,15 @@ struct IdentyfierNode : ASTNode {
     std::string value;
     explicit IdentyfierNode(PositionSpan span, std::string val): ASTNode(span),  value(val) {}
 
+    llvm::Value* evaluate() override;
+    void debug() override;
+};
+
+struct VariableAssigment : ASTNode {
+    std::unique_ptr<ASTNode> name;
+    std::unique_ptr<ASTNode> value;
+
+    VariableAssigment(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> value) : ASTNode(span), name(std::move(name)), value(std::move(value)) {}
     llvm::Value* evaluate() override;
     void debug() override;
 };

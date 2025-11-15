@@ -70,10 +70,10 @@ llvm::Value* VariableDeclarationNode::evaluate() {
 
 void VariableDeclarationNode::debug() {
     std::cout << "let";
-    std::cout << name;
+    name->evaluate();
     std::cout << ":";
     type->debug();
-    std::cout << " = ";
+    std::cout << "=";
     value->debug();
 }
 
@@ -83,4 +83,14 @@ llvm::Value* IdentyfierNode::evaluate() {
 
 void IdentyfierNode::debug() {
     std::cout << value;
+}
+
+llvm::Value* VariableAssigment::evaluate() {
+    return nullptr;
+}
+
+void VariableAssigment::debug() {
+    name->evaluate();
+    std::cout << "=";
+    value->evaluate();
 }

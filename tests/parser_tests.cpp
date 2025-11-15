@@ -66,10 +66,15 @@ PARSER_TEST(VariableDeclaration) {
 
     ASSERT_EQ(nodes.size(), 1);
 
-    auto expr = dynamic_cast<VariableDeclarationNode*>(nodes[0].get());
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto expr = dynamic_cast<VariableDeclarationNode*>(stmt->value.get());
     ASSERT_NE(expr, nullptr);
 
-    ASSERT_EQ(expr->name, "a");
+    auto name = dynamic_cast<IdentyfierNode*>(expr->name.get());
+    ASSERT_NE(name, nullptr);
+    ASSERT_EQ(name->value, "a");
 
     auto value = dynamic_cast<NumberNode*>(expr->value.get());
     ASSERT_NE(value, nullptr);
@@ -79,4 +84,36 @@ PARSER_TEST(VariableDeclaration) {
     
     ASSERT_EQ(type->value, "i32");
     ASSERT_EQ(value->value, 2.0);
+}
+
+PARSER_TEST(VariableAssigment) {
+    std::vector<Token> tokens = {
+        Token("a", TokenType::IDENTYFIER_TOKEN),
+        Token("=", TokenType::ASSIGNMENT_TOKEN),
+        Token("15", TokenType::NUMBER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto expr = dynamic_cast<VariableAssigment*>(stmt->value.get());
+    ASSERT_NE(expr, nullptr);
+
+    auto name = dynamic_cast<IdentyfierNode*>(expr->name.get());
+    ASSERT_NE(name, nullptr);
+    ASSERT_EQ(name->value, "a");
+
+    auto value = dynamic_cast<NumberNode*>(expr->value.get());
+    ASSERT_NE(value, nullptr);
+    ASSERT_EQ(value->value, 15.0);
 }

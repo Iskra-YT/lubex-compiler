@@ -65,14 +65,12 @@ std::unique_ptr<ASTNode> Parser::parseInstruction(InstructionSet& instrSet, void
 }
 
 std::unique_ptr<ASTNode> Parser::parseStatement() {
-    Token tok = getCurrent();
-
-    if (tok.match(Token("let", TokenType::KEYWORD_TOKEN))) {
-        VarDeclContext ctx;
-        return parseInstruction(varDeclInstr, &ctx);
+    auto node = parseExpr();
+    if (!node) {
+        pushError(Error(getCurrent().position, "Invalid expression in statement"));
+        return nullptr;
     }
 
-    auto node = parseExpr();
     if (!getCurrent().match(Token(";", TokenType::DELIMITER_TOKEN))) {
         pushError(Error(PositionSpan(node->position.start, getCurrent().position.end), "Expected ';' after statement"));
         return nullptr;
@@ -82,6 +80,13 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
 }
 
 std::unique_ptr<ASTNode> Parser::parseExpr() {
+    Token tok = getCurrent();
+
+    if (tok.match(Token("let", TokenType::KEYWORD_TOKEN))) {
+        VarDeclContext ctx;
+        return parseInstruction(varDeclInstr, &ctx);
+    }
+    
     auto node = parseTerm();
 
     while (true) {
@@ -94,6 +99,12 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
         } else {
             break;
         }
+    }
+
+    if (getCurrent().match(Token("=", TokenType::ASSIGNMENT_TOKEN))) {
+        advance();
+        auto right = parseExpr();
+        return std::make_unique<VariableAssigment>(PositionSpan(node->position.start, right->position.end), std::move(node), std::move(right));
     }
 
     return node;
@@ -109,7 +120,10 @@ std::unique_ptr<ASTNode> Parser::parseTerm() {
             tok.match(Token("/", TokenType::ARITHMETIC_TOKEN))) {
             std::string op = tok.value;
             advance();
+
             auto right = parseFactor();
+            if (!node || !right) return nullptr;
+
             node = std::make_unique<BinaryNode>(PositionSpan(tok.position.start, getCurrent().position.end), op, std::move(node), std::move(right));
         } else {
             break;
