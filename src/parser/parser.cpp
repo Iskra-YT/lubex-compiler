@@ -1,9 +1,11 @@
 #include "parser/parser.hpp"
 #include <exception>
+#include <iostream>
 #include "parser/context.hpp"
 
 Parser::Parser(std::vector<Token> toks): tokens(toks) {
     initVarDecl();
+    initFuncDecl();
 }
 
 Token Parser::getCurrent() {
@@ -41,18 +43,112 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parse() {
     return nodes;
 }
 
+std::vector<std::unique_ptr<ASTNode>> Parser::parseFunctionArgs() {
+    std::vector<std::unique_ptr<ASTNode>> args;
+
+    if (!getCurrent().match(Token("(", TokenType::DELIMITER_TOKEN))) {
+        pushError(Error(getCurrent().position, "Expected '(' at beginning of function arguments"));
+        return args;
+    }
+    advance();
+
+    if (!getCurrent().match(Token("arg", TokenType::KEYWORD_TOKEN))) {
+        pushError(Error(getCurrent().position, "Expected argument at function arguments"));
+        return args;
+    }
+    advance();
+
+    while (!getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN))) {
+        Token argNameToken = getCurrent();
+        if (argNameToken.type != TokenType::IDENTYFIER_TOKEN) {
+            pushError(Error(argNameToken.position, "Expected argument name"));
+            return args;
+        }
+        advance();
+
+        if (!getCurrent().match(Token(":", TokenType::DELIMITER_TOKEN))) {
+            pushError(Error(getCurrent().position, "Expected ':' after argument name"));
+            return args;
+        }
+        advance();
+
+        Token typeToken = getCurrent();
+        if (typeToken.type != TokenType::IDENTYFIER_TOKEN) {
+            pushError(Error(typeToken.position, "Expected type for argument"));
+            return args;
+        }
+        advance();
+
+        args.push_back(std::make_unique<ArgDeclaration>(
+            PositionSpan(argNameToken.position.start, typeToken.position.end),
+            std::make_unique<IdentyfierNode>(argNameToken.position, argNameToken.value),
+            std::make_unique<IdentyfierNode>(typeToken.position, typeToken.value)
+        ));
+
+        if (getCurrent().match(Token(",", TokenType::DELIMITER_TOKEN))) {
+            advance();
+        } else if (!getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN))) {
+            pushError(Error(getCurrent().position, "Expected ',' or ')' in argument list"));
+            return args;
+        }
+    }
+
+    return args;
+}
+
+std::vector<std::unique_ptr<ASTNode>> Parser::parseBlock() {
+    std::vector<std::unique_ptr<ASTNode>> statements;
+
+    if (!getCurrent().match(Token("{", TokenType::DELIMITER_TOKEN))) {
+        pushError(Error(getCurrent().position, "Expected '{' at beginning of block"));
+        return statements;
+    }
+    advance();
+
+    while (!getCurrent().match(Token("}", TokenType::DELIMITER_TOKEN))) {
+        auto stmt = parseStatement();
+        if (!stmt) {
+            while (position < tokens.size() && !getCurrent().match(Token("}", TokenType::DELIMITER_TOKEN))) {
+                advance();
+            }
+            break;
+        }
+        statements.push_back(std::move(stmt));
+    }
+
+    if (!getCurrent().match(Token("}", TokenType::DELIMITER_TOKEN))) {
+        pushError(Error(getCurrent().position, "Expected '}' at end of block"));
+    }
+
+    return statements;
+}
+
 std::unique_ptr<ASTNode> Parser::parseInstruction(InstructionSet& instrSet, void* context) {
     Position start = getCurrent().position.start;
+    bool lastMatched = true;
+
     for (auto& step : instrSet.steps) {
         Token tok = getCurrent();
 
-        if (step.expectedType != TokenType::ANY) {
-            if (tok.type != step.expectedType ||
-                (!step.expectedValue.empty() && tok.value != step.expectedValue)) {
+        bool matchesType = (step.expectedType == TokenType::ANY || tok.type == step.expectedType);
+        bool matchesValue = (step.expectedValue.empty() || tok.value == step.expectedValue);
+
+        bool matched = matchesType && matchesValue;
+
+        if (!matched) {
+            if (step.optional) {
+                lastMatched = false;
+                continue;
+            } else {
                 pushError(Error(tok.position, "Unexpected token: " + tok.value));
                 return nullptr;
             }
         }
+        if (step.expectedType == TokenType::ANY && step.optional && !lastMatched) {
+            continue;
+        }
+
+        lastMatched = true;
 
         step.action(tok, context);
 
@@ -63,6 +159,7 @@ std::unique_ptr<ASTNode> Parser::parseInstruction(InstructionSet& instrSet, void
 
     return instrSet.finalize(PositionSpan(start, getCurrent().position.end), context);
 }
+
 
 std::unique_ptr<ASTNode> Parser::parseStatement() {
     auto node = parseExpr();
@@ -81,10 +178,13 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
 
 std::unique_ptr<ASTNode> Parser::parseExpr() {
     Token tok = getCurrent();
-
+ 
     if (tok.match(Token("let", TokenType::KEYWORD_TOKEN))) {
         VarDeclContext ctx;
         return parseInstruction(varDeclInstr, &ctx);
+    } else if (tok.match(Token("func", TokenType::KEYWORD_TOKEN))) {
+        FuncDeclContext ctx;
+        return parseInstruction(funcDeclInstr, &ctx);
     }
     
     auto node = parseTerm();

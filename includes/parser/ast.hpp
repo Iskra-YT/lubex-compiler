@@ -61,6 +61,26 @@ struct VariableAssigment : ASTNode {
     void debug() override;
 };
 
+struct ArgDeclaration : ASTNode {
+    std::unique_ptr<ASTNode> name;
+    std::unique_ptr<ASTNode> type;
+
+    ArgDeclaration(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> type) : ASTNode(span), name(std::move(name)), type(std::move(type)) {}
+    llvm::Value* evaluate() override;
+    void debug() override;
+};
+
+struct FunctionDeclaration : ASTNode {
+    std::unique_ptr<ASTNode> name;
+    std::unique_ptr<ASTNode> type;
+    std::vector<std::unique_ptr<ASTNode>> body;
+    std::vector<std::unique_ptr<ASTNode>> parameters;
+
+    FunctionDeclaration(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> type, std::vector<std::unique_ptr<ASTNode>> parameters, std::vector<std::unique_ptr<ASTNode>> body) : ASTNode(span), name(std::move(name)), type(std::move(type)), body(std::move(body)), parameters(std::move(parameters)) {}
+    llvm::Value* evaluate() override;
+    void debug() override;
+};
+
 struct BinaryNode : ASTNode {
     std::string op;
     std::unique_ptr<ASTNode> left;

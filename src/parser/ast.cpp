@@ -94,3 +94,31 @@ void VariableAssigment::debug() {
     std::cout << "=";
     value->evaluate();
 }
+
+llvm::Value* ArgDeclaration::evaluate() {
+    return nullptr;
+}
+
+void ArgDeclaration::debug() {
+    std::cout << "arg";
+    name->evaluate();
+    std::cout << ":";
+    type->evaluate();
+}
+
+llvm::Value* FunctionDeclaration::evaluate() {
+    return nullptr;
+}
+
+void FunctionDeclaration::debug() {
+    std::cout << "func";
+    name->evaluate();
+    std::cout << "(";
+    for (auto& param : parameters) {
+        param->evaluate();
+    }
+    std::cout << ") -> ";
+    for (auto& node : body) {
+        node->evaluate();
+    }
+}

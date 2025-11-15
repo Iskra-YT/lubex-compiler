@@ -11,6 +11,7 @@ struct InstructionStep {
     std::string expectedValue;
     std::function<void(Token&, void*)> action;
     bool consumesToken = false;
+    bool optional = false;
 };
 
 struct InstructionSet {
@@ -51,11 +52,16 @@ class Parser {
         std::unique_ptr<ASTNode> parseExpr();
         std::unique_ptr<ASTNode> parseStatement();
 
+        std::vector<std::unique_ptr<ASTNode>> parseFunctionArgs();
+        std::vector<std::unique_ptr<ASTNode>> parseBlock();
+
         std::unique_ptr<ASTNode> parseInstruction(InstructionSet& instrSet, void* context);
 
         // Instruction Sets
         InstructionSet varDeclInstr;
+        InstructionSet funcDeclInstr;
         void initVarDecl();
+        void initFuncDecl();
     public:
         Parser(std::vector<Token> toks);
         std::vector<std::unique_ptr<ASTNode>> parse();

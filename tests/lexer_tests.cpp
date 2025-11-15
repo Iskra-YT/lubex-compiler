@@ -56,13 +56,13 @@ LEXER_TEST(ArithmeticSymbols) {
 }
 
 LEXER_TEST(Delimiters) {
-    std::string input = "( ) : ;";
+    std::string input = "( ) : ; ->";
     std::vector<char> in(input.begin(), input.end());
 
     Lexer lexer(in);
     std::vector<Token> tokens = lexer.lex();
 
-    ASSERT_EQ(tokens.size(), 5);
+    ASSERT_EQ(tokens.size(), 6);
 
     ASSERT_EQ(tokens[0].type, TokenType::DELIMITER_TOKEN);
     ASSERT_EQ(tokens[0].value, "(");
@@ -76,7 +76,10 @@ LEXER_TEST(Delimiters) {
     ASSERT_EQ(tokens[3].type, TokenType::DELIMITER_TOKEN);
     ASSERT_EQ(tokens[3].value, ";");
 
-    ASSERT_EQ(tokens[4].type, TokenType::EOF_TOKEN);
+    ASSERT_EQ(tokens[4].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[4].value, "->");
+
+    ASSERT_EQ(tokens[5].type, TokenType::EOF_TOKEN);
 }
 
 LEXER_TEST(Identyfier) {
@@ -107,4 +110,22 @@ LEXER_TEST(Identyfier) {
     ASSERT_EQ(tokens[5].value, "@qwerty");
 
     ASSERT_EQ(tokens[6].type, TokenType::EOF_TOKEN);
+}
+
+LEXER_TEST(Keywords) {
+    std::string input = "let arg";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 3);
+
+    ASSERT_EQ(tokens[0].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[0].value, "let");
+
+    ASSERT_EQ(tokens[1].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[1].value, "arg");
+
+    ASSERT_EQ(tokens[2].type, TokenType::EOF_TOKEN);
 }
