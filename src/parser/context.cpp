@@ -47,12 +47,35 @@ void Parser::initFuncDecl() {
         {TokenType::DELIMITER_TOKEN, "{", [&](Token&, void* ctx){
             auto& c = *(FuncDeclContext*)ctx;
             c.body = parseBlock();
+            c.isForward = false;
         }, true, true},
         {TokenType::DELIMITER_TOKEN, "}", [](Token&, void*){}, false, true}
     };
 
     funcDeclInstr.finalize = [](PositionSpan span, void* ctx){
         FuncDeclContext* c = (FuncDeclContext*)ctx;
-        return std::make_unique<FunctionDeclaration>(span, std::move(c->name), std::move(c->returnType), std::move(c->parameters), std::move(c->body));
+        return std::make_unique<FunctionDeclaration>(span, std::move(c->name), std::move(c->returnType), std::move(c->parameters), std::move(c->body), c->isForward);
+    };
+}
+
+void Parser::initClassDecl() {
+    classDeclInstr.steps = {
+        {TokenType::KEYWORD_TOKEN, "class", [](Token&, void*){}, false, false},
+        {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx){
+            auto& c = *(ClassDeclContext*)ctx;
+            c.name = parseTerm();
+        }, true, false},
+        {TokenType::DELIMITER_TOKEN, "->", [](Token&, void*){}, false, true},
+        {TokenType::DELIMITER_TOKEN, "{", [&](Token&, void* ctx){
+            auto& c = *(ClassDeclContext*)ctx;
+            c.members = parseBlock();
+            c.isForward = false;
+        }, true, true},
+        {TokenType::DELIMITER_TOKEN, "}", [](Token&, void*){}, false, true}
+    };
+
+    classDeclInstr.finalize = [](PositionSpan span, void* ctx){
+        ClassDeclContext* c = (ClassDeclContext*)ctx;
+        return std::make_unique<ClassDeclNode>(span, std::move(c->name), std::move(c->members), c->isForward);
     };
 }

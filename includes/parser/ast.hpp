@@ -75,11 +75,27 @@ struct FunctionDeclaration : ASTNode {
     std::unique_ptr<ASTNode> type;
     std::vector<std::unique_ptr<ASTNode>> body;
     std::vector<std::unique_ptr<ASTNode>> parameters;
+    bool isForward;
 
-    FunctionDeclaration(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> type, std::vector<std::unique_ptr<ASTNode>> parameters, std::vector<std::unique_ptr<ASTNode>> body) : ASTNode(span), name(std::move(name)), type(std::move(type)), body(std::move(body)), parameters(std::move(parameters)) {}
+    FunctionDeclaration(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> type, std::vector<std::unique_ptr<ASTNode>> parameters, std::vector<std::unique_ptr<ASTNode>> body, bool isForward) : ASTNode(span), name(std::move(name)), type(std::move(type)), body(std::move(body)), parameters(std::move(parameters)), isForward(isForward) {}
     llvm::Value* evaluate() override;
     void debug() override;
 };
+
+struct ClassDeclNode : ASTNode {
+    std::unique_ptr<ASTNode> name;
+    std::vector<std::unique_ptr<ASTNode>> members;
+    bool isForward;
+
+    ClassDeclNode(PositionSpan span,
+                  std::unique_ptr<ASTNode> name,
+                  std::vector<std::unique_ptr<ASTNode>> members, bool isForward)
+        : ASTNode(span), name(std::move(name)), members(std::move(members)), isForward(isForward) {}
+
+    llvm::Value* evaluate() override;
+    void debug() override;
+};
+
 
 struct BinaryNode : ASTNode {
     std::string op;

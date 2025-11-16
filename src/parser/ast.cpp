@@ -122,3 +122,15 @@ void FunctionDeclaration::debug() {
         node->evaluate();
     }
 }
+
+llvm::Value* ClassDeclNode::evaluate() {
+    return nullptr;
+}
+
+void ClassDeclNode::debug() {
+    std::cout << "class";
+    name->evaluate();
+    for (auto& node : members) {
+        node->evaluate();
+    }
+}

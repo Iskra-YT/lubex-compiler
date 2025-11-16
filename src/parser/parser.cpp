@@ -6,6 +6,7 @@
 Parser::Parser(std::vector<Token> toks): tokens(toks) {
     initVarDecl();
     initFuncDecl();
+    initClassDecl();
 }
 
 Token Parser::getCurrent() {
@@ -185,6 +186,9 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
     } else if (tok.match(Token("func", TokenType::KEYWORD_TOKEN))) {
         FuncDeclContext ctx;
         return parseInstruction(funcDeclInstr, &ctx);
+    } else if (tok.match(Token("class", TokenType::KEYWORD_TOKEN))) {
+        ClassDeclContext ctx;
+        return parseInstruction(classDeclInstr, &ctx);
     }
     
     auto node = parseTerm();

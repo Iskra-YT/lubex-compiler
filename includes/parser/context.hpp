@@ -19,6 +19,13 @@ struct FuncDeclContext {
     std::unique_ptr<ASTNode> returnType;
     std::vector<std::unique_ptr<ASTNode>> parameters;
     std::vector<std::unique_ptr<ASTNode>> body;
+    bool isForward = true;
+};
+
+struct ClassDeclContext {
+    std::unique_ptr<ASTNode> name;
+    std::vector<std::unique_ptr<ASTNode>> members;
+    bool isForward = true;
 };
 
 #endif // CONTEXT_LUBEX_HPP
