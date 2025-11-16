@@ -324,3 +324,29 @@ PARSER_TEST(ClassDeclaration) {
         ASSERT_EQ(classNode->isForward, true);
     }
 }
+
+PARSER_TEST(ModuleDeclaration) {
+    std::vector<Token> tokens = {
+        Token("module", TokenType::KEYWORD_TOKEN),
+        Token("main", TokenType::IDENTYFIER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto moduleNode = dynamic_cast<ModuleDeclaration*>(stmt->value.get());
+    ASSERT_NE(moduleNode, nullptr);
+
+    auto name = dynamic_cast<IdentyfierNode*>(moduleNode->name.get());
+    ASSERT_NE(name, nullptr);
+    ASSERT_EQ(name->value, "main");
+}

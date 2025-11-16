@@ -28,4 +28,8 @@ struct ClassDeclContext {
     bool isForward = true;
 };
 
+struct ModuleDeclContext {
+    std::unique_ptr<ASTNode> name;
+};
+
 #endif // CONTEXT_LUBEX_HPP

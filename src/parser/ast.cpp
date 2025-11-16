@@ -134,3 +134,12 @@ void ClassDeclNode::debug() {
         node->evaluate();
     }
 }
+
+llvm::Value* ModuleDeclaration::evaluate() {
+    return nullptr;
+}
+
+void ModuleDeclaration::debug() {
+    std::cout << "module";
+    name->evaluate();
+}

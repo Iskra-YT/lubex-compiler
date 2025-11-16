@@ -79,3 +79,18 @@ void Parser::initClassDecl() {
         return std::make_unique<ClassDeclNode>(span, std::move(c->name), std::move(c->members), c->isForward);
     };
 }
+
+void Parser::initModuleDecl() {
+    moduleDeclInstr.steps = {
+        {TokenType::KEYWORD_TOKEN, "module", [](Token&, void*){}, false, false},
+        {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx){
+            auto& c = *(ModuleDeclContext*)ctx;
+            c.name = parseTerm();
+        }, true, false},
+    };
+
+    moduleDeclInstr.finalize = [](PositionSpan span, void* ctx){
+        ModuleDeclContext* c = (ModuleDeclContext*)ctx;
+        return std::make_unique<ModuleDeclaration>(span, std::move(c->name));
+    };
+}

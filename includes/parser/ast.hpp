@@ -96,6 +96,13 @@ struct ClassDeclNode : ASTNode {
     void debug() override;
 };
 
+struct ModuleDeclaration : ASTNode {
+    std::unique_ptr<ASTNode> name;
+
+    ModuleDeclaration(PositionSpan span, std::unique_ptr<ASTNode> name): ASTNode(span), name(std::move(name)) {}
+    llvm::Value* evaluate() override;
+    void debug() override;
+};
 
 struct BinaryNode : ASTNode {
     std::string op;

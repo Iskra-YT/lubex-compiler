@@ -113,7 +113,7 @@ LEXER_TEST(Identyfier) {
 }
 
 LEXER_TEST(Keywords) {
-    std::string input = "let arg class func";
+    std::string input = "let arg class func module";
     std::vector<char> in(input.begin(), input.end());
 
     Lexer lexer(in);
@@ -133,5 +133,8 @@ LEXER_TEST(Keywords) {
     ASSERT_EQ(tokens[3].type, TokenType::KEYWORD_TOKEN);
     ASSERT_EQ(tokens[3].value, "func");
 
-    ASSERT_EQ(tokens[4].type, TokenType::EOF_TOKEN);
+    ASSERT_EQ(tokens[4].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[4].value, "module");
+
+    ASSERT_EQ(tokens[5].type, TokenType::EOF_TOKEN);
 }
