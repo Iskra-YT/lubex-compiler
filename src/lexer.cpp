@@ -78,7 +78,7 @@ std::vector<Token> Lexer::lex() {
             continue;
         } 
 
-        else if (currentToken == '(' || currentToken == ')' || currentToken == ';' || currentToken == ':' || currentToken == '{' || currentToken == '}' || currentToken == '.') {
+        else if (currentToken == '(' || currentToken == ')' || currentToken == ';' || currentToken == ':' || currentToken == '{' || currentToken == '}' || currentToken == '.' || currentToken == ',') {
             tokens.push_back({{startPos, currentPosition}, std::string(1, currentToken), TokenType::DELIMITER_TOKEN});
             advance();
             continue;
