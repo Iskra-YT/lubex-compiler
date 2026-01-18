@@ -241,12 +241,20 @@ std::unique_ptr<ASTNode> Parser::parseTerm() {
     return node;
 }
 
-std::unique_ptr<ASTNode> Parser::parseFactor() {
+std::unique_ptr<ASTNode> Parser::parsePrimary() {
     Token tok = getCurrent();
 
     if (tok.type == TokenType::NUMBER_TOKEN) {
         advance();
-        return std::make_unique<NumberNode>(PositionSpan(tok.position.start, getCurrent().position.end), std::stod(tok.value));
+        return std::make_unique<NumberNode>(
+            PositionSpan(tok.position.start, tok.position.end),
+            std::stod(tok.value)
+        );
+    }
+
+    if (tok.type == TokenType::IDENTYFIER_TOKEN) {
+        advance();
+        return std::make_unique<IdentyfierNode>(tok.position, tok.value);
     }
 
     if (tok.match(Token("(", TokenType::DELIMITER_TOKEN))) {
@@ -256,28 +264,69 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
             pushError(Error(tok.position, "Expected ')'"));
             return nullptr;
         }
-        advance();
+
         return node;
     }
 
-    if (tok.match(Token("-", TokenType::ARITHMETIC_TOKEN))) {
-        advance();
-        auto right = parseFactor();
-        auto zero = std::make_unique<NumberNode>(PositionSpan(0, 0), 0.0);
-        return std::make_unique<BinaryNode>(PositionSpan(tok.position.start, getCurrent().position.end), "-", std::move(zero), std::move(right));
-    }
-
-    if (tok.match(Token("+", TokenType::ARITHMETIC_TOKEN))) {
-        advance();
-        return parseFactor();
-    }
-
-    if (tok.type == TokenType::IDENTYFIER_TOKEN) {
-        advance();
-        return std::make_unique<IdentyfierNode>(tok.position, tok.value);
-    }
-
-    pushError(Error(tok.position, "Unexpected token in factor: " + tok.value));
-    advance();
+    pushError(Error(tok.position, "Expected primary expression"));
     return nullptr;
+}
+
+std::unique_ptr<ASTNode> Parser::parseFactor() {
+    auto node = parsePrimary();
+    if (!node) return nullptr;
+
+    if (!allowCallAndMember)
+        return node;
+
+    while (true) {
+        Token tok = getCurrent();
+
+        if (tok.match(Token("(", TokenType::DELIMITER_TOKEN))) {
+            advance();
+
+            std::vector<std::unique_ptr<ASTNode>> args;
+            if (!getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN))) {
+                do {
+                    args.push_back(parseExpr());
+                    if (getCurrent().match(Token(",", TokenType::DELIMITER_TOKEN))) {
+                        advance();
+                    } else {
+                        break;
+                    }
+                } while (true);
+            }
+
+            if (!getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN))) {
+                pushError(Error(tok.position, "Expected ')'"));
+                return nullptr;
+            }
+            advance();
+
+            node = std::make_unique<CallNode>(
+                PositionSpan(node->position.start, getCurrent().position.end),
+                std::move(node),
+                std::move(args)
+            );
+            continue;
+        }
+
+        if (tok.match(Token(".", TokenType::DELIMITER_TOKEN))) {
+        advance();
+
+        auto memberNode = parseFactor();
+        if (!memberNode) return nullptr;
+
+        node = std::make_unique<MemberAccessNode>(
+            PositionSpan(node->position.start, memberNode->position.end),
+            std::move(node),
+            std::move(memberNode)
+        );
+        continue;
+    }
+
+        break;
+    }
+
+    return node;
 }

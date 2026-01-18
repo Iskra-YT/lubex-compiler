@@ -30,8 +30,10 @@ void Parser::initFuncDecl() {
     funcDeclInstr.steps = {
         {TokenType::KEYWORD_TOKEN, "func", [](Token&, void*){}, false, false},
         {TokenType::IDENTYFIER_TOKEN, "", [&](Token&, void* ctx){
+            allowCallAndMember = false;
             auto& c = *(FuncDeclContext*)ctx;
             c.name = parseTerm();
+            allowCallAndMember = true;
         }, true, false},
         {TokenType::DELIMITER_TOKEN, "(", [&](Token& t, void* ctx){
             auto& c = *(FuncDeclContext*)ctx;
@@ -62,8 +64,10 @@ void Parser::initClassDecl() {
     classDeclInstr.steps = {
         {TokenType::KEYWORD_TOKEN, "class", [](Token&, void*){}, false, false},
         {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx){
+            allowCallAndMember = false;
             auto& c = *(ClassDeclContext*)ctx;
             c.name = parseTerm();
+            allowCallAndMember = true;
         }, true, false},
         {TokenType::DELIMITER_TOKEN, "->", [](Token&, void*){}, false, true},
         {TokenType::DELIMITER_TOKEN, "{", [&](Token&, void* ctx){
@@ -84,8 +88,10 @@ void Parser::initModuleDecl() {
     moduleDeclInstr.steps = {
         {TokenType::KEYWORD_TOKEN, "module", [](Token&, void*){}, false, false},
         {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx){
+            allowCallAndMember = false;
             auto& c = *(ModuleDeclContext*)ctx;
             c.name = parseTerm();
+            allowCallAndMember = true;
         }, true, false},
     };
 

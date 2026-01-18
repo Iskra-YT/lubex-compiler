@@ -70,7 +70,7 @@ llvm::Value* VariableDeclarationNode::evaluate() {
 
 void VariableDeclarationNode::debug() {
     std::cout << "let";
-    name->evaluate();
+    name->debug();
     std::cout << ":";
     type->debug();
     std::cout << "=";
@@ -90,9 +90,9 @@ llvm::Value* VariableAssigment::evaluate() {
 }
 
 void VariableAssigment::debug() {
-    name->evaluate();
+    name->debug();
     std::cout << "=";
-    value->evaluate();
+    value->debug();
 }
 
 llvm::Value* ArgDeclaration::evaluate() {
@@ -101,9 +101,9 @@ llvm::Value* ArgDeclaration::evaluate() {
 
 void ArgDeclaration::debug() {
     std::cout << "arg";
-    name->evaluate();
+    name->debug();
     std::cout << ":";
-    type->evaluate();
+    type->debug();
 }
 
 llvm::Value* FunctionDeclaration::evaluate() {
@@ -115,11 +115,11 @@ void FunctionDeclaration::debug() {
     name->evaluate();
     std::cout << "(";
     for (auto& param : parameters) {
-        param->evaluate();
+        param->debug();
     }
     std::cout << ") -> ";
     for (auto& node : body) {
-        node->evaluate();
+        node->debug();
     }
 }
 
@@ -131,7 +131,7 @@ void ClassDeclNode::debug() {
     std::cout << "class";
     name->evaluate();
     for (auto& node : members) {
-        node->evaluate();
+        node->debug();
     }
 }
 
@@ -141,5 +141,28 @@ llvm::Value* ModuleDeclaration::evaluate() {
 
 void ModuleDeclaration::debug() {
     std::cout << "module";
-    name->evaluate();
+    name->debug();
+}
+
+llvm::Value* CallNode::evaluate()  {
+    return nullptr;
+}
+
+void CallNode::debug() {
+    callee->debug();
+    std::cout << "(";
+    for (auto& arg : args) {
+        arg->debug();
+    }
+    std::cout << ")";
+}
+
+llvm::Value* MemberAccessNode::evaluate() {
+    return nullptr;
+}
+
+void MemberAccessNode::debug() {
+    object->debug();
+    std::cout << ".";
+    member->debug();
 }

@@ -116,4 +116,24 @@ struct BinaryNode : ASTNode {
     void debug() override;
 };
 
+struct CallNode : ASTNode {
+    std::unique_ptr<ASTNode> callee;
+    std::vector<std::unique_ptr<ASTNode>> args;
+
+    CallNode(PositionSpan span, std::unique_ptr<ASTNode> c, std::vector<std::unique_ptr<ASTNode>> a) : ASTNode(span), callee(std::move(c)), args(std::move(a)) {}
+    
+    llvm::Value* evaluate() override;
+    void debug() override;
+};
+
+struct MemberAccessNode : ASTNode {
+    std::unique_ptr<ASTNode> object;
+    std::unique_ptr<ASTNode> member;
+
+    MemberAccessNode(PositionSpan span, std::unique_ptr<ASTNode> o, std::unique_ptr<ASTNode> m) : ASTNode(span), object(std::move(o)), member(std::move(m)) {}
+
+    llvm::Value* evaluate() override;
+    void debug() override;
+};
+
 #endif // AST_NODE_HPP

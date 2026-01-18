@@ -350,3 +350,62 @@ PARSER_TEST(ModuleDeclaration) {
     ASSERT_NE(name, nullptr);
     ASSERT_EQ(name->value, "main");
 }
+
+PARSER_TEST(FunctionCall) {
+    std::vector<Token> tokens = {
+        Token("abc", TokenType::IDENTYFIER_TOKEN),
+        Token("(", TokenType::DELIMITER_TOKEN),
+        Token(")", TokenType::DELIMITER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto callNode = dynamic_cast<CallNode*>(stmt->value.get());
+    ASSERT_NE(callNode, nullptr);
+    ASSERT_EQ(callNode->args.size(), 0);
+
+    auto callee = dynamic_cast<IdentyfierNode*>(callNode->callee.get());
+    ASSERT_EQ(callee->value, "abc");
+}
+
+PARSER_TEST(MemberAccess) {
+    std::vector<Token> tokens = {
+        Token("abc", TokenType::IDENTYFIER_TOKEN),
+        Token(".", TokenType::DELIMITER_TOKEN),
+        Token("cba", TokenType::IDENTYFIER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto memberNode = dynamic_cast<MemberAccessNode*>(stmt->value.get());
+    ASSERT_NE(memberNode, nullptr);
+
+    auto member = dynamic_cast<IdentyfierNode*>(memberNode->member.get());
+    auto object = dynamic_cast<IdentyfierNode*>(memberNode->object.get());
+
+    ASSERT_NE(member, nullptr);
+    ASSERT_NE(object, nullptr);
+
+    ASSERT_EQ(object->value, "abc");
+    ASSERT_EQ(member->value, "cba");
+}

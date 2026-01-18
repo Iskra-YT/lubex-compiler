@@ -47,6 +47,7 @@ class Parser {
         Token advance();
         bool eat(ExpectedToken expectation);
 
+        std::unique_ptr<ASTNode> parsePrimary();
         std::unique_ptr<ASTNode> parseFactor();
         std::unique_ptr<ASTNode> parseTerm();
         std::unique_ptr<ASTNode> parseExpr();
@@ -56,6 +57,8 @@ class Parser {
         std::vector<std::unique_ptr<ASTNode>> parseBlock();
 
         std::unique_ptr<ASTNode> parseInstruction(InstructionSet& instrSet, void* context);
+
+        bool allowCallAndMember = true;
 
         // Instruction Sets
         InstructionSet varDeclInstr;
