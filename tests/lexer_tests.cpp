@@ -56,13 +56,13 @@ LEXER_TEST(ArithmeticSymbols) {
 }
 
 LEXER_TEST(Delimiters) {
-    std::string input = "( ) : ; -> { }";
+    std::string input = "( ) : ; -> { } , .";
     std::vector<char> in(input.begin(), input.end());
 
     Lexer lexer(in);
     std::vector<Token> tokens = lexer.lex();
 
-    ASSERT_EQ(tokens.size(), 8);
+    ASSERT_EQ(tokens.size(), 10);
 
     ASSERT_EQ(tokens[0].type, TokenType::DELIMITER_TOKEN);
     ASSERT_EQ(tokens[0].value, "(");
@@ -85,7 +85,13 @@ LEXER_TEST(Delimiters) {
     ASSERT_EQ(tokens[6].type, TokenType::DELIMITER_TOKEN);
     ASSERT_EQ(tokens[6].value, "}");
 
-    ASSERT_EQ(tokens[7].type, TokenType::EOF_TOKEN);
+    ASSERT_EQ(tokens[7].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[7].value, ",");
+
+    ASSERT_EQ(tokens[8].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[8].value, ".");
+
+    ASSERT_EQ(tokens[9].type, TokenType::EOF_TOKEN);
 }
 
 LEXER_TEST(Identyfier) {

@@ -3,17 +3,14 @@
 #include <iostream>
 #include <cmath>
 #include "emiter.hpp"
-
-llvm::Value* ASTNode::evaluate() {
-    throw std::runtime_error("Internal error: unreachable path");
-}
+#include "evaluator.hpp"
 
 void ASTNode::debug() {
     throw std::runtime_error("Internal error: unreachable path");
 }
 
-llvm::Value* StatementNode::evaluate() {
-    return value->evaluate();
+Symbol* ASTNode::evaluateSymbol(Context& ctx) {
+    throw std::runtime_error("Internal error: unreachable path");
 }
 
 void StatementNode::debug() {
@@ -21,39 +18,16 @@ void StatementNode::debug() {
     std::cout << ";";
 }
 
-llvm::Value* NumberNode::evaluate() {
-    if (std::floor(value) != value) {
-        return llvm::ConstantFP::get(
-            llvm::Type::getFloatTy(*emiterContext),
-            static_cast<float>(value)
-        );
-    }
-    else {
-        return llvm::ConstantInt::get(
-            llvm::Type::getInt32Ty(*emiterContext),
-            static_cast<int32_t>(value)
-        );
-    }
+Symbol* StatementNode::evaluateSymbol(Context& ctx) {
+    return value->evaluateSymbol(ctx);
 }
 
 void NumberNode::debug() {
     std::cout << value;
 }
 
-llvm::Value* BinaryNode::evaluate() {
-    llvm::Value* L = left->evaluate();
-    llvm::Value* R = right->evaluate();
-
-    if (op == "+")
-        return emiterBuilder->CreateAdd(L, R, "addtmp");
-    else if (op == "-")
-        return emiterBuilder->CreateSub(L, R, "subtmp");
-    else if (op == "*")
-        return emiterBuilder->CreateMul(L, R, "multmp");
-    else if (op == "/")
-        return emiterBuilder->CreateSDiv(L, R, "divtmp");
-    else
-        throw std::runtime_error("Internal error: unreachable path");
+Symbol* NumberNode::evaluateSymbol(Context& ctx) {
+    return nullptr;
 }
 
 void BinaryNode::debug() {
@@ -64,7 +38,11 @@ void BinaryNode::debug() {
     std::cout << ")";
 }
 
-llvm::Value* VariableDeclarationNode::evaluate() {
+Symbol* BinaryNode::evaluateSymbol(Context& ctx) {
+    if (ctx.phase == PassPhase::TYPE_CHECK) {
+        left->evaluateSymbol(ctx);
+        right->evaluateSymbol(ctx);
+    }
     return nullptr;
 }
 
@@ -77,7 +55,13 @@ void VariableDeclarationNode::debug() {
     value->debug();
 }
 
-llvm::Value* IdentyfierNode::evaluate() {
+Symbol* VariableDeclarationNode::evaluateSymbol(Context& ctx) {
+    if (ctx.phase == PassPhase::TYPE_CHECK) {
+        type->evaluateSymbol(ctx);
+        value->evaluateSymbol(ctx);
+        ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get())));
+    }
+
     return nullptr;
 }
 
@@ -85,8 +69,8 @@ void IdentyfierNode::debug() {
     std::cout << value;
 }
 
-llvm::Value* VariableAssigment::evaluate() {
-    return nullptr;
+Symbol* IdentyfierNode::evaluateSymbol(Context& ctx) {
+    return ctx.lookup(this);
 }
 
 void VariableAssigment::debug() {
@@ -95,7 +79,12 @@ void VariableAssigment::debug() {
     value->debug();
 }
 
-llvm::Value* ArgDeclaration::evaluate() {
+Symbol* VariableAssigment::evaluateSymbol(Context& ctx) {
+    if (ctx.phase == PassPhase::TYPE_CHECK) {
+        name->evaluateSymbol(ctx);
+        value->evaluateSymbol(ctx);
+    }
+
     return nullptr;
 }
 
@@ -106,13 +95,19 @@ void ArgDeclaration::debug() {
     type->debug();
 }
 
-llvm::Value* FunctionDeclaration::evaluate() {
+Symbol* ArgDeclaration::evaluateSymbol(Context& ctx) {
+    if (ctx.phase == PassPhase::DECLARATION) {
+        ctx.declare(std::make_unique<Symbol>(
+            SymbolKind::VARIABLE,
+            static_cast<IdentyfierNode*>(name.get())
+        ));
+    }
     return nullptr;
 }
 
 void FunctionDeclaration::debug() {
     std::cout << "func";
-    name->evaluate();
+    name->debug();
     std::cout << "(";
     for (auto& param : parameters) {
         param->debug();
@@ -123,19 +118,52 @@ void FunctionDeclaration::debug() {
     }
 }
 
-llvm::Value* ClassDeclNode::evaluate() {
+Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
+    if (ctx.phase == PassPhase::DECLARATION) {
+        ctx.declare(std::make_unique<Symbol>(
+            SymbolKind::FUNCTION,
+            static_cast<IdentyfierNode*>(name.get())
+        ));
+    }
+
+    if (ctx.phase == PassPhase::TYPE_CHECK) {
+        type->evaluateSymbol(ctx);
+
+        Context* fnCtx = ctx.addChild();
+
+        for (auto& param : parameters) {
+            param->evaluateSymbol(*fnCtx);
+        }
+
+        for (auto& stmt : body) {
+            stmt->evaluateSymbol(*fnCtx);
+        }
+    }
+
     return nullptr;
 }
 
 void ClassDeclNode::debug() {
     std::cout << "class";
-    name->evaluate();
+    name->debug();
     for (auto& node : members) {
         node->debug();
     }
 }
 
-llvm::Value* ModuleDeclaration::evaluate() {
+Symbol* ClassDeclNode::evaluateSymbol(Context& ctx) {
+    if (ctx.phase == PassPhase::DECLARATION) {
+        ctx.declare(std::make_unique<Symbol>(
+            SymbolKind::CLASS,
+            static_cast<IdentyfierNode*>(name.get())
+        ));
+    }
+
+    Context* classCtx = ctx.addChild();
+    for (auto& member : members) {
+        member->evaluateSymbol(*classCtx);
+    }
+
     return nullptr;
 }
 
@@ -144,7 +172,14 @@ void ModuleDeclaration::debug() {
     name->debug();
 }
 
-llvm::Value* CallNode::evaluate()  {
+Symbol* ModuleDeclaration::evaluateSymbol(Context& ctx) {
+    if (ctx.phase == PassPhase::DECLARATION) {
+        ctx.declare(std::make_unique<Symbol>(
+            SymbolKind::MODULE,
+            static_cast<IdentyfierNode*>(name.get())
+        ));
+    }
+
     return nullptr;
 }
 
@@ -157,7 +192,11 @@ void CallNode::debug() {
     std::cout << ")";
 }
 
-llvm::Value* MemberAccessNode::evaluate() {
+Symbol* CallNode::evaluateSymbol(Context& ctx) {
+    callee->evaluateSymbol(ctx);
+    for (auto& arg : args) {
+        arg->evaluateSymbol(ctx);
+    }
     return nullptr;
 }
 
@@ -165,4 +204,9 @@ void MemberAccessNode::debug() {
     object->debug();
     std::cout << ".";
     member->debug();
+}
+
+Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
+    object->evaluateSymbol(ctx);
+    return nullptr;
 }

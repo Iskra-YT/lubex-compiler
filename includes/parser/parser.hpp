@@ -1,10 +1,12 @@
 #ifndef PARSER_LUBEX_HPP
 #define PARSER_LUBEX_HPP
 
-#include <vector>
 #include "lexer.hpp"
 #include "error.hpp"
 #include "parser/ast.hpp"
+#include <functional>
+#include <memory>
+#include <vector>
 
 struct InstructionStep {
     TokenType expectedType;
@@ -17,6 +19,7 @@ struct InstructionStep {
 struct InstructionSet {
     std::vector<InstructionStep> steps;
     std::function<std::unique_ptr<ASTNode>(PositionSpan, void*)> finalize;
+    bool needsSemicolon = true;
 };
 
 enum class ExpectationType {
@@ -45,7 +48,6 @@ class Parser {
 
         Token getCurrent();
         Token advance();
-        bool eat(ExpectedToken expectation);
 
         std::unique_ptr<ASTNode> parsePrimary();
         std::unique_ptr<ASTNode> parseFactor();

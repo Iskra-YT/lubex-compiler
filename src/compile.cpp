@@ -6,6 +6,7 @@
 #include "error.hpp"
 #include "lexer.hpp"
 #include "optimizer.hpp"
+#include "evaluator.hpp"
 #include "parser/parser.hpp"
 
 bool compileProject() {
@@ -74,6 +75,25 @@ bool compileProject() {
         getOptimization(&nodes);
     }
 
+    Context globalCtx(nullptr);
+
+    globalCtx.phase = PassPhase::DECLARATION;
+    for (const auto& node : nodes) {
+        node->evaluateSymbol(globalCtx);
+    }
+
+    globalCtx.phase = PassPhase::TYPE_CHECK;
+    for (const auto& node : nodes) {
+        node->evaluateSymbol(globalCtx);
+    }
+
+    if (globalCtx.getErrors().size() != 0) {
+        for (auto error : globalCtx.getErrors()) {
+            std::cout << error.returnError() << "\n";
+            return false;
+        }
+    }
+
     for (const auto& node : nodes) {
         node->debug();
         std::cout << "\n";
@@ -81,7 +101,7 @@ bool compileProject() {
 
     // TEMP START:
     emiterBuilder->CreateRet(llvm::ConstantInt::get(intTy, 0));
-    emiterModule->print(llvm::outs(), nullptr);
+    // emiterModule->print(llvm::outs(), nullptr);
     // TEMP END:
 
     return true;

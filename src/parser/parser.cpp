@@ -3,6 +3,8 @@
 #include <iostream>
 #include "parser/context.hpp"
 
+struct ASTNode;
+
 Parser::Parser(std::vector<Token> toks): tokens(toks) {
     initVarDecl();
     initFuncDecl();
@@ -54,8 +56,10 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parseFunctionArgs() {
     }
     advance();
 
-    if (!getCurrent().match(Token("arg", TokenType::KEYWORD_TOKEN))) {
+    if (!(getCurrent().match(Token("arg", TokenType::KEYWORD_TOKEN)) || getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN)))) {
         pushError(Error(getCurrent().position, "Expected argument at function arguments"));
+        return args;
+    } else if (getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN))) {
         return args;
     }
     advance();
