@@ -10,6 +10,6 @@ extern std::unique_ptr<llvm::LLVMContext> emiterContext;
 extern std::unique_ptr<llvm::Module> emiterModule;
 extern std::unique_ptr<llvm::IRBuilder<>> emiterBuilder;
 
-void setEmiter(std::string projectName);
+void setEmiter(std::string moduleName);
 
 #endif //EMITER_LUBEX_HPP

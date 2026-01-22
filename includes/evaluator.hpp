@@ -11,6 +11,7 @@
 struct IdentyfierNode;
 
 enum class SymbolKind {
+    NOT,
     VARIABLE,
     FUNCTION,
     CLASS,
@@ -19,17 +20,22 @@ enum class SymbolKind {
 
 enum class PassPhase {
     DECLARATION,
+    MIDPASS,
     TYPE_CHECK
 };
 
 struct Symbol {
     SymbolKind kind;
     IdentyfierNode* name;
-    Symbol(SymbolKind kind, IdentyfierNode* name) : kind(kind), name(name) {}
+    Symbol* type;
+    Context* scope = nullptr;
+
+    Symbol(SymbolKind kind, IdentyfierNode* name, Symbol* type) : kind(kind), name(name), type(type) {}
 };
 
 struct Context {
     Context* parent = nullptr;
+    SymbolKind symbolKind;
     std::unordered_map<std::string, std::unique_ptr<Symbol>> symbols;
     std::vector<std::unique_ptr<Context>> children;
     std::vector<Error> errors;

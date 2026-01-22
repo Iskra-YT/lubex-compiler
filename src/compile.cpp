@@ -34,18 +34,6 @@ bool compileProject() {
 
     std::vector<Error> errors;
 
-    setEmiter(config.name);
-
-    // TEMP START:
-    auto *intTy = llvm::Type::getInt32Ty(*emiterContext);
-    auto *funcType = llvm::FunctionType::get(intTy, false);
-    auto *mainFunc = llvm::Function::Create(
-        funcType, llvm::Function::ExternalLinkage, "main", emiterModule.get());
-
-    auto *entry = llvm::BasicBlock::Create(*emiterContext, "entry", mainFunc);
-    emiterBuilder->SetInsertPoint(entry);
-    // TEMP END
-
     Lexer lexer(buffer);
     std::vector<Token> tokens = lexer.lex();
     for (auto token : tokens) {
@@ -56,7 +44,7 @@ bool compileProject() {
 
     if (!errors.empty()) {
         for (auto error : errors) {
-            std::cout << error.returnError() << "\n";
+            std::cerr << error.returnError() << "\n";
             return false;
         }
     }
@@ -66,7 +54,7 @@ bool compileProject() {
 
     if (!parser.getErrors().empty()) {
         for (auto error : parser.getErrors()) {
-            std::cout << error.returnError() << "\n";
+            std::cerr << error.returnError() << "\n";
             return false;
         }
     }
@@ -75,21 +63,28 @@ bool compileProject() {
         getOptimization(&nodes);
     }
 
-    Context globalCtx(nullptr);
-
-    globalCtx.phase = PassPhase::DECLARATION;
-    for (const auto& node : nodes) {
-        node->evaluateSymbol(globalCtx);
+    if (!dynamic_cast<ModuleDeclaration*>(dynamic_cast<StatementNode*>(nodes[0].get())->value.get())) {
+        std::cerr << Error(PositionSpan(1, 1), "First declaration must be a module declaration").returnError() << "\n";
+        return false;
     }
 
-    globalCtx.phase = PassPhase::TYPE_CHECK;
-    for (const auto& node : nodes) {
-        node->evaluateSymbol(globalCtx);
+    Context globalCtx(nullptr);
+    globalCtx.symbolKind = SymbolKind::NOT;
+
+    for (auto phase : {
+        PassPhase::DECLARATION,
+        PassPhase::MIDPASS,
+        PassPhase::TYPE_CHECK
+    }) {
+        globalCtx.phase = phase;
+        for (auto& node : nodes) {
+            node->evaluateSymbol(globalCtx);
+        }
     }
 
     if (globalCtx.getErrors().size() != 0) {
         for (auto error : globalCtx.getErrors()) {
-            std::cout << error.returnError() << "\n";
+            std::cerr << error.returnError() << "\n";
             return false;
         }
     }
@@ -98,6 +93,18 @@ bool compileProject() {
         node->debug();
         std::cout << "\n";
     }
+
+    setEmiter(static_cast<IdentyfierNode*>(static_cast<ModuleDeclaration*>(nodes[0].get())->name.get())->value);
+
+    // TEMP START:
+    auto *intTy = llvm::Type::getInt32Ty(*emiterContext);
+    auto *funcType = llvm::FunctionType::get(intTy, false);
+    auto *mainFunc = llvm::Function::Create(
+        funcType, llvm::Function::ExternalLinkage, "main", emiterModule.get());
+
+    auto *entry = llvm::BasicBlock::Create(*emiterContext, "entry", mainFunc);
+    emiterBuilder->SetInsertPoint(entry);
+    // TEMP END
 
     // TEMP START:
     emiterBuilder->CreateRet(llvm::ConstantInt::get(intTy, 0));

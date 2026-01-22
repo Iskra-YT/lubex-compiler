@@ -1,5 +1,5 @@
 #include "parser/ast.hpp"
-#include <exception>
+#include <stdexcept>
 #include <iostream>
 #include <cmath>
 #include "emiter.hpp"
@@ -27,7 +27,7 @@ void NumberNode::debug() {
 }
 
 Symbol* NumberNode::evaluateSymbol(Context& ctx) {
-    return nullptr;
+    return ctx.lookup(std::make_unique<IdentyfierNode>(position, "Int").get());
 }
 
 void BinaryNode::debug() {
@@ -40,8 +40,15 @@ void BinaryNode::debug() {
 
 Symbol* BinaryNode::evaluateSymbol(Context& ctx) {
     if (ctx.phase == PassPhase::TYPE_CHECK) {
-        left->evaluateSymbol(ctx);
-        right->evaluateSymbol(ctx);
+        auto L = left->evaluateSymbol(ctx);
+        auto R = right->evaluateSymbol(ctx);
+
+        if (!L || !R || !L->type || !R->type) return nullptr;
+        if (L->name->value != R->name->value) {
+            ctx.errors.push_back(Error(position, "Type mismatch in binary operation"));
+        }
+
+        return L->type;
     }
     return nullptr;
 }
@@ -52,14 +59,21 @@ void VariableDeclarationNode::debug() {
     std::cout << ":";
     type->debug();
     std::cout << "=";
-    value->debug();
+    if(value) value->debug();
 }
 
 Symbol* VariableDeclarationNode::evaluateSymbol(Context& ctx) {
     if (ctx.phase == PassPhase::TYPE_CHECK) {
-        type->evaluateSymbol(ctx);
-        value->evaluateSymbol(ctx);
-        ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get())));
+        auto t = type->evaluateSymbol(ctx);
+        ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), t));
+
+        if (value) {
+            auto v = value->evaluateSymbol(ctx);
+            auto sym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
+            if (v && t && sym && t->name->value != v->name->value) {
+                ctx.errors.push_back(Error(position, "Type mismatch in variable declaration"));
+            }
+        }
     }
 
     return nullptr;
@@ -81,8 +95,15 @@ void VariableAssigment::debug() {
 
 Symbol* VariableAssigment::evaluateSymbol(Context& ctx) {
     if (ctx.phase == PassPhase::TYPE_CHECK) {
-        name->evaluateSymbol(ctx);
-        value->evaluateSymbol(ctx);
+        auto n = name->evaluateSymbol(ctx);
+        auto v = value->evaluateSymbol(ctx);
+
+        if (!n || !v) return nullptr;
+        if (!n || n->kind != SymbolKind::VARIABLE) {
+            ctx.errors.push_back(Error(position, "Cannot assign to non-variable symbol"));
+        } else if (n->type->name->value != v->name->value) {
+            ctx.errors.push_back(Error(position, "Type mismatch in variable assignment"));
+        }
     }
 
     return nullptr;
@@ -99,9 +120,16 @@ Symbol* ArgDeclaration::evaluateSymbol(Context& ctx) {
     if (ctx.phase == PassPhase::DECLARATION) {
         ctx.declare(std::make_unique<Symbol>(
             SymbolKind::VARIABLE,
-            static_cast<IdentyfierNode*>(name.get())
+            static_cast<IdentyfierNode*>(name.get()),
+            nullptr
         ));
     }
+
+    if (ctx.phase == PassPhase::MIDPASS) {
+        auto sym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
+        sym->type = type->evaluateSymbol(ctx);
+    }
+
     return nullptr;
 }
 
@@ -119,21 +147,36 @@ void FunctionDeclaration::debug() {
 }
 
 Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
+    if (ctx.symbolKind != SymbolKind::CLASS) {
+        ctx.errors.push_back(Error(position, "Function declarations are only allowed inside class declarations"));
+        return nullptr;
+    }
+
     if (ctx.phase == PassPhase::DECLARATION) {
         ctx.declare(std::make_unique<Symbol>(
             SymbolKind::FUNCTION,
-            static_cast<IdentyfierNode*>(name.get())
+            static_cast<IdentyfierNode*>(name.get()),
+            nullptr
         ));
     }
 
-    if (ctx.phase == PassPhase::TYPE_CHECK) {
-        type->evaluateSymbol(ctx);
+    if (ctx.phase == PassPhase::MIDPASS) {
+        auto fnSym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
+        fnSym->type = type->evaluateSymbol(ctx);
 
         Context* fnCtx = ctx.addChild();
+        fnCtx->phase = ctx.phase;
+        fnCtx->symbolKind = SymbolKind::FUNCTION;
 
         for (auto& param : parameters) {
             param->evaluateSymbol(*fnCtx);
         }
+    }
+
+    if (ctx.phase == PassPhase::TYPE_CHECK) {
+        Context* fnCtx = ctx.addChild();
+        fnCtx->phase = ctx.phase;
+        fnCtx->symbolKind = SymbolKind::FUNCTION;
 
         for (auto& stmt : body) {
             stmt->evaluateSymbol(*fnCtx);
@@ -153,13 +196,21 @@ void ClassDeclNode::debug() {
 
 Symbol* ClassDeclNode::evaluateSymbol(Context& ctx) {
     if (ctx.phase == PassPhase::DECLARATION) {
-        ctx.declare(std::make_unique<Symbol>(
+        auto sym = std::make_unique<Symbol>(
             SymbolKind::CLASS,
-            static_cast<IdentyfierNode*>(name.get())
-        ));
+            static_cast<IdentyfierNode*>(name.get()),
+            nullptr
+        );
+
+        sym->scope = ctx.addChild();
+        sym->scope->symbolKind = SymbolKind::CLASS;
+        ctx.declare(std::move(sym));
     }
 
-    Context* classCtx = ctx.addChild();
+    auto classSym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
+    auto classCtx = classSym->scope;
+
+    classCtx->phase = ctx.phase;
     for (auto& member : members) {
         member->evaluateSymbol(*classCtx);
     }
@@ -176,9 +227,12 @@ Symbol* ModuleDeclaration::evaluateSymbol(Context& ctx) {
     if (ctx.phase == PassPhase::DECLARATION) {
         ctx.declare(std::make_unique<Symbol>(
             SymbolKind::MODULE,
-            static_cast<IdentyfierNode*>(name.get())
+            static_cast<IdentyfierNode*>(name.get()),
+            nullptr
         ));
     }
+
+    ctx.symbolKind = SymbolKind::MODULE;
 
     return nullptr;
 }
@@ -193,11 +247,13 @@ void CallNode::debug() {
 }
 
 Symbol* CallNode::evaluateSymbol(Context& ctx) {
-    callee->evaluateSymbol(ctx);
+    auto call = callee->evaluateSymbol(ctx);
     for (auto& arg : args) {
         arg->evaluateSymbol(ctx);
     }
-    return nullptr;
+
+    if (call->kind != SymbolKind::FUNCTION && call->kind != SymbolKind::CLASS) ctx.errors.push_back(Error(position, "Called object is not a function"));
+    return call->type;
 }
 
 void MemberAccessNode::debug() {
@@ -207,6 +263,20 @@ void MemberAccessNode::debug() {
 }
 
 Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
-    object->evaluateSymbol(ctx);
-    return nullptr;
+    auto obj = object->evaluateSymbol(ctx);
+    if (!obj || obj->kind != SymbolKind::CLASS) {
+        ctx.errors.push_back(Error(position, "Object is not a class instance"));
+        return nullptr;
+    }
+
+    auto classScope = obj->scope;
+    auto memberSym = classScope->lookup(
+        static_cast<IdentyfierNode*>(member.get())
+    );
+
+    if (!memberSym) {
+        ctx.errors.push_back(Error(position, "No such class member"));
+    }
+
+    return memberSym;
 }

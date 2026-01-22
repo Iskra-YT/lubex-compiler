@@ -4,11 +4,11 @@
 #include "evaluator_tests.hpp"
 #include "evaluator.hpp"
 
-EVALUATOR_TEST(VariableDeclarationTest) {
+EVALUATOR_TEST(VariableDeclaration) {
     Context ctx(nullptr);
     ctx.phase = PassPhase::DECLARATION;
     auto numberIdent = IdentyfierNode(PositionSpan(0, 0), "Number");
-    ctx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &numberIdent));
+    ctx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &numberIdent, nullptr));
 
     auto name = std::make_unique<IdentyfierNode>(PositionSpan(0,0), "x");
     auto value = std::make_unique<NumberNode>(PositionSpan(0,0), 42);
@@ -26,7 +26,7 @@ EVALUATOR_TEST(VariableDeclarationTest) {
     ASSERT_EQ(ctx.getErrors().size(), 0);
 }
 
-EVALUATOR_TEST(UndefinedIdentifierTest) {
+EVALUATOR_TEST(UndefinedIdentifier) {
     Context ctx(nullptr);
     ctx.phase = PassPhase::TYPE_CHECK;
 
