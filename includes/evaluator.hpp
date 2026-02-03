@@ -15,7 +15,8 @@ enum class SymbolKind {
     VARIABLE,
     FUNCTION,
     CLASS,
-    MODULE
+    MODULE,
+    ERROR
 };
 
 enum class PassPhase {
@@ -29,8 +30,9 @@ struct Symbol {
     IdentyfierNode* name;
     Symbol* type;
     Context* scope = nullptr;
+    ASTNode* node;
 
-    Symbol(SymbolKind kind, IdentyfierNode* name, Symbol* type) : kind(kind), name(name), type(type) {}
+    Symbol(SymbolKind kind, IdentyfierNode* name, Symbol* type, ASTNode* node) : kind(kind), name(name), type(type), node(node) {}
 };
 
 struct Context {

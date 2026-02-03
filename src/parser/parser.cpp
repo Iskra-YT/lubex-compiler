@@ -131,30 +131,21 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parseBlock() {
 
 std::unique_ptr<ASTNode> Parser::parseInstruction(InstructionSet& instrSet, void* context) {
     Position start = getCurrent().position.start;
-    bool lastMatched = true;
 
-    for (auto& step : instrSet.steps) {
+    for (size_t i = 0; i < instrSet.steps.size(); ++i) {
+        auto& step = instrSet.steps[i];
         Token tok = getCurrent();
 
         bool matchesType = (step.expectedType == TokenType::ANY || tok.type == step.expectedType);
         bool matchesValue = (step.expectedValue.empty() || tok.value == step.expectedValue);
-
         bool matched = matchesType && matchesValue;
 
-        if (!matched) {
-            if (step.optional) {
-                lastMatched = false;
-                continue;
-            } else {
-                pushError(Error(tok.position, "Unexpected token: " + tok.value));
-                return nullptr;
-            }
-        }
-        if (step.expectedType == TokenType::ANY && step.optional && !lastMatched) {
+        if (!matched && step.optional > 0) {
             continue;
+        } else if (!matched) {
+            pushError(Error(tok.position, "Unexpected token: " + tok.value));
+            return nullptr;
         }
-
-        lastMatched = true;
 
         step.action(tok, context);
 

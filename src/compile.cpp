@@ -34,6 +34,11 @@ bool compileProject() {
 
     std::vector<Error> errors;
 
+    if (size == 0) {
+        std::cerr << Error(PositionSpan(1, 1), "Source file is empty").returnError() << "\n";
+        return false;
+    }
+
     Lexer lexer(buffer);
     std::vector<Token> tokens = lexer.lex();
     for (auto token : tokens) {

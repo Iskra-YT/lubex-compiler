@@ -8,7 +8,7 @@ EVALUATOR_TEST(VariableDeclaration) {
     Context ctx(nullptr);
     ctx.phase = PassPhase::DECLARATION;
     auto numberIdent = IdentyfierNode(PositionSpan(0, 0), "Number");
-    ctx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &numberIdent, nullptr));
+    ctx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &numberIdent, nullptr, static_cast<ASTNode*>(&numberIdent)));
 
     auto name = std::make_unique<IdentyfierNode>(PositionSpan(0,0), "x");
     auto value = std::make_unique<NumberNode>(PositionSpan(0,0), 42);

@@ -13,7 +13,7 @@ struct InstructionStep {
     std::string expectedValue;
     std::function<void(Token&, void*)> action;
     bool consumesToken = false;
-    bool optional = false;
+    int optional = 0;
 };
 
 struct InstructionSet {

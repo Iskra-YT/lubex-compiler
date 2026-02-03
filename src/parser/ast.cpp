@@ -5,6 +5,8 @@
 #include "emiter.hpp"
 #include "evaluator.hpp"
 
+static IdentyfierNode intType(PositionSpan(0, 0), "Int");
+
 void ASTNode::debug() {
     throw std::runtime_error("Internal error: unreachable path");
 }
@@ -27,7 +29,7 @@ void NumberNode::debug() {
 }
 
 Symbol* NumberNode::evaluateSymbol(Context& ctx) {
-    return ctx.lookup(std::make_unique<IdentyfierNode>(position, "Int").get());
+    return ctx.lookup(&intType);
 }
 
 void BinaryNode::debug() {
@@ -65,7 +67,7 @@ void VariableDeclarationNode::debug() {
 Symbol* VariableDeclarationNode::evaluateSymbol(Context& ctx) {
     if (ctx.phase == PassPhase::TYPE_CHECK) {
         auto t = type->evaluateSymbol(ctx);
-        ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), t));
+        ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), t, static_cast<ASTNode*>(this)));
 
         if (value) {
             auto v = value->evaluateSymbol(ctx);
@@ -121,13 +123,18 @@ Symbol* ArgDeclaration::evaluateSymbol(Context& ctx) {
         ctx.declare(std::make_unique<Symbol>(
             SymbolKind::VARIABLE,
             static_cast<IdentyfierNode*>(name.get()),
-            nullptr
+            nullptr,
+            static_cast<ASTNode*>(this)
         ));
     }
 
     if (ctx.phase == PassPhase::MIDPASS) {
-        auto sym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
-        sym->type = type->evaluateSymbol(ctx);
+        ctx.declare(std::make_unique<Symbol>(
+            SymbolKind::VARIABLE,
+            static_cast<IdentyfierNode*>(name.get()),
+            type->evaluateSymbol(ctx),
+            static_cast<ASTNode*>(this)
+        ));
     }
 
     return nullptr;
@@ -156,7 +163,8 @@ Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
         ctx.declare(std::make_unique<Symbol>(
             SymbolKind::FUNCTION,
             static_cast<IdentyfierNode*>(name.get()),
-            nullptr
+            nullptr,
+            static_cast<ASTNode*>(this)
         ));
     }
 
@@ -199,7 +207,8 @@ Symbol* ClassDeclNode::evaluateSymbol(Context& ctx) {
         auto sym = std::make_unique<Symbol>(
             SymbolKind::CLASS,
             static_cast<IdentyfierNode*>(name.get()),
-            nullptr
+            nullptr,
+            static_cast<ASTNode*>(this)
         );
 
         sym->scope = ctx.addChild();
@@ -228,7 +237,8 @@ Symbol* ModuleDeclaration::evaluateSymbol(Context& ctx) {
         ctx.declare(std::make_unique<Symbol>(
             SymbolKind::MODULE,
             static_cast<IdentyfierNode*>(name.get()),
-            nullptr
+            nullptr,
+            static_cast<ASTNode*>(this)
         ));
     }
 
@@ -252,7 +262,15 @@ Symbol* CallNode::evaluateSymbol(Context& ctx) {
         arg->evaluateSymbol(ctx);
     }
 
-    if (call->kind != SymbolKind::FUNCTION && call->kind != SymbolKind::CLASS) ctx.errors.push_back(Error(position, "Called object is not a function"));
+    if (call->kind != SymbolKind::FUNCTION && call->kind != SymbolKind::CLASS) {
+        ctx.errors.push_back(Error(position, "Called object is not a function"));
+        return nullptr;
+    }
+
+    if (call->kind == SymbolKind::FUNCTION && static_cast<FunctionDeclaration*>(call->node)->parameters.size() > args.size()) { 
+        ctx.errors.push_back(Error(position, "Argument count mismatch in function call"));
+    }
+    
     return call->type;
 }
 
@@ -263,6 +281,7 @@ void MemberAccessNode::debug() {
 }
 
 Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
+    // TODO: Add support for static and non-static members
     auto obj = object->evaluateSymbol(ctx);
     if (!obj || obj->kind != SymbolKind::CLASS) {
         ctx.errors.push_back(Error(position, "Object is not a class instance"));
