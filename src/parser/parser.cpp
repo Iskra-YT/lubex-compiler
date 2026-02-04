@@ -132,29 +132,47 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parseBlock() {
 std::unique_ptr<ASTNode> Parser::parseInstruction(InstructionSet& instrSet, void* context) {
     Position start = getCurrent().position.start;
 
-    for (size_t i = 0; i < instrSet.steps.size(); ++i) {
-        auto& step = instrSet.steps[i];
+    std::function<std::unique_ptr<ASTNode>(size_t)> tryStep;
+    tryStep = [&](size_t currentStep) -> std::unique_ptr<ASTNode> {
+        if (currentStep >= instrSet.steps.size()) {
+            return instrSet.finalize(PositionSpan(start, getCurrent().position.end), context);
+        }
+
+        auto& step = instrSet.steps[currentStep];
         Token tok = getCurrent();
 
         bool matchesType = (step.expectedType == TokenType::ANY || tok.type == step.expectedType);
         bool matchesValue = (step.expectedValue.empty() || tok.value == step.expectedValue);
         bool matched = matchesType && matchesValue;
 
-        if (!matched && step.optional > 0) {
-            continue;
-        } else if (!matched) {
-            pushError(Error(tok.position, "Unexpected token: " + tok.value));
-            return nullptr;
+        if (step.optional == 0) {
+            if (!matched) {
+                pushError(Error(tok.position, "Unexpected token: " + tok.value));
+                return nullptr;
+            }
+
+            step.action(tok, context);
+            if (step.consumesToken) advance();
+
+            return tryStep(currentStep + 1);
         }
 
-        step.action(tok, context);
+        if (matched) {
+            Token saveTok = tok;
+            auto saveState = this->position;
+            step.action(tok, context);
+            if (step.consumesToken) advance();
+            auto taken = tryStep(currentStep + 1);
+            if (taken) return taken;
 
-        if (!step.consumesToken) {
-            advance();
+            this->position = saveState;
+            return tryStep(currentStep + 1);
+        } else {
+            return tryStep(currentStep + 1);
         }
-    }
+    };
 
-    return instrSet.finalize(PositionSpan(start, getCurrent().position.end), context);
+    return tryStep(0);
 }
 
 
@@ -166,7 +184,7 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
     }
 
     if (!getCurrent().match(Token(";", TokenType::DELIMITER_TOKEN))) {
-        pushError(Error(PositionSpan(node->position.start, getCurrent().position.end), "Expected ';' after statement"));
+        pushError(Error(PositionSpan(getCurrent().position.start, getCurrent().position.end), "Expected ';' after statement"));
         return nullptr;
     }
     advance();
@@ -263,6 +281,7 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
         return node;
     }
 
+    std::cout << "Error at position " << tok.position.start.line << ":" << tok.position.start.column << " - Unexpected token: " << tok.value << std::endl;
     pushError(Error(tok.position, "Expected primary expression"));
     return nullptr;
 }

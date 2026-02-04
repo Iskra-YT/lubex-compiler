@@ -29,7 +29,7 @@ struct Position {
     size_t index;
     size_t column;
 
-    Position(int index): index(index), column(0), line(0) {}
+    Position(int index): index(index), column(1), line(1) {}
     Position(int line, int index, int column): index(index), column(column), line(line) {}
 };
 

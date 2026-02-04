@@ -96,6 +96,6 @@ std::vector<Token> Lexer::lex() {
         advance();
     }
 
-    tokens.push_back({{currentPosition, currentPosition}, "", TokenType::EOF_TOKEN});
+    tokens.push_back({{currentPosition, currentPosition}, "<EOF>", TokenType::EOF_TOKEN});
     return tokens;
 }
