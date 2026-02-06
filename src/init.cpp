@@ -22,7 +22,7 @@ void createCompilerConfig(const std::filesystem::path& projectDir, const std::st
     config["version"] = "1.0.0";
     config["sourceDir"] = "src";
     config["optimalization"] = 1;
-    config["entrypoint"] = "main." + std::string(1, std::toupper(projectName[0])) + projectName.substr(1) + ".main"; // module.class.function
+    config["entrypoint"] = "main." + std::string(1, std::toupper(projectName[0])) + projectName.substr(1) + ".entry"; // module.class.function
 
     config["targets"] = nlohmann::json::array();
     nlohmann::json target;

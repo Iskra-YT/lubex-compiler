@@ -259,7 +259,7 @@ void CallNode::debug() {
 Symbol* CallNode::evaluateSymbol(Context& ctx) {
     auto call = callee->evaluateSymbol(ctx);
     if (!call) return nullptr;
-    
+
     for (auto& arg : args) {
         arg->evaluateSymbol(ctx);
     }
@@ -283,15 +283,15 @@ void MemberAccessNode::debug() {
 }
 
 Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
-    // TODO: Add support for static variables and non-static members
     auto obj = object->evaluateSymbol(ctx);
-    if (!obj || obj->kind != SymbolKind::CLASS) {
+    if (!obj || (obj->kind != SymbolKind::CLASS && obj->type->kind != SymbolKind::CLASS)) {
         ctx.errors.push_back(Error(position, "Object is not a class instance"));
         return nullptr;
     }
-
-    auto classScope = obj->scope;
-    auto memberSym = classScope->lookup(
+    
+    auto memberSym = obj->scope ? obj->scope->lookup(
+        static_cast<IdentyfierNode*>(member.get())
+    ) : obj->type->scope->lookup(
         static_cast<IdentyfierNode*>(member.get())
     );
 

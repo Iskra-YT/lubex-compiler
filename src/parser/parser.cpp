@@ -286,8 +286,7 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
         return node;
     }
 
-    std::cout << "Error at position " << tok.position.start.line << ":" << tok.position.start.column << " - Unexpected token: " << tok.value << std::endl;
-    pushError(Error(tok.position, "Expected primary expression"));
+    pushError(Error(tok.position, "Expected primary expression, got '" + tok.value + "'"));
     return nullptr;
 }
 

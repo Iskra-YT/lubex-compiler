@@ -56,7 +56,7 @@ void Parser::initFuncDecl() {
         {TokenType::DELIMITER_TOKEN, ":", [](Token&, void*){}, true, 0},
         {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx){
             auto& c = *(FuncDeclContext*)ctx;
-            c.returnType = parsePrimary();
+            c.returnType = parseFactor();
         }, false, 0},
         {TokenType::DELIMITER_TOKEN, "->", [](Token&, void*){}, true, 1},
         {TokenType::DELIMITER_TOKEN, "{", [&](Token&, void* ctx){
