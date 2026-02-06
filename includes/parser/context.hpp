@@ -20,6 +20,7 @@ struct FuncDeclContext {
     std::vector<std::unique_ptr<ASTNode>> parameters;
     std::vector<std::unique_ptr<ASTNode>> body;
     bool isForward = true;
+    bool isStatic = false;
 };
 
 struct ClassDeclContext {

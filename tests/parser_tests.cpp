@@ -52,7 +52,7 @@ PARSER_TEST(VariableDeclaration) {
             Token("let", TokenType::KEYWORD_TOKEN),
             Token("a", TokenType::IDENTYFIER_TOKEN),
             Token(":", TokenType::DELIMITER_TOKEN),
-            Token("i32", TokenType::IDENTYFIER_TOKEN),
+            Token("Int", TokenType::IDENTYFIER_TOKEN),
             Token("=", TokenType::ASSIGNMENT_TOKEN),
             Token("2", TokenType::NUMBER_TOKEN),
             Token(";", TokenType::DELIMITER_TOKEN),
@@ -82,14 +82,14 @@ PARSER_TEST(VariableDeclaration) {
 
         auto type = dynamic_cast<IdentyfierNode*>(expr->type.get());
         ASSERT_NE(type, nullptr);
-        ASSERT_EQ(type->value, "i32");
+        ASSERT_EQ(type->value, "Int");
     }
     {
         std::vector<Token> tokens = {
             Token("let", TokenType::KEYWORD_TOKEN),
             Token("b", TokenType::IDENTYFIER_TOKEN),
             Token(":", TokenType::DELIMITER_TOKEN),
-            Token("i32", TokenType::IDENTYFIER_TOKEN),
+            Token("Int", TokenType::IDENTYFIER_TOKEN),
             Token(";", TokenType::DELIMITER_TOKEN),
             Token("", TokenType::EOF_TOKEN)
         };
@@ -115,7 +115,7 @@ PARSER_TEST(VariableDeclaration) {
 
         auto type = dynamic_cast<IdentyfierNode*>(expr->type.get());
         ASSERT_NE(type, nullptr);
-        ASSERT_EQ(type->value, "i32");
+        ASSERT_EQ(type->value, "Int");
     }
 }
 
@@ -160,10 +160,10 @@ PARSER_TEST(FunctionDeclaration) {
             Token("arg", TokenType::KEYWORD_TOKEN),
             Token("b", TokenType::IDENTYFIER_TOKEN),
             Token(":", TokenType::DELIMITER_TOKEN),
-            Token("i32", TokenType::IDENTYFIER_TOKEN),
+            Token("Int", TokenType::IDENTYFIER_TOKEN),
             Token(")", TokenType::DELIMITER_TOKEN),
             Token(":", TokenType::DELIMITER_TOKEN),
-            Token("i32", TokenType::IDENTYFIER_TOKEN),
+            Token("Int", TokenType::IDENTYFIER_TOKEN),
             Token("->", TokenType::DELIMITER_TOKEN),
             Token("{", TokenType::DELIMITER_TOKEN),
             Token("}", TokenType::DELIMITER_TOKEN),
@@ -190,7 +190,7 @@ PARSER_TEST(FunctionDeclaration) {
 
         auto retType = dynamic_cast<IdentyfierNode*>(func->type.get());
         ASSERT_NE(retType, nullptr);
-        ASSERT_EQ(retType->value, "i32");
+        ASSERT_EQ(retType->value, "Int");
 
         ASSERT_EQ(func->parameters.size(), 1);
 
@@ -203,10 +203,11 @@ PARSER_TEST(FunctionDeclaration) {
 
         auto argType = dynamic_cast<IdentyfierNode*>(arg0->type.get());
         ASSERT_NE(argType, nullptr);
-        ASSERT_EQ(argType->value, "i32");
+        ASSERT_EQ(argType->value, "Int");
 
         ASSERT_EQ(func->body.size(), 0);
         ASSERT_EQ(func->isForward, false);
+        ASSERT_EQ(func->isStatic, false);
     }
     {
         std::vector<Token> tokens = {
@@ -216,10 +217,10 @@ PARSER_TEST(FunctionDeclaration) {
             Token("arg", TokenType::KEYWORD_TOKEN),
             Token("b", TokenType::IDENTYFIER_TOKEN),
             Token(":", TokenType::DELIMITER_TOKEN),
-            Token("i32", TokenType::IDENTYFIER_TOKEN),
+            Token("Int", TokenType::IDENTYFIER_TOKEN),
             Token(")", TokenType::DELIMITER_TOKEN),
             Token(":", TokenType::DELIMITER_TOKEN),
-            Token("i32", TokenType::IDENTYFIER_TOKEN),
+            Token("Int", TokenType::IDENTYFIER_TOKEN),
             Token(";", TokenType::DELIMITER_TOKEN),
             Token("", TokenType::EOF_TOKEN)
         };
@@ -243,7 +244,7 @@ PARSER_TEST(FunctionDeclaration) {
 
         auto retType = dynamic_cast<IdentyfierNode*>(func->type.get());
         ASSERT_NE(retType, nullptr);
-        ASSERT_EQ(retType->value, "i32");
+        ASSERT_EQ(retType->value, "Int");
 
         ASSERT_EQ(func->parameters.size(), 1);
 
@@ -256,10 +257,68 @@ PARSER_TEST(FunctionDeclaration) {
 
         auto argType = dynamic_cast<IdentyfierNode*>(arg0->type.get());
         ASSERT_NE(argType, nullptr);
-        ASSERT_EQ(argType->value, "i32");
+        ASSERT_EQ(argType->value, "Int");
 
         ASSERT_EQ(func->body.size(), 0);
         ASSERT_EQ(func->isForward, true);
+        ASSERT_EQ(func->isStatic, false);
+    }
+    {
+        std::vector<Token> tokens = {
+            Token("static", TokenType::KEYWORD_TOKEN),
+            Token("func", TokenType::KEYWORD_TOKEN),
+            Token("a", TokenType::IDENTYFIER_TOKEN),
+            Token("(", TokenType::DELIMITER_TOKEN),
+            Token("arg", TokenType::KEYWORD_TOKEN),
+            Token("b", TokenType::IDENTYFIER_TOKEN),
+            Token(":", TokenType::DELIMITER_TOKEN),
+            Token("Int", TokenType::IDENTYFIER_TOKEN),
+            Token(")", TokenType::DELIMITER_TOKEN),
+            Token(":", TokenType::DELIMITER_TOKEN),
+            Token("Int", TokenType::IDENTYFIER_TOKEN),
+            Token("{", TokenType::DELIMITER_TOKEN),
+            Token("}", TokenType::DELIMITER_TOKEN),
+            Token(";", TokenType::DELIMITER_TOKEN),
+            Token("", TokenType::EOF_TOKEN)
+        };
+
+        Parser parser(tokens);
+        auto nodes = parser.parse();
+
+        auto errors = parser.getErrors();
+        ASSERT_TRUE(errors.empty());
+        ASSERT_EQ(nodes.size(), 1);
+
+        auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+        ASSERT_NE(stmt, nullptr);
+
+        auto func = dynamic_cast<FunctionDeclaration*>(stmt->value.get());
+        ASSERT_NE(func, nullptr);
+
+        auto name = dynamic_cast<IdentyfierNode*>(func->name.get());
+        ASSERT_NE(name, nullptr);
+        ASSERT_EQ(name->value, "a");
+
+        auto retType = dynamic_cast<IdentyfierNode*>(func->type.get());
+        ASSERT_NE(retType, nullptr);
+        ASSERT_EQ(retType->value, "Int");
+
+        ASSERT_EQ(func->parameters.size(), 1);
+
+        auto arg0 = dynamic_cast<ArgDeclaration*>(func->parameters[0].get());
+        ASSERT_NE(arg0, nullptr);
+
+        auto argName = dynamic_cast<IdentyfierNode*>(arg0->name.get());
+        ASSERT_NE(argName, nullptr);
+        ASSERT_EQ(argName->value, "b");
+
+        auto argType = dynamic_cast<IdentyfierNode*>(arg0->type.get());
+        ASSERT_NE(argType, nullptr);
+        ASSERT_EQ(argType->value, "Int");
+
+        ASSERT_EQ(func->body.size(), 0);
+        ASSERT_EQ(func->isForward, false);
+        ASSERT_EQ(func->isStatic, true);
     }
 }
 

@@ -1,5 +1,6 @@
 #include "lexer.hpp"
 #include <stdexcept>
+#include <unordered_set>
 
 bool isVariableAllowed(char c) {
     if ((c >= 'a' && c <= 'z') || 

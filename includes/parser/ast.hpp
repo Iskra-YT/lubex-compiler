@@ -81,9 +81,10 @@ struct FunctionDeclaration : ASTNode {
     std::vector<std::unique_ptr<ASTNode>> body;
     std::vector<std::unique_ptr<ASTNode>> parameters;
     bool isForward;
+    bool isStatic;
 
-    FunctionDeclaration(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> type, std::vector<std::unique_ptr<ASTNode>> parameters, std::vector<std::unique_ptr<ASTNode>> body, bool isForward) : ASTNode(span), name(std::move(name)), type(std::move(type)), body(std::move(body)), parameters(std::move(parameters)), isForward(isForward) {}
-    
+    FunctionDeclaration(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> type, std::vector<std::unique_ptr<ASTNode>> parameters, std::vector<std::unique_ptr<ASTNode>> body, bool isForward, bool isStatic) : ASTNode(span), name(std::move(name)), type(std::move(type)), body(std::move(body)), parameters(std::move(parameters)), isForward(isForward), isStatic(isStatic) {}
+
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };

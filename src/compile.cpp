@@ -1,6 +1,7 @@
 #include <filesystem>
 #include <fstream>
 #include <ios>
+#include <unordered_set>
 #include "config.hpp"
 #include "emiter.hpp"
 #include "error.hpp"
@@ -76,6 +77,19 @@ bool compileProject() {
     Context globalCtx(nullptr);
     globalCtx.symbolKind = SymbolKind::NOT;
 
+    // We need to add Int class to nodes
+    auto intClassNode = std::make_unique<StatementNode>(
+        PositionSpan(0, 0),
+        std::make_unique<ClassDeclNode>(
+            PositionSpan(0, 0),
+            std::make_unique<IdentyfierNode>(PositionSpan(0, 0), "Int"),
+            std::vector<std::unique_ptr<ASTNode>>{},
+            false
+        )
+    );
+
+    nodes.push_back(std::move(intClassNode));
+
     for (auto phase : {
         PassPhase::DECLARATION,
         PassPhase::MIDPASS,
@@ -99,7 +113,7 @@ bool compileProject() {
         std::cout << "\n";
     }
 
-    setEmiter(static_cast<IdentyfierNode*>(static_cast<ModuleDeclaration*>(nodes[0].get())->name.get())->value);
+    setEmiter(static_cast<IdentyfierNode*>(static_cast<ModuleDeclaration*>(static_cast<StatementNode*>(nodes[0].get())->value.get())->name.get())->value, config.entrypoint);
 
     // TEMP START:
     auto *intTy = llvm::Type::getInt32Ty(*emiterContext);

@@ -197,8 +197,13 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
     if (tok.match(Token("let", TokenType::KEYWORD_TOKEN))) {
         VarDeclContext ctx;
         return parseInstruction(varDeclInstr, &ctx);
-    } else if (tok.match(Token("func", TokenType::KEYWORD_TOKEN))) {
+    } else if (tok.match(Token("func", TokenType::KEYWORD_TOKEN)) || tok.match(Token("static", TokenType::KEYWORD_TOKEN))) {
         FuncDeclContext ctx;
+        if (tok.match(Token("static", TokenType::KEYWORD_TOKEN))) {
+            ctx.isStatic = true;
+            advance();
+        }
+        
         return parseInstruction(funcDeclInstr, &ctx);
     } else if (tok.match(Token("class", TokenType::KEYWORD_TOKEN))) {
         ClassDeclContext ctx;
@@ -302,7 +307,10 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
             std::vector<std::unique_ptr<ASTNode>> args;
             if (!getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN))) {
                 do {
-                    args.push_back(parseExpr());
+                    auto arg = parseExpr();
+                    if (!arg) return nullptr;
+                    args.push_back(std::move(arg));
+
                     if (getCurrent().match(Token(",", TokenType::DELIMITER_TOKEN))) {
                         advance();
                     } else {
@@ -326,18 +334,24 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
         }
 
         if (tok.match(Token(".", TokenType::DELIMITER_TOKEN))) {
-        advance();
+            advance();
 
-        auto memberNode = parseFactor();
-        if (!memberNode) return nullptr;
+            Token memberTok = getCurrent();
+            if (memberTok.type != TokenType::IDENTYFIER_TOKEN) {
+                pushError(Error(memberTok.position, "Expected identifier after '.'"));
+                return nullptr;
+            }
+            advance();
 
-        node = std::make_unique<MemberAccessNode>(
-            PositionSpan(node->position.start, memberNode->position.end),
-            std::move(node),
-            std::move(memberNode)
-        );
-        continue;
-    }
+            auto memberNode = std::make_unique<IdentyfierNode>(memberTok.position, memberTok.value);
+
+            node = std::make_unique<MemberAccessNode>(
+                PositionSpan(node->position.start, memberNode->position.end),
+                std::move(node),
+                std::move(memberNode)
+            );
+            continue;
+        }
 
         break;
     }

@@ -258,6 +258,8 @@ void CallNode::debug() {
 
 Symbol* CallNode::evaluateSymbol(Context& ctx) {
     auto call = callee->evaluateSymbol(ctx);
+    if (!call) return nullptr;
+    
     for (auto& arg : args) {
         arg->evaluateSymbol(ctx);
     }
@@ -281,7 +283,7 @@ void MemberAccessNode::debug() {
 }
 
 Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
-    // TODO: Add support for static and non-static members
+    // TODO: Add support for static variables and non-static members
     auto obj = object->evaluateSymbol(ctx);
     if (!obj || obj->kind != SymbolKind::CLASS) {
         ctx.errors.push_back(Error(position, "Object is not a class instance"));
@@ -295,6 +297,13 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
 
     if (!memberSym) {
         ctx.errors.push_back(Error(position, "No such class member"));
+    }
+
+    if (memberSym && memberSym->kind == SymbolKind::FUNCTION) {
+        auto funcDecl = static_cast<FunctionDeclaration*>(memberSym->node);
+        if (!funcDecl->isStatic) {
+            ctx.errors.push_back(Error(position, "Cannot access non-static member without instance"));
+        }
     }
 
     return memberSym;
