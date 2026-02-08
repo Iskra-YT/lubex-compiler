@@ -31,6 +31,7 @@ struct Symbol {
     Symbol* type;
     Context* scope = nullptr;
     ASTNode* node;
+    std::string mangledName;
 
     Symbol(SymbolKind kind, IdentyfierNode* name, Symbol* type, ASTNode* node) : kind(kind), name(name), type(type), node(node) {}
 };
@@ -43,6 +44,7 @@ struct Context {
     std::vector<Error> errors;
     
     PassPhase phase;
+    Symbol* generativeSymbol = nullptr;
     Context(Context* parent = nullptr) : parent(parent) {}
 
     void declare(std::unique_ptr<Symbol> sym);
@@ -50,5 +52,8 @@ struct Context {
     Context* addChild();
     std::vector<Error> getErrors();
 };
+
+void normalizeSymbols(Context& ctx, const std::string& prefix = "");
+void printContext(const Context* ctx, int level = 0);
 
 #endif // EVALUATOR_LUBEX_HPP

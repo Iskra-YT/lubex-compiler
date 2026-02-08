@@ -9,6 +9,7 @@
 #include "optimizer.hpp"
 #include "evaluator.hpp"
 #include "parser/parser.hpp"
+#include "LIR/lir.hpp"
 
 bool compileProject() {
     ProjectConfig config;
@@ -113,7 +114,20 @@ bool compileProject() {
         std::cout << "\n";
     }
 
-    setEmiter(static_cast<IdentyfierNode*>(static_cast<ModuleDeclaration*>(static_cast<StatementNode*>(nodes[0].get())->value.get())->name.get())->value, config.entrypoint);
+    std::string moduleName = static_cast<IdentyfierNode*>(static_cast<ModuleDeclaration*>(static_cast<StatementNode*>(nodes[0].get())->value.get())->name.get())->value;
+
+    std::cout << "\n\n";
+    normalizeSymbols(globalCtx, moduleName);
+    printContext(&globalCtx, 0);
+    std::cout << "\n\n";
+
+    auto lir = generateLIR(std::move(nodes), globalCtx);
+    std::cout << "Size: " << lir.size() << "\n";
+    for (auto& instr : lir) {
+        instr->debug();
+    }
+
+    setEmiter(moduleName);
 
     // TEMP START:
     auto *intTy = llvm::Type::getInt32Ty(*emiterContext);

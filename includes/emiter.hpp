@@ -11,6 +11,7 @@ extern std::unique_ptr<llvm::LLVMContext> emiterContext;
 extern std::unique_ptr<llvm::Module> emiterModule;
 extern std::unique_ptr<llvm::IRBuilder<>> emiterBuilder;
 
-void setEmiter(std::string moduleName, std::string entryMethodName);
+std::string mangleName(const std::string &name);
+void setEmiter(std::string moduleName);
 
 #endif //EMITER_LUBEX_HPP

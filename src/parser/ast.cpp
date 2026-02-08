@@ -46,7 +46,7 @@ Symbol* BinaryNode::evaluateSymbol(Context& ctx) {
         auto R = right->evaluateSymbol(ctx);
 
         if (!L || !R || !L->type || !R->type) return nullptr;
-        if (L->name->value != R->name->value) {
+        if (L->type->name->value != R->type->name->value) {
             ctx.errors.push_back(Error(position, "Type mismatch in binary operation"));
         }
 
@@ -160,21 +160,29 @@ Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
     }
 
     if (ctx.phase == PassPhase::DECLARATION) {
-        ctx.declare(std::make_unique<Symbol>(
+        auto fnSym = std::make_unique<Symbol>(
             SymbolKind::FUNCTION,
             static_cast<IdentyfierNode*>(name.get()),
             nullptr,
             static_cast<ASTNode*>(this)
-        ));
+        );
+
+        Context* fnCtx = ctx.addChild();
+        fnCtx->symbolKind = SymbolKind::FUNCTION;
+        fnCtx->phase = ctx.phase;
+
+        fnSym->scope = fnCtx;
+        fnSym->scope->generativeSymbol = fnSym.get();
+
+        ctx.declare(std::move(fnSym));
     }
 
     if (ctx.phase == PassPhase::MIDPASS) {
         auto fnSym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
         fnSym->type = type->evaluateSymbol(ctx);
 
-        Context* fnCtx = ctx.addChild();
+        Context* fnCtx = fnSym->scope;
         fnCtx->phase = ctx.phase;
-        fnCtx->symbolKind = SymbolKind::FUNCTION;
 
         for (auto& param : parameters) {
             param->evaluateSymbol(*fnCtx);
@@ -182,9 +190,9 @@ Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
     }
 
     if (ctx.phase == PassPhase::TYPE_CHECK) {
-        Context* fnCtx = ctx.addChild();
+        auto fnSym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
+        Context* fnCtx = fnSym->scope;
         fnCtx->phase = ctx.phase;
-        fnCtx->symbolKind = SymbolKind::FUNCTION;
 
         for (auto& stmt : body) {
             stmt->evaluateSymbol(*fnCtx);
@@ -213,6 +221,7 @@ Symbol* ClassDeclNode::evaluateSymbol(Context& ctx) {
 
         sym->scope = ctx.addChild();
         sym->scope->symbolKind = SymbolKind::CLASS;
+        sym->scope->generativeSymbol = sym.get();
         ctx.declare(std::move(sym));
     }
 
