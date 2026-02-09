@@ -29,7 +29,9 @@ void NumberNode::debug() {
 }
 
 Symbol* NumberNode::evaluateSymbol(Context& ctx) {
-    return ctx.lookup(&intType);
+    auto sym = ctx.lookup(&intType);
+    sym->type = sym;
+    return sym;
 }
 
 void BinaryNode::debug() {
@@ -45,9 +47,8 @@ Symbol* BinaryNode::evaluateSymbol(Context& ctx) {
         auto L = left->evaluateSymbol(ctx);
         auto R = right->evaluateSymbol(ctx);
 
-        if (!L || !R || !L->type || !R->type) return nullptr;
         if (L->type->name->value != R->type->name->value) {
-            ctx.errors.push_back(Error(position, "Type mismatch in binary operation"));
+            ctx.errors.push_back(Error(position, "Type mismatch in binary expression"));
         }
 
         return L->type;
@@ -72,7 +73,7 @@ Symbol* VariableDeclarationNode::evaluateSymbol(Context& ctx) {
         if (value) {
             auto v = value->evaluateSymbol(ctx);
             auto sym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
-            if (v && t && sym && t->name->value != v->name->value) {
+            if (v && t && sym && t->type->name->value != v->type->name->value) {
                 ctx.errors.push_back(Error(position, "Type mismatch in variable declaration"));
             }
         }
@@ -103,7 +104,7 @@ Symbol* VariableAssigment::evaluateSymbol(Context& ctx) {
         if (!n || !v) return nullptr;
         if (!n || n->kind != SymbolKind::VARIABLE) {
             ctx.errors.push_back(Error(position, "Cannot assign to non-variable symbol"));
-        } else if (n->type->name->value != v->name->value) {
+        } else if (n->type->name->value != v->type->name->value) {
             ctx.errors.push_back(Error(position, "Type mismatch in variable assignment"));
         }
     }

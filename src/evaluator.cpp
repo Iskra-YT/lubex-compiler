@@ -79,7 +79,7 @@ void printSymbol(const Symbol* sym, int level = 0) {
     std::cout << "Symbol: " << (sym->name ? sym->name->value : "nullptr")
               << " [" << symbolKindToString(sym->kind) << "]"
               << ", mangled: " << sym->mangledName << "\n";
-    if (sym->type) {
+    if (sym->type && sym->kind != SymbolKind::CLASS) {
         printIndent(level + 1);
         std::cout << "Type:\n";
         printSymbol(sym->type, level + 2);

@@ -56,13 +56,9 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parseFunctionArgs() {
     }
     advance();
 
-    if (!(getCurrent().match(Token("arg", TokenType::KEYWORD_TOKEN)) || getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN)))) {
-        pushError(Error(getCurrent().position, "Expected argument at function arguments"));
-        return args;
-    } else if (getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN))) {
+    if (getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN))) {
         return args;
     }
-    advance();
 
     while (!getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN))) {
         Token argNameToken = getCurrent();

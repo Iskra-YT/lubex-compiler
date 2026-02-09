@@ -4,6 +4,14 @@
 int lastId = 0;
 static std::unordered_map<std::string, IRValue*> variables;
 
+IRValue* parseArg(std::unique_ptr<ASTNode> node, Context& ctx) {
+    auto arg = static_cast<ArgDeclaration*>(node.get());
+    auto argSym = ctx.lookup(static_cast<IdentyfierNode*>(arg->name.get()));
+    auto argIr = new IRArg("%" + std::to_string(lastId++), static_cast<IdentyfierNode*>(arg->type.get())->value);
+    variables[mangleName(argSym->mangledName)] = argIr;
+    return argIr;
+}
+
 LIRGenerate parse(std::unique_ptr<ASTNode> node, Context& ctx) {
     if (auto stmt = dynamic_cast<StatementNode*>(node.get())) {
         return parse(std::move(stmt->value), ctx);
@@ -99,14 +107,11 @@ LIRGenerate parse(std::unique_ptr<ASTNode> node, Context& ctx) {
         lastId = 0;
 
         for (auto& arg : func->parameters) {
-            auto argIr = parse(std::move(arg), *funcSym->scope);
-            args.push_back(argIr.mainValue);
-            for (auto& instr : argIr.code) {
-                res.push_back(std::move(instr));
-            }
+            auto argIr = parseArg(std::move(arg), *funcSym->scope);
+            args.push_back(argIr);
         }
 
-        auto funcIr = std::make_unique<IRFunction>(mangleName(funcSym->mangledName), args, funcSym->type->name->value == "Int" ? "_BI_Int" : mangleName(funcSym->type->mangledName));
+        auto funcIr = std::make_unique<IRFunction>(mangleName(funcSym->mangledName), std::move(args), funcSym->type->name->value == "Int" ? "_BI_Int" : mangleName(funcSym->type->mangledName));
         for (auto& node : func->body) {
             auto ir = parse(std::move(node), *funcSym->scope);
             for (auto& instr : ir.code) {
@@ -146,9 +151,34 @@ LIRGenerate parse(std::unique_ptr<ASTNode> node, Context& ctx) {
             res.back().get(),
             std::move(res)
         };
+    } else if (auto call = dynamic_cast<CallNode*>(node.get())) {
+        auto callSym = ctx.lookup(static_cast<IdentyfierNode*>(call->callee.get()));
+        std::vector<std::unique_ptr<IRValue>> res;
+        std::vector<IRValue*> args;
+        for (auto& arg : call->args) {
+            auto argIR = parse(std::move(arg), ctx);
+
+            for (auto& instr : argIR.code) {
+                res.push_back(std::move(instr));
+                args.push_back(res.back().get());
+            }
+        }
+
+        if (callSym->kind == SymbolKind::CLASS) {
+            auto callIR = std::make_unique<IRCall>(mangleName(callSym->mangledName) + "_F4init", mangleName(callSym->mangledName), args);
+            res.push_back(std::move(callIR));
+        } else {
+            auto callIR = std::make_unique<IRCall>(mangleName(callSym->mangledName), mangleName(callSym->type->mangledName), args);
+            res.push_back(std::move(callIR));
+        }
+
+        return {
+            res.back().get(),
+            std::move(res)
+        };
     }
 
-    //TODO: Add function call & member access node
+    //TODO: Add member access node
 
     return {};
 }
