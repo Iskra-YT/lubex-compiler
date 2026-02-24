@@ -66,6 +66,10 @@ Symbol* VariableAssigment::evaluateSymbol(Context& ctx) {
             ctx.errors.push_back(Error(position, "Cannot assign to non-variable symbol"));
         } else if (n->type->name->value != v->type->name->value) {
             ctx.errors.push_back(Error(position, "Type mismatch in variable assignment"));
+        } 
+        
+        if (dynamic_cast<VariableDeclarationNode*>(n->node) && dynamic_cast<VariableDeclarationNode*>(n->node)->isConst) {
+            ctx.errors.push_back(Error(position, "Cannot assign to constant variable"));
         }
     }
 

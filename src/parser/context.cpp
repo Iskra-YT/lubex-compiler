@@ -29,11 +29,11 @@ void Parser::initVarDecl() {
         VarDeclContext* c = (VarDeclContext*)ctx;
         if (c->valueNode) {
             return std::make_unique<VariableDeclarationNode>(
-                span, std::move(c->name), std::move(c->valueNode), std::move(c->type)
+                span, std::move(c->name), std::move(c->valueNode), std::move(c->type), false
             );
         } else {
             return std::make_unique<VariableDeclarationNode>(
-                span, std::move(c->name), nullptr, std::move(c->type)
+                span, std::move(c->name), nullptr, std::move(c->type), false
             );
         }
     };
@@ -111,5 +111,43 @@ void Parser::initModuleDecl() {
     moduleDeclInstr.finalize = [](PositionSpan span, void* ctx){
         ModuleDeclContext* c = (ModuleDeclContext*)ctx;
         return std::make_unique<ModuleDeclaration>(span, std::move(c->name));
+    };
+}
+
+void Parser::initConstDecl() {
+    constDeclInstr.steps = {
+        {TokenType::KEYWORD_TOKEN, "const", [](Token&, void*){}, true, 0},
+        {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx){ 
+            auto& c = *(VarDeclContext*)ctx;
+            c.name = parsePrimary();
+        }, false, 0},
+        {TokenType::DELIMITER_TOKEN, ":", [](Token&, void*){}, true, 0},
+        {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx){ 
+            auto& c = *(VarDeclContext*)ctx;
+            c.type = parsePrimary();
+        }, false, 0},
+        {TokenType::ASSIGNMENT_TOKEN, "=", [](Token&, void*){}, true, 1},
+        {TokenType::ANY, "", [&](Token&, void* ctx){
+            auto& c = *(VarDeclContext*)ctx;
+            Token tok = getCurrent();
+            if (!tok.match(Token(";", TokenType::DELIMITER_TOKEN)) && tok.type != TokenType::EOF_TOKEN) {
+                c.valueNode = parseExpr();
+            } else {
+                c.valueNode = nullptr;
+            }
+        }, false, 1},
+    };
+
+    constDeclInstr.finalize = [](PositionSpan span, void* ctx){
+        VarDeclContext* c = (VarDeclContext*)ctx;
+        if (c->valueNode) {
+            return std::make_unique<VariableDeclarationNode>(
+                span, std::move(c->name), std::move(c->valueNode), std::move(c->type), true
+            );
+        } else {
+            return std::make_unique<VariableDeclarationNode>(
+                span, std::move(c->name), nullptr, std::move(c->type), true
+            );
+        }
     };
 }

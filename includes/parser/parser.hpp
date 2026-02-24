@@ -67,10 +67,12 @@ class Parser {
         InstructionSet funcDeclInstr;
         InstructionSet classDeclInstr;
         InstructionSet moduleDeclInstr;
+        InstructionSet constDeclInstr;
         void initVarDecl();
         void initFuncDecl();
         void initClassDecl();
         void initModuleDecl();
+        void initConstDecl();
     public:
         Parser(std::vector<Token> toks);
         std::vector<std::unique_ptr<ASTNode>> parse();

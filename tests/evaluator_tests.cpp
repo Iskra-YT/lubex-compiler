@@ -18,7 +18,8 @@ EVALUATOR_TEST(VariableDeclaration) {
         PositionSpan(0,0),
         std::move(name),
         std::move(value),
-        std::move(type)
+        std::move(type),
+        false
     );
 
     Symbol* sym = varDecl->evaluateSymbol(ctx);

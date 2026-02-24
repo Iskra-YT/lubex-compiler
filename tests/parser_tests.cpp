@@ -71,6 +71,7 @@ PARSER_TEST(VariableDeclaration) {
 
         auto expr = dynamic_cast<VariableDeclarationNode*>(stmt->value.get());
         ASSERT_NE(expr, nullptr);
+        ASSERT_EQ(expr->isConst, false);
 
         auto name = dynamic_cast<IdentyfierNode*>(expr->name.get());
         ASSERT_NE(name, nullptr);
@@ -106,6 +107,82 @@ PARSER_TEST(VariableDeclaration) {
 
         auto expr = dynamic_cast<VariableDeclarationNode*>(stmt->value.get());
         ASSERT_NE(expr, nullptr);
+        ASSERT_EQ(expr->isConst, false);
+
+        auto name = dynamic_cast<IdentyfierNode*>(expr->name.get());
+        ASSERT_NE(name, nullptr);
+        ASSERT_EQ(name->value, "b");
+
+        ASSERT_EQ(expr->value.get(), nullptr);
+
+        auto type = dynamic_cast<IdentyfierNode*>(expr->type.get());
+        ASSERT_NE(type, nullptr);
+        ASSERT_EQ(type->value, "Int");
+    }
+}
+
+PARSER_TEST(ConstantDeclaration) {
+    {
+        std::vector<Token> tokens = {
+            Token("const", TokenType::KEYWORD_TOKEN),
+            Token("a", TokenType::IDENTYFIER_TOKEN),
+            Token(":", TokenType::DELIMITER_TOKEN),
+            Token("Int", TokenType::IDENTYFIER_TOKEN),
+            Token("=", TokenType::ASSIGNMENT_TOKEN),
+            Token("2", TokenType::NUMBER_TOKEN),
+            Token(";", TokenType::DELIMITER_TOKEN),
+            Token("", TokenType::EOF_TOKEN)
+        };
+
+        Parser parser(tokens);
+        auto nodes = parser.parse();
+
+        auto errors = parser.getErrors();
+        ASSERT_TRUE(errors.empty());
+        ASSERT_EQ(nodes.size(), 1);
+
+        auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+        ASSERT_NE(stmt, nullptr);
+
+        auto expr = dynamic_cast<VariableDeclarationNode*>(stmt->value.get());
+        ASSERT_NE(expr, nullptr);
+        ASSERT_EQ(expr->isConst, true);
+
+        auto name = dynamic_cast<IdentyfierNode*>(expr->name.get());
+        ASSERT_NE(name, nullptr);
+        ASSERT_EQ(name->value, "a");
+
+        auto value = dynamic_cast<NumberNode*>(expr->value.get());
+        ASSERT_NE(value, nullptr);
+        ASSERT_EQ(value->value, 2.0);
+
+        auto type = dynamic_cast<IdentyfierNode*>(expr->type.get());
+        ASSERT_NE(type, nullptr);
+        ASSERT_EQ(type->value, "Int");
+    }
+    {
+        std::vector<Token> tokens = {
+            Token("const", TokenType::KEYWORD_TOKEN),
+            Token("b", TokenType::IDENTYFIER_TOKEN),
+            Token(":", TokenType::DELIMITER_TOKEN),
+            Token("Int", TokenType::IDENTYFIER_TOKEN),
+            Token(";", TokenType::DELIMITER_TOKEN),
+            Token("", TokenType::EOF_TOKEN)
+        };
+
+        Parser parser(tokens);
+        auto nodes = parser.parse();
+
+        auto errors = parser.getErrors();
+        ASSERT_TRUE(errors.empty());
+        ASSERT_EQ(nodes.size(), 1);
+
+        auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+        ASSERT_NE(stmt, nullptr);
+
+        auto expr = dynamic_cast<VariableDeclarationNode*>(stmt->value.get());
+        ASSERT_NE(expr, nullptr);
+        ASSERT_EQ(expr->isConst, true);
 
         auto name = dynamic_cast<IdentyfierNode*>(expr->name.get());
         ASSERT_NE(name, nullptr);

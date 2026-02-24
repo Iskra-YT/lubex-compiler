@@ -40,8 +40,9 @@ struct VariableDeclarationNode : ASTNode {
     std::unique_ptr<ASTNode> name;
     std::unique_ptr<ASTNode> value;
     std::unique_ptr<ASTNode> type;
+    bool isConst;
 
-    VariableDeclarationNode(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> value, std::unique_ptr<ASTNode> type): ASTNode(span), name(std::move(name)), value(std::move(value)), type(std::move(type)) {}
+    VariableDeclarationNode(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> value, std::unique_ptr<ASTNode> type, bool isConst): ASTNode(span), name(std::move(name)), value(std::move(value)), type(std::move(type)), isConst(isConst) {}
 
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;

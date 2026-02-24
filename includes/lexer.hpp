@@ -6,7 +6,7 @@
 #include <vector>
 #include <unordered_set>
 
-const std::unordered_set<std::string> keywords = {"let", "func", "class", "module", "static"};
+const std::unordered_set<std::string> keywords = {"let", "func", "class", "module", "static", "const"};
 
 enum class TokenType {
     EOF_TOKEN,
@@ -48,7 +48,7 @@ struct Token {
     Token(std::string value, TokenType type): position(0, 0), value(value), type(type) {}
     Token(PositionSpan span, std::string value, TokenType type): position(span), value(value), type(type) {}
 
-    bool match(Token token) {
+    bool match(Token token) const noexcept {
         if (token.value == value && token.type == type) {
             return true;
         }
