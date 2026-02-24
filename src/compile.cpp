@@ -11,6 +11,9 @@
 #include "parser/parser.hpp"
 #include "LIR/lir.hpp"
 
+extern IdentyfierNode intType;
+extern IdentyfierNode objectType;
+
 bool compileProject() {
     ProjectConfig config;
     try {
@@ -78,18 +81,8 @@ bool compileProject() {
     Context globalCtx(nullptr);
     globalCtx.symbolKind = SymbolKind::NOT;
 
-    // We need to add Int class to nodes
-    auto intClassNode = std::make_unique<StatementNode>(
-        PositionSpan(0, 0),
-        std::make_unique<ClassDeclNode>(
-            PositionSpan(0, 0),
-            std::make_unique<IdentyfierNode>(PositionSpan(0, 0), "Int"),
-            std::vector<std::unique_ptr<ASTNode>>{},
-            false
-        )
-    );
-
-    nodes.push_back(std::move(intClassNode));
+    globalCtx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &objectType, nullptr, nullptr));
+    globalCtx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &intType, globalCtx.lookup(&objectType), nullptr));
 
     for (auto phase : {
         PassPhase::DECLARATION,
@@ -121,7 +114,14 @@ bool compileProject() {
     printContext(&globalCtx, 0);
     std::cout << "\n\n";
 
-    auto lir = generateLIR(std::move(nodes), globalCtx);
+    std::vector<std::unique_ptr<IRValue>> lir;
+    try {
+        lir = generateLIR(std::move(nodes), globalCtx);
+    } catch (const LIRException& e) {
+        std::cerr << e.error.returnError() << "\n";
+        return false;
+    }
+    
     std::cout << "Size: " << lir.size() << "\n";
     for (auto& instr : lir) {
         instr->debug();

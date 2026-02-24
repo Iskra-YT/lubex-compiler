@@ -47,6 +47,18 @@ void optimizeNode(std::unique_ptr<ASTNode>& node) {
         optimizeBinary(expr, node);
     } else if (auto stmt = dynamic_cast<StatementNode*>(node.get())) {
         optimizeNode(stmt->value);
+    } else if (auto cls = dynamic_cast<ClassDeclNode*>(node.get())) {
+        for (auto& n : cls->members) {
+            optimizeNode(n);
+        }
+    } else if (auto fn = dynamic_cast<FunctionDeclaration*>(node.get())) {
+        for (auto& n : fn->body) {
+            optimizeNode(n);
+        }
+    } else if (auto var = dynamic_cast<VariableDeclarationNode*>(node.get())) {
+        optimizeNode(var->value);
+    } else if (auto asg = dynamic_cast<VariableAssigment*>(node.get())) {
+        optimizeNode(asg->value);
     }
 }
 

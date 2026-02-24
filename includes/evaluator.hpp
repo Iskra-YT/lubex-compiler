@@ -32,6 +32,7 @@ struct Symbol {
     Context* scope = nullptr;
     ASTNode* node;
     std::string mangledName;
+    bool isStatic = false;
 
     Symbol(SymbolKind kind, IdentyfierNode* name, Symbol* type, ASTNode* node) : kind(kind), name(name), type(type), node(node) {}
 };

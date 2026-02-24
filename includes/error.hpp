@@ -9,7 +9,7 @@ class Error {
         std::string value;
     public:
         Error(PositionSpan position, std::string text): span(position), value(text) {} 
-        std::string returnError();
+        std::string returnError() const;
 };
 
 #endif //ERROR_LUBEX_HPP

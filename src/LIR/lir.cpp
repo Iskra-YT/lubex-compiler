@@ -144,6 +144,10 @@ LIRGenerate parse(std::unique_ptr<ASTNode> node, Context& ctx) {
         auto idSym = ctx.lookup(id);
         auto allocSym = variables[mangleName(idSym->mangledName)];
 
+        if (allocSym == nullptr) {
+            throw LIRException(Error(id->position, "Undefined variable: " + id->value));
+        }
+
         auto var = std::make_unique<IRVariableRead>(allocSym->name, allocSym->type);
         std::vector<std::unique_ptr<IRValue>> res;
         res.push_back(std::move(var));

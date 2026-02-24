@@ -1,8 +1,9 @@
 #!/bin/bash
+set -e
 
-rm -rf build
-mkdir build
-cd build
-cmake .. "$@"
-cmake --build .
-cd ..
+if [ ! -d build ]; then
+    cmake -B build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache "$@"
+fi
+
+cmake --build build --parallel
+ccache -s

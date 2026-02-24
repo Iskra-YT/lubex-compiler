@@ -13,6 +13,12 @@ extern int lastId;
 typedef std::string IRType;
 typedef std::string IRName;
 
+class LIRException : public std::exception {
+    public:
+        Error error;
+        LIRException(Error err): error(err) {}
+};
+
 struct IRValue {
     IRName name;
     IRType type;
