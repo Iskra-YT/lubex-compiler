@@ -36,17 +36,25 @@ Symbol* BinaryNode::evaluateSymbol(Context& ctx) {
 
 
 Symbol* VariableDeclarationNode::evaluateSymbol(Context& ctx) {
-    if (ctx.phase == PassPhase::TYPE_CHECK) {
+    auto declareVariable = [&]() {
         auto t = type->evaluateSymbol(ctx);
         ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), t, static_cast<ASTNode*>(this)));
 
         if (value) {
             auto v = value->evaluateSymbol(ctx);
             auto sym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
-            if (v && t && sym && t->type->name->value != v->type->name->value) {
+            if (v && t && sym && t->name->value != v->type->name->value) {
                 ctx.errors.push_back(Error(position, "Type mismatch in variable declaration"));
             }
         }
+    };
+
+    if (ctx.generativeSymbol && ctx.generativeSymbol->kind == SymbolKind::CLASS && ctx.phase == PassPhase::DECLARATION) {
+        declareVariable();
+    }
+
+    if (ctx.phase == PassPhase::TYPE_CHECK && ctx.generativeSymbol && ctx.generativeSymbol->kind != SymbolKind::CLASS) {
+        declareVariable();
     }
 
     return nullptr;

@@ -27,6 +27,13 @@ struct IRValue {
     IRValue(const IRName& n, IRType t) : name(n), type(t) {}
 };
 
+struct IRMember : IRValue {
+    IRMember(const IRName& name, IRType type): IRValue{name, type} {}
+    void debug() const override {
+        std::cout << name << ": " << type << "\n";
+    }
+};
+
 struct IRArg : IRValue {
     IRArg(const IRName& name, IRType type): IRValue{name, type} {}
     void debug() const override {
@@ -92,6 +99,7 @@ struct IRFunction : IRValue {
             std::cout << "\t";
             instr->debug();
         }
+        std::cout << "\n";
     }
 };
 
@@ -111,6 +119,20 @@ struct IRVariableRead : IRValue {
 
     void debug() const override {
         std::cout << "load " << name << ": " << type << "\n";
+    }
+};
+
+struct IRStruct : IRValue {
+    std::vector<std::unique_ptr<IRValue>> data;
+    IRStruct(const IRName& name, std::vector<std::unique_ptr<IRValue>> body) : IRValue{name, "%tmp"}, data(std::move(body)) {}
+
+    void debug() const override {
+        std::cout << "struct " << name << "\n";
+        for (auto& val : data) {
+            std::cout << "\t";
+            val->debug();
+        }
+        std::cout << "\n";
     }
 };
 

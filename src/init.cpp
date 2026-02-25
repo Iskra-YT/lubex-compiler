@@ -22,12 +22,12 @@ void createCompilerConfig(const std::filesystem::path& projectDir, const std::st
     config["version"] = "1.0.0";
     config["sourceDir"] = "src";
     config["optimalization"] = 1;
-    config["entrypoint"] = "main." + std::string(1, std::toupper(projectName[0])) + projectName.substr(1) + ".entry"; // module.class.function
 
     config["targets"] = nlohmann::json::array();
     nlohmann::json target;
     target["machine"] = "linux-x86_64";
     target["outputName"] = projectName;
+    target["entrypoint"] = "main." + std::string(1, std::toupper(projectName[0])) + projectName.substr(1) + ".entry"; // module.class.function
     config["targets"].push_back(target);
 
     std::filesystem::create_directories(projectDir / "src");
@@ -39,12 +39,20 @@ void createCompilerConfig(const std::filesystem::path& projectDir, const std::st
 bool initProject(char* name) {
     std::filesystem::path projectPath = std::filesystem::current_path() / name;
     if (!createFolder(projectPath)) return false;
-    createCompilerConfig(projectPath, std::string(name));
+    std::string projectName = std::string(name);
+    createCompilerConfig(projectPath, projectName);
 
-    // TODO: Create Hello, World program in src
     std::filesystem::path mainSourcePath = projectPath / "src" / "main.lbx";
     std::ofstream out(mainSourcePath);
     if (!out) return false;
+
+    out << "module main;\n";
+    out << "\n";
+    out << "class " + std::string(1, std::toupper(projectName[0])) + projectName.substr(1) + " -> {\n";
+    out << "    static func entry(): Int -> {\n"; // TODO: Create Hello, World program in src
+    out << "        \n";
+    out << "    };\n";
+    out << "};\n";
 
     return true;
 }

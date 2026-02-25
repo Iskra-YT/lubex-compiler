@@ -2,23 +2,26 @@
 #include <iostream>
 
 void Context::declare(std::unique_ptr<Symbol> sym) {
-    if (symbols.contains(sym->name->value)) {
+    if (lookup(sym->name, false)) {
         errors.push_back(Error(sym->name->position, "Symbol '" + sym->name->value + "' is already defined"));
         return;
     }
     symbols[sym->name->value] = std::move(sym);
 }
 
-Symbol* Context::lookup(const IdentyfierNode* name) {
+Symbol* Context::lookup(const IdentyfierNode* name, bool getError) {
     if (symbols.contains(name->value)) {
         return symbols[name->value].get();
     } 
 
     if (parent) {
-        return parent->lookup(name);
+        return parent->lookup(name, getError);
     }
 
-    errors.emplace_back(name->position, "Undefined identifier '" + name->value + "'");
+    if (getError) {
+        errors.emplace_back(name->position, "Undefined identifier '" + name->value + "'");
+    }
+
     return nullptr;
 }
 

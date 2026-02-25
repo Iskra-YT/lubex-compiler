@@ -49,7 +49,7 @@ struct Context {
     Context(Context* parent = nullptr) : parent(parent) {}
 
     void declare(std::unique_ptr<Symbol> sym);
-    Symbol* lookup(const IdentyfierNode* name);
+    Symbol* lookup(const IdentyfierNode* name, bool getError = true);
     Context* addChild();
     std::vector<Error> getErrors();
 };
