@@ -96,7 +96,7 @@ LIRGenerate parseBinaryExpression(BinaryNode* bin, Context& ctx) {
         res.push_back(std::move(instr));
     }
 
-    // TODO: Add more operators
+    // TODO: Issue #2
     if (bin->op == "+") {
         if (type->name->value == "Int") {
             res.push_back(std::make_unique<IRCall>("_BI_Int_add", "_BI_Int", std::vector<IRValue*>{L.mainValue, R.mainValue}));
@@ -166,6 +166,7 @@ LIRGenerate parseClassDeclaration(ClassDeclNode* cls, Context& ctx) {
 
     auto stc = std::make_unique<IRStruct>(mangleName(classSym->mangledName), std::move(structBody));
     body.insert(body.begin(), std::move(stc));
+    variables[mangleName(classSym->mangledName)] = body[0].get();
 
     return {
         body[0].get(),
@@ -175,30 +176,59 @@ LIRGenerate parseClassDeclaration(ClassDeclNode* cls, Context& ctx) {
 
 LIRGenerate parseIdentyfierNode(IdentyfierNode* id, Context& ctx) {
     auto idSym = ctx.lookup(id);
-    auto allocSym = variables[mangleName(idSym->mangledName)];
+    if (idSym->kind == SymbolKind::CLASS) {
+        return { new IRClass(mangleName(idSym->mangledName), idSym->name->value), {} };
+    }
 
-    if (allocSym == nullptr) {
+    auto it = variables.find(mangleName(idSym->mangledName));
+    if (it == variables.end()) {
         throw LIRException(Error(id->position, "Undefined variable: " + id->value));
     }
 
+    auto allocSym = it->second;
+
     auto var = std::make_unique<IRVariableRead>(allocSym->name, allocSym->type);
+
     std::vector<std::unique_ptr<IRValue>> res;
     res.push_back(std::move(var));
-    return {
-        res.back().get(),
-        std::move(res)
-    };
+
+    return { res.back().get(), std::move(res) };
 }
 
 LIRGenerate parseCallNode(CallNode* call, Context& ctx) {
-    auto callSym = ctx.lookup(static_cast<IdentyfierNode*>(call->callee.get()));
     std::vector<std::unique_ptr<IRValue>> res;
     std::vector<IRValue*> args;
 
-    if (!callSym->isStatic && !ctx.generativeSymbol->isStatic) {
-        args.push_back(new IRVariableRead("%0", mangleName(ctx.parent->generativeSymbol->mangledName)));
-    } else if (!callSym->isStatic) {
-        throw LIRException(Error(call->position, "Cannot call non-static method from static context"));
+    Symbol* callSym = nullptr;
+    if (auto member = dynamic_cast<MemberAccessNode*>(call->callee.get())) {
+        auto objectIR = parse(std::move(member->object), ctx);
+
+        for (auto& instr : objectIR.code) {
+            res.push_back(std::move(instr));
+        }
+
+        auto objectVal = objectIR.mainValue;
+
+        auto classSym = ctx.lookup(objectVal->type);
+        callSym = classSym->scope->lookup(static_cast<IdentyfierNode*>(member->member.get()));
+
+        if (!callSym) {
+            throw LIRException(Error(call->position, "Unknown method"));
+        }
+
+        if (!callSym->isStatic) {
+            args.push_back(objectVal);
+        }
+    } else {
+        callSym = ctx.lookup(static_cast<IdentyfierNode*>(call->callee.get()));
+
+        if (!callSym->isStatic) {
+            if (ctx.generativeSymbol->isStatic) {
+                throw LIRException(Error(call->position, "Cannot call non-static method from static context"));
+            }
+
+            args.push_back(new IRVariableRead("%0", mangleName(ctx.parent->generativeSymbol->mangledName)));
+        }
     }
 
     for (auto& arg : call->args) {
@@ -207,6 +237,7 @@ LIRGenerate parseCallNode(CallNode* call, Context& ctx) {
         for (auto& instr : argIR.code) {
             res.push_back(std::move(instr));
         }
+
         args.push_back(argIR.mainValue);
     }
 
@@ -217,6 +248,26 @@ LIRGenerate parseCallNode(CallNode* call, Context& ctx) {
         auto callIR = std::make_unique<IRCall>(mangleName(callSym->mangledName), mangleName(callSym->type->mangledName), args);
         res.push_back(std::move(callIR));
     }
+
+    return { res.back().get(), std::move(res) };
+}
+
+LIRGenerate parseMemberAccessNode(MemberAccessNode* access, Context& ctx) {
+    std::vector<std::unique_ptr<IRValue>> res;
+
+    auto objectIR = parse(std::move(access->object), ctx);
+
+    for (auto& instr : objectIR.code) {
+        res.push_back(std::move(instr));
+    }
+
+    auto objectVal = objectIR.mainValue;
+
+    auto classSym = ctx.lookup(objectVal->type);
+    auto memberSym = classSym->scope->lookup(static_cast<IdentyfierNode*>(access->member.get()));
+
+    auto accessIR = std::make_unique<IRAccess>("%" + std::to_string(lastId++), mangleName(memberSym->type->mangledName), objectVal, mangleName(memberSym->mangledName));
+    res.push_back(std::move(accessIR));
 
     return {
         res.back().get(),
@@ -245,9 +296,9 @@ LIRGenerate parse(std::unique_ptr<ASTNode> node, Context& ctx) {
         return parseIdentyfierNode(id, ctx);
     } else if (auto call = dynamic_cast<CallNode*>(node.get())) {
         return parseCallNode(call, ctx);
+    } else if (auto access = dynamic_cast<MemberAccessNode*>(node.get())) {
+        return parseMemberAccessNode(access, ctx);
     }
-
-    //TODO: Add member access node
 
     return {};
 }

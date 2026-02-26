@@ -25,6 +25,18 @@ Symbol* Context::lookup(const IdentyfierNode* name, bool getError) {
     return nullptr;
 }
 
+Symbol* Context::lookup(const std::string name) {
+    if (symbols.contains(name)) {
+        return symbols[name].get();
+    } 
+
+    if (parent) {
+        return parent->lookup(name);
+    }
+
+    return nullptr;
+}
+
 Context* Context::addChild() {
     children.push_back(std::make_unique<Context>(this));
     return children.back().get();

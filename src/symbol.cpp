@@ -240,7 +240,7 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
         ctx.errors.push_back(Error(position, "No such class member"));
     }
 
-    if (memberSym && memberSym->kind == SymbolKind::FUNCTION) {
+    if (memberSym->kind == SymbolKind::FUNCTION) {
         auto funcDecl = static_cast<FunctionDeclaration*>(memberSym->node);
         if (!funcDecl->isStatic) {
             ctx.errors.push_back(Error(position, "Cannot access non-static member without instance"));

@@ -136,6 +136,27 @@ struct IRStruct : IRValue {
     }
 };
 
+struct IRAccess : IRValue {
+    IRValue* object;
+    std::string memberName;
+
+    IRAccess(const IRName& name, const IRType& type, IRValue* object, const std::string& memberName) : IRValue(name, type), object(object), memberName(memberName) {}
+
+    void debug() const override {
+        std::cout << name + " = access " + object->name + ", " + memberName + "\n";
+    }
+};
+
+struct IRClass : IRValue {
+    IRName name;
+
+    IRClass(const IRName& name, const IRName& normalName) : IRValue(name, normalName) {}
+
+    void debug() const override {
+        std::cout << name << " ";
+    }
+};
+
 struct LIRGenerate {
     IRValue* mainValue;
     std::vector<std::unique_ptr<IRValue>> code;

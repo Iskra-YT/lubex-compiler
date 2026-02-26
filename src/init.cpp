@@ -49,7 +49,7 @@ bool initProject(char* name) {
     out << "module main;\n";
     out << "\n";
     out << "class " + std::string(1, std::toupper(projectName[0])) + projectName.substr(1) + " -> {\n";
-    out << "    static func entry(): Int -> {\n"; // TODO: Create Hello, World program in src
+    out << "    static func entry(): Int -> {\n"; // TODO: Issue #3
     out << "        \n";
     out << "    };\n";
     out << "};\n";
