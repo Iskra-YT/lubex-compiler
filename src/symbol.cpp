@@ -40,12 +40,14 @@ Symbol* VariableDeclarationNode::evaluateSymbol(Context& ctx) {
         auto t = type->evaluateSymbol(ctx);
         ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), t, static_cast<ASTNode*>(this)));
 
-        if (value) {
+        if (value && ctx.generativeSymbol->kind != SymbolKind::CLASS) {
             auto v = value->evaluateSymbol(ctx);
             auto sym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
             if (v && t && sym && t->name->value != v->type->name->value) {
                 ctx.errors.push_back(Error(position, "Type mismatch in variable declaration"));
             }
+        } else if (value) {
+            ctx.errors.push_back(Error(position, "Cannot initialize class member variables"));
         }
     };
 
