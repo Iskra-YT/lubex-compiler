@@ -218,11 +218,15 @@ Symbol* CallNode::evaluateSymbol(Context& ctx) {
         return nullptr;
     }
 
-    if (call->kind == SymbolKind::FUNCTION && static_cast<FunctionDeclaration*>(call->node)->parameters.size() > args.size()) { 
+    if (call->kind == SymbolKind::CLASS) {
+        call = call->scope->lookup(std::string("init"), call->node->position);
+    }
+
+    if (static_cast<FunctionDeclaration*>(call->node)->parameters.size() > args.size()) { 
         ctx.errors.push_back(Error(position, "Argument count mismatch in function call"));
     }
     
-    return call->type;
+    return call;
 }
 
 Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {

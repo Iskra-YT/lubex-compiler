@@ -25,6 +25,22 @@ Symbol* Context::lookup(const IdentyfierNode* name, bool getError) {
     return nullptr;
 }
 
+Symbol* Context::lookup(const std::string name, PositionSpan span, bool getError) {
+    if (symbols.contains(name)) {
+        return symbols[name].get();
+    } 
+
+    if (parent) {
+        return parent->lookup(name);
+    }
+
+    if (getError) {
+        errors.emplace_back(span, "Undefined identifier '" + name + "'");
+    }
+
+    return nullptr;
+}
+
 Symbol* Context::lookup(const std::string name) {
     if (symbols.contains(name)) {
         return symbols[name].get();

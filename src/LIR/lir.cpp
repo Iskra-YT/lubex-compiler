@@ -222,6 +222,10 @@ LIRGenerate parseCallNode(CallNode* call, Context& ctx) {
     } else {
         callSym = ctx.lookup(static_cast<IdentyfierNode*>(call->callee.get()));
 
+        if (callSym->kind == SymbolKind::CLASS) {
+            callSym = callSym->scope->lookup("init", PositionSpan(0, 0), false);
+        }
+
         if (!callSym->isStatic) {
             if (ctx.generativeSymbol->isStatic) {
                 throw LIRException(Error(call->position, "Cannot call non-static method from static context"));
