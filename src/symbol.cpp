@@ -29,7 +29,7 @@ Symbol* BinaryNode::evaluateSymbol(Context& ctx) {
             ctx.errors.push_back(Error(position, "Type mismatch in binary expression"));
         }
 
-        return L->type;
+        return L;
     }
     return nullptr;
 }
