@@ -28,7 +28,9 @@ std::string mangleName(const std::string &name) {
 
 llvm::Value* LLVMGenerator::generate(IRValue* node) {
     if (auto n = dynamic_cast<IRNumber*>(node)) {
-        return llvm::ConstantFP::get(mapLLVMType(n->type), n->number);
+        auto num = llvm::ConstantFP::get(mapLLVMType(n->type), n->number);
+        namedValues[n] = num;
+        return num;
     } else if (auto a = dynamic_cast<IRAlloca*>(node)) {
         llvm::Type* type = mapLLVMType(a->type);
         llvm::Value* allocaInstr = emiterBuilder.CreateAlloca(type, nullptr, a->name);
@@ -37,16 +39,22 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
     } else if (auto v = dynamic_cast<IRVariableRead*>(node)) {
         for (auto& [key, val] : namedValues) {
             if (key->name == v->name) {
-                return emiterBuilder.CreateLoad(mapLLVMType(v->type), val, v->type);
+                auto var = emiterBuilder.CreateLoad(mapLLVMType(v->type), val, v->type);
+                namedValues[v] = var;
+                return var;
             }
         }
 
         std::cerr << "Variable not found: " << v->name << "\n";
         return nullptr;
     } else if (auto s = dynamic_cast<IRStore*>(node)) {
-        llvm::Value* ptr = generate(s->ptr);
-        llvm::Value* val = generate(s->value);
-        return emiterBuilder.CreateStore(val, ptr);
+        llvm::Value* ptr = namedValues[s->ptr];
+        llvm::Value* val = namedValues[s->value];
+
+        auto store = emiterBuilder.CreateStore(val, ptr);
+        namedValues[s] = store;
+
+        return store;
     } else if (auto f = dynamic_cast<IRFunction*>(node)) {
         auto func = emiterModule->getFunction(f->name);
 
@@ -75,6 +83,8 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
             emiterBuilder.CreateRetVoid();
         }
 
+        namedValues[f] = func;
+
         return func;
     } else if (auto c = dynamic_cast<IRCall*>(node)) {
         llvm::Function* callee = emiterModule->getFunction(c->funcName);
@@ -90,8 +100,13 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
             args.push_back(argVal);
         }
 
-        return emiterBuilder.CreateCall(callee, args, c->name);
+        auto call = emiterBuilder.CreateCall(callee, args, c->name);
+        namedValues[c] = call;
+
+        return call;
     }
+
+    return nullptr;
 }
 
 std::vector<llvm::Value*> LLVMGenerator::generate(std::vector<std::unique_ptr<IRValue>> lir) {
