@@ -80,16 +80,15 @@ struct IRCall : IRValue {
 };
 
 struct IRFunction : IRValue {
-    std::string funcName;
     std::vector<IRValue*> args;
     std::vector<std::unique_ptr<IRValue>> body;
     IRType returnType;
 
     IRFunction(const IRName& funcName, std::vector<IRValue*> args, IRType returnType)
-        : IRValue{"%tmp", returnType}, funcName(funcName), args(args), returnType(returnType) {}
+        : IRValue{funcName, returnType}, args(args), returnType(returnType) {}
 
     void debug() const override {
-        std::cout << "function " << funcName << "(";
+        std::cout << "function " << name << "(";
         for (size_t i = 0; i < args.size(); ++i) {
             std::cout << args[i]->name << ": " << args[i]->type;
             if (i + 1 < args.size()) std::cout << ", ";

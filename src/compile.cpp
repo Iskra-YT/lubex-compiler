@@ -127,22 +127,10 @@ bool compileProject() {
         instr->debug();
     }
 
-    setEmiter(moduleName);
+    LLVMGenerator llvm(moduleName);
+    llvm.generate(std::move(lir)); 
 
-    // TEMP START:
-    auto *intTy = llvm::Type::getInt32Ty(*emiterContext);
-    auto *funcType = llvm::FunctionType::get(intTy, false);
-    auto *mainFunc = llvm::Function::Create(
-        funcType, llvm::Function::ExternalLinkage, "main", emiterModule.get());
-
-    auto *entry = llvm::BasicBlock::Create(*emiterContext, "entry", mainFunc);
-    emiterBuilder->SetInsertPoint(entry);
-    // TEMP END
-
-    // TEMP START:
-    emiterBuilder->CreateRet(llvm::ConstantInt::get(intTy, 0));
-    // emiterModule->print(llvm::outs(), nullptr);
-    // TEMP END:
+    llvm.emiterModule->print(llvm::outs(), nullptr);
 
     return true;
 }

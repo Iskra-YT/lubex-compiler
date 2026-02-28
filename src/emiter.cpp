@@ -26,8 +26,91 @@ std::string mangleName(const std::string &name) {
     return mangledName;
 }
 
-void setEmiter(std::string moduleName) {
-    emiterContext = std::make_unique<llvm::LLVMContext>();
-    emiterModule = std::make_unique<llvm::Module>(moduleName, *emiterContext);
-    emiterBuilder = std::make_unique<llvm::IRBuilder<>>(*emiterContext);
+llvm::Value* LLVMGenerator::generate(IRValue* node) {
+    if (auto n = dynamic_cast<IRNumber*>(node)) {
+        return llvm::ConstantFP::get(mapLLVMType(n->type), n->number);
+    } else if (auto a = dynamic_cast<IRAlloca*>(node)) {
+        llvm::Type* type = mapLLVMType(a->type);
+        llvm::Value* allocaInstr = emiterBuilder.CreateAlloca(type, nullptr, a->name);
+        namedValues[a] = allocaInstr;
+        return allocaInstr;
+    } else if (auto v = dynamic_cast<IRVariableRead*>(node)) {
+        for (auto& [key, val] : namedValues) {
+            if (key->name == v->name) {
+                return emiterBuilder.CreateLoad(mapLLVMType(v->type), val, v->type);
+            }
+        }
+
+        std::cerr << "Variable not found: " << v->name << "\n";
+        return nullptr;
+    } else if (auto s = dynamic_cast<IRStore*>(node)) {
+        llvm::Value* ptr = generate(s->ptr);
+        llvm::Value* val = generate(s->value);
+        return emiterBuilder.CreateStore(val, ptr);
+    } else if (auto f = dynamic_cast<IRFunction*>(node)) {
+        auto func = emiterModule->getFunction(f->name);
+
+        if (!func) {
+            std::cerr << "Function not found: " << f->name << "\n";
+            return nullptr;
+        }
+
+        size_t idx = 0;
+        for (auto& arg : func->args()) {
+            namedValues[f->args[idx++]] = &arg;
+        }
+
+        if (f->body.size() == 0) {
+            return func;
+        }
+
+        llvm::BasicBlock* entry = llvm::BasicBlock::Create(emiterContext, "entry", func);
+        emiterBuilder.SetInsertPoint(entry);
+
+        for (auto& instr : f->body) {
+            generate(instr.get());
+        }
+
+        if (f->returnType == "_BI_Void") {
+            emiterBuilder.CreateRetVoid();
+        }
+
+        return func;
+    } else if (auto c = dynamic_cast<IRCall*>(node)) {
+        llvm::Function* callee = emiterModule->getFunction(c->funcName);
+        if (!callee) {
+            std::cerr << "Function not found: " << c->funcName << "\n";
+            return nullptr;
+        }
+
+        std::vector<llvm::Value*> args;
+        for (auto argNode : c->args) {
+            llvm::Value* argVal = generate(argNode);
+            if (!argVal) return nullptr;
+            args.push_back(argVal);
+        }
+
+        return emiterBuilder.CreateCall(callee, args, c->name);
+    }
+}
+
+std::vector<llvm::Value*> LLVMGenerator::generate(std::vector<std::unique_ptr<IRValue>> lir) {
+    std::vector<llvm::Value*> res;
+    for (auto& instr : lir) {
+        if (auto f = dynamic_cast<IRFunction*>(instr.get())) {
+            std::vector<llvm::Type*> argTypes;
+            for (auto arg : f->args) {
+                argTypes.push_back(mapLLVMType(arg->type));
+            }
+
+            llvm::FunctionType* funcType = llvm::FunctionType::get(mapLLVMType(f->returnType), argTypes, false);
+            llvm::Function* func = llvm::Function::Create(funcType, llvm::GlobalValue::LinkageTypes::ExternalLinkage, f->name, emiterModule.get());
+        }
+    }
+
+    for (auto& instr : lir) {
+        res.push_back(generate(instr.get()));
+    }
+
+    return res;
 }
