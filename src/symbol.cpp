@@ -127,6 +127,11 @@ Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
         return nullptr;
     }
 
+    if (body.size() == 0 && !isForward) {
+        ctx.errors.push_back(Error(position, "Function body cannot be empty"));
+        return nullptr;
+    }
+
     if (ctx.phase == PassPhase::DECLARATION) {
         auto fnSym = std::make_unique<Symbol>(
             SymbolKind::FUNCTION,
