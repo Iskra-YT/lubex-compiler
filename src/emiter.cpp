@@ -131,6 +131,18 @@ std::vector<llvm::Value*> LLVMGenerator::generate(std::vector<std::unique_ptr<IR
 
             llvm::FunctionType* funcType = llvm::FunctionType::get(mapLLVMType(f->returnType), argTypes, false);
             llvm::Function* func = llvm::Function::Create(funcType, llvm::GlobalValue::LinkageTypes::ExternalLinkage, f->name, emiterModule.get());
+        } else if (auto c = dynamic_cast<IRStruct*>(instr.get())) {
+            std::vector<llvm::Type*> body;
+            for (auto& type : c->data) {
+                auto member = dynamic_cast<IRMember*>(type.get());
+                if (!member) continue;
+
+                body.push_back(mapLLVMType(member->type));
+            }
+
+            llvm::StructType* namedStruct = llvm::StructType::create(emiterContext, c->name);
+            namedStruct->setBody(body);
+            structTypes[c->name] = namedStruct;
         }
     }
 
