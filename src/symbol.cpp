@@ -20,6 +20,14 @@ Symbol* NumberNode::evaluateSymbol(Context& ctx) {
     return sym;
 }
 
+inline std::string getOperationFunction(std::string op) {
+    if (op == "+") return "add";
+    else if (op == "-") return "subtract";
+    else if (op == "*") return "multiply";
+    else if (op == "/") return "divide";
+    return "unknown";
+}
+
 Symbol* BinaryNode::evaluateSymbol(Context& ctx) {
     if (ctx.phase == PassPhase::TYPE_CHECK) {
         auto L = left->evaluateSymbol(ctx);
@@ -27,6 +35,11 @@ Symbol* BinaryNode::evaluateSymbol(Context& ctx) {
 
         if (L->type->name->value != R->type->name->value) {
             ctx.errors.push_back(Error(position, "Type mismatch in binary expression"));
+        }
+
+        auto getFunction = L->type->scope->lookup(getOperationFunction(op));
+        if (!getFunction) {
+            ctx.errors.emplace_back(position, "Type does not support operator '" + op + "'");
         }
 
         return L;
