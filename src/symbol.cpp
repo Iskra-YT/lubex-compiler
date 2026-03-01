@@ -237,12 +237,15 @@ Symbol* CallNode::evaluateSymbol(Context& ctx) {
         return nullptr;
     }
 
+    auto called = call;
     if (call->kind == SymbolKind::CLASS) {
-        call = call->scope->lookup(std::string("init"), call->node->position);
+        call = call->scope->lookup(std::string("init"), call->node ? call->node->position : PositionSpan(0, 0));
     }
 
-    if (static_cast<FunctionDeclaration*>(call->node)->parameters.size() > args.size()) { 
-        ctx.errors.push_back(Error(position, "Argument count mismatch in function call"));
+    if (called->name->value != "Int" && called->name->value != "Void") {
+        if (static_cast<FunctionDeclaration*>(call->node)->parameters.size() > args.size()) { 
+            ctx.errors.push_back(Error(position, "Argument count mismatch in function call"));
+        }
     }
     
     return call;

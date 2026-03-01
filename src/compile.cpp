@@ -15,6 +15,12 @@ extern IdentyfierNode intType;
 extern IdentyfierNode objectType;
 extern IdentyfierNode voidType;
 
+IdentyfierNode initName(PositionSpan(0, 0), "init");
+IdentyfierNode addName(PositionSpan(0, 0), "add");
+IdentyfierNode subName(PositionSpan(0, 0), "subtract");
+IdentyfierNode mulName(PositionSpan(0, 0), "multiply");
+IdentyfierNode divName(PositionSpan(0, 0), "divide");
+
 bool compileProject() {
     ProjectConfig config;
     try {
@@ -82,9 +88,50 @@ bool compileProject() {
     Context globalCtx(nullptr);
     globalCtx.symbolKind = SymbolKind::NOT;
 
-    globalCtx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &objectType, nullptr, nullptr));
-    globalCtx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &intType, globalCtx.lookup(&objectType), nullptr));
-    globalCtx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &voidType, globalCtx.lookup(&objectType), nullptr));
+    // Object
+    Context objectContext;
+    auto object = std::make_unique<Symbol>(SymbolKind::CLASS, &objectType, nullptr, nullptr);
+    //Object.init
+    auto func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, object.get(), nullptr);
+    func->isStatic = true;
+    objectContext.declare(std::move(func));
+
+    objectContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &addName, object.get(), nullptr));
+    objectContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &subName, object.get(), nullptr));
+    objectContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &mulName, object.get(), nullptr));
+    objectContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &divName, object.get(), nullptr));
+    object->scope = &objectContext;
+    globalCtx.declare(std::move(object));
+
+    // Int
+    Context intContext;
+    auto intClass = std::make_unique<Symbol>(SymbolKind::CLASS, &intType, nullptr, nullptr);
+    // Int.init
+    func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, intClass.get(), nullptr);
+    func->isStatic = true;
+    intContext.declare(std::move(func));
+
+    intContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &addName, intClass.get(), nullptr));
+    intContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &subName, intClass.get(), nullptr));
+    intContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &mulName, intClass.get(), nullptr));
+    intContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &divName, intClass.get(), nullptr));
+    intClass->scope = &intContext;
+    globalCtx.declare(std::move(intClass));
+
+    // Void
+    Context voidContext;
+    auto voidClass = std::make_unique<Symbol>(SymbolKind::CLASS, &voidType, nullptr, nullptr);
+    // Void.init
+    func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, voidClass.get(), nullptr);
+    func->isStatic = true;
+    voidContext.declare(std::move(func));
+
+    voidContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &addName, voidClass.get(), nullptr));
+    voidContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &subName, voidClass.get(), nullptr));
+    voidContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &mulName, voidClass.get(), nullptr));
+    voidContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &divName, voidClass.get(), nullptr));
+    voidClass->scope = &voidContext;
+    globalCtx.declare(std::move(voidClass));
 
     for (auto phase : {
         PassPhase::DECLARATION,
