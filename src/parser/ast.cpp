@@ -7,6 +7,7 @@
 
 IdentyfierNode intType(PositionSpan(0, 0), "Int");
 IdentyfierNode objectType(PositionSpan(0, 0), "Object");
+IdentyfierNode voidType(PositionSpan(0, 0), "Void");
 
 void ASTNode::debug() {
     throw std::runtime_error("Internal error: unreachable path");

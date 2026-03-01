@@ -13,6 +13,7 @@
 
 extern IdentyfierNode intType;
 extern IdentyfierNode objectType;
+extern IdentyfierNode voidType;
 
 bool compileProject() {
     ProjectConfig config;
@@ -83,6 +84,7 @@ bool compileProject() {
 
     globalCtx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &objectType, nullptr, nullptr));
     globalCtx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &intType, globalCtx.lookup(&objectType), nullptr));
+    globalCtx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &voidType, globalCtx.lookup(&objectType), nullptr));
 
     for (auto phase : {
         PassPhase::DECLARATION,

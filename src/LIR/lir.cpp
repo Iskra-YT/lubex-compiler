@@ -34,7 +34,16 @@ LIRGenerate parseNumbers(NumberNode* num, Context& ctx) {
 
 LIRGenerate parseVariableDeclaration(VariableDeclarationNode* decl, Context& ctx) {
     auto varSym = ctx.lookup(static_cast<IdentyfierNode*>(decl->name.get()));
-    auto alloca = std::make_unique<IRAlloca>("%" + std::to_string(lastId++), varSym->type->name->value == "Int" ? "_BI_Int" : mangleName(varSym->type->mangledName));
+    
+    std::string typeName;
+    if (varSym->type->name->value == "Int") {
+        typeName = "_BI_Int";
+    } else if (varSym->type->name->value == "Void") {
+        typeName = "_BI_Void";
+    } else {
+        typeName = mangleName(varSym->type->mangledName);
+    }
+    auto alloca = std::make_unique<IRAlloca>("%" + std::to_string(lastId++), typeName);
     IRValue* allocaPtr = alloca.get();
     variables[mangleName(varSym->mangledName)] = allocaPtr;
 
@@ -101,6 +110,9 @@ LIRGenerate parseBinaryExpression(BinaryNode* bin, Context& ctx) {
         if (type->name->value == "Int") {
             res.push_back(std::make_unique<IRCall>("_BI_Int_add", "_BI_Int", std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
+        } else if (type->name->value == "Void") {
+            res.push_back(std::make_unique<IRCall>("_BI_Void_add", "_BI_Void", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
         } else {
             res.push_back(std::make_unique<IRCall>(mangleName(type->mangledName) + "_F3add", mangleName(type->mangledName), std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
@@ -126,7 +138,16 @@ LIRGenerate parseFunction(FunctionDeclaration* func, Context& ctx) {
         args.push_back(argIr);
     }
 
-    auto funcIr = std::make_unique<IRFunction>(mangleName(funcSym->mangledName), std::move(args), funcSym->type->name->value == "Int" ? "_BI_Int" : mangleName(funcSym->type->mangledName));
+    std::string typeName;
+    if (funcSym->type->name->value == "Int") {
+        typeName = "_BI_Int";
+    } else if (funcSym->type->name->value == "Void") {
+        typeName = "_BI_Void";
+    } else {
+        typeName = mangleName(funcSym->type->mangledName);
+    }
+
+    auto funcIr = std::make_unique<IRFunction>(mangleName(funcSym->mangledName), std::move(args), typeName);
     for (auto& node : func->body) {
         auto ir = parse(std::move(node), *funcSym->scope);
         for (auto& instr : ir.code) {
@@ -151,7 +172,17 @@ LIRGenerate parseClassDeclaration(ClassDeclNode* cls, Context& ctx) {
     for (auto& node : cls->members) {
         if (auto var = dynamic_cast<VariableDeclarationNode*>(dynamic_cast<StatementNode*>(node.get())->value.get())) {
             auto varSym = classSym->scope->lookup(dynamic_cast<IdentyfierNode*>(var->name.get()));
-            auto member = std::make_unique<IRMember>("$" + std::to_string(lastClassId++), varSym->type->name->value == "Int" ? "_BI_Int" : mangleName(varSym->type->mangledName));
+
+            std::string typeName;
+            if (varSym->type->name->value == "Int") {
+                typeName = "_BI_Int";
+            } else if (varSym->type->name->value == "Void") {
+                typeName = "_BI_Void";
+            } else {
+                typeName = mangleName(varSym->type->mangledName);
+            }
+
+            auto member = std::make_unique<IRMember>("$" + std::to_string(lastClassId++), typeName);
             structBody.push_back(std::move(member));
 
             variables[mangleName(varSym->mangledName)] = structBody.back().get();
