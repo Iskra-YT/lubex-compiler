@@ -3,6 +3,7 @@
 
 extern IdentyfierNode intType;
 extern IdentyfierNode objectType;
+extern IdentyfierNode voidType;
 
 bool inStatic = false;
 
@@ -272,4 +273,23 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
     }
 
     return memberSym;
+}
+
+Symbol* ReturnNode::evaluateSymbol(Context& ctx) {
+    if (value) {
+        auto valueSym = value->evaluateSymbol(ctx);
+        if (valueSym->type->name->value != ctx.generativeSymbol->type->name->value) {
+            ctx.errors.push_back(Error(position, "Type mismatch in return statement"));
+        }
+
+        return valueSym;
+    } else {
+        if (ctx.generativeSymbol->type->name->value != "Void") {
+            ctx.errors.push_back(Error(position, "Type mismatch in return statement"));
+        }
+
+        auto voidSym = ctx.lookup(&voidType);
+        voidSym->type = voidSym;
+        return voidSym;
+    }
 }

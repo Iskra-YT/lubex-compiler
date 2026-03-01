@@ -156,6 +156,15 @@ struct IRClass : IRValue {
     }
 };
 
+struct IRReturn : IRValue {
+    IRValue* value;
+    IRReturn(const IRType& type, IRValue* value): IRValue("%tmp", type), value(value) {}
+
+    void debug() const override {
+        std::cout << "ret " << value->name << " : " << type << "\n";
+    }
+};
+
 struct LIRGenerate {
     IRValue* mainValue;
     std::vector<std::unique_ptr<IRValue>> code;

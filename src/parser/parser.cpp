@@ -11,6 +11,7 @@ Parser::Parser(std::vector<Token> toks): tokens(toks) {
     initClassDecl();
     initModuleDecl();
     initConstDecl();
+    initReturnDecl();
 }
 
 Token Parser::getCurrent() {
@@ -211,6 +212,9 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
     } else if (tok.match(Token("const", TokenType::KEYWORD_TOKEN))) {
         VarDeclContext ctx;
         return parseInstruction(constDeclInstr, &ctx);
+    } else if (tok.match(Token("return", TokenType::KEYWORD_TOKEN))) {
+        ReturnDeclContext ctx;
+        return parseInstruction(returnDeclInstr, &ctx);
     }
     
     auto node = parseTerm();

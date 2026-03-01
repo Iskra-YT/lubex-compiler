@@ -145,4 +145,12 @@ struct MemberAccessNode : ASTNode {
     void debug() override;
 };
 
+struct ReturnNode : ASTNode {
+    std::unique_ptr<ASTNode> value;
+
+    ReturnNode(PositionSpan span, std::unique_ptr<ASTNode> value) : ASTNode(span), value(std::move(value)) {}
+    Symbol* evaluateSymbol(Context& ctx) override;
+    void debug() override;
+};
+
 #endif // AST_NODE_HPP

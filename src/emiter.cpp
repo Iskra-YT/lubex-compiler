@@ -104,6 +104,17 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
         namedValues[c] = call;
 
         return call;
+    } else if (auto r = dynamic_cast<IRReturn*>(node)) {
+        llvm::Value* ret;
+        if (r->type == "_BI_Void") {
+            ret = emiterBuilder.CreateRetVoid();
+        } else {
+            llvm::Value* value = namedValues[r->value];
+            ret = emiterBuilder.CreateRet(value);
+        }
+
+        namedValues[r] = ret;
+        return ret;
     }
 
     return nullptr;

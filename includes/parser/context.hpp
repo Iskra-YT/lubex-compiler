@@ -33,4 +33,8 @@ struct ModuleDeclContext {
     std::unique_ptr<ASTNode> name;
 };
 
+struct ReturnDeclContext {
+    std::unique_ptr<ASTNode> value;
+};
+
 #endif // CONTEXT_LUBEX_HPP

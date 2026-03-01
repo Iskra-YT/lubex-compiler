@@ -96,3 +96,8 @@ void MemberAccessNode::debug() {
     std::cout << ".";
     member->debug();
 }
+
+void ReturnNode::debug() {
+    std::cout << "return ";
+    if (value) value->debug();
+}

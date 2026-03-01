@@ -151,3 +151,26 @@ void Parser::initConstDecl() {
         }
     };
 }
+
+void Parser::initReturnDecl() {
+    returnDeclInstr.steps = {
+        {TokenType::KEYWORD_TOKEN, "return", [](Token&, void*){}, true, 0},
+        {TokenType::ANY, "", [&](Token& t, void* ctx){
+            auto& c = *(ReturnDeclContext*)ctx;
+            if (!t.match(Token(";", TokenType::DELIMITER_TOKEN)) && t.type != TokenType::EOF_TOKEN) {
+                c.value = parseExpr();
+            } else {
+                c.value = nullptr;
+            }
+        }, false, 1}
+    };
+
+    returnDeclInstr.finalize = [](PositionSpan span, void* ctx) {
+        ReturnDeclContext* c = (ReturnDeclContext*)ctx;
+        if (c->value.get()) {
+            return std::make_unique<ReturnNode>(span, std::move(c->value));
+        } else {
+            return std::make_unique<ReturnNode>(span, nullptr);
+        }
+    };
+}

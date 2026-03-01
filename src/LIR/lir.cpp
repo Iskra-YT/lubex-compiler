@@ -310,6 +310,23 @@ LIRGenerate parseMemberAccessNode(MemberAccessNode* access, Context& ctx) {
     };
 }
 
+LIRGenerate parseReturnNode(ReturnNode* ret, Context& ctx) {
+    std::vector<std::unique_ptr<IRValue>> res;
+    auto valueIr = parse(std::move(ret->value), ctx);
+
+    for (auto& instr : valueIr.code) {
+        res.push_back(std::move(instr));
+    }
+
+    auto returnIR = std::make_unique<IRReturn>(valueIr.mainValue->type, valueIr.mainValue);
+    res.push_back(std::move(returnIR));
+
+    return {
+        res.back().get(),
+        std::move(res)
+    };
+}
+
 LIRGenerate parse(std::unique_ptr<ASTNode> node, Context& ctx) {
     if (auto stmt = dynamic_cast<StatementNode*>(node.get())) {
         return parse(std::move(stmt->value), ctx);
@@ -333,6 +350,8 @@ LIRGenerate parse(std::unique_ptr<ASTNode> node, Context& ctx) {
         return parseCallNode(call, ctx);
     } else if (auto access = dynamic_cast<MemberAccessNode*>(node.get())) {
         return parseMemberAccessNode(access, ctx);
+    } else if (auto ret = dynamic_cast<ReturnNode*>(node.get())) {
+        return parseReturnNode(ret, ctx);
     }
 
     return {};
