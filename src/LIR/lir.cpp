@@ -117,6 +117,39 @@ LIRGenerate parseBinaryExpression(BinaryNode* bin, Context& ctx) {
             res.push_back(std::make_unique<IRCall>(mangleName(binSym->type->mangledName) + "_F3add", mangleName(binSym->type->mangledName), std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         }
+    } else if (bin->op == "-") {
+        if (binSym->type->name->value == "Int") {
+            res.push_back(std::make_unique<IRCall>("_BI_Int_subtract", "_BI_Int", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        } else if (binSym->type->name->value == "Void") {
+            res.push_back(std::make_unique<IRCall>("_BI_Void_subtract", "_BI_Void", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        } else {
+            res.push_back(std::make_unique<IRCall>(mangleName(binSym->type->mangledName) + "_F8subtract", mangleName(binSym->type->mangledName), std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        }
+    } else if (bin->op == "*") {
+        if (binSym->type->name->value == "Int") {
+            res.push_back(std::make_unique<IRCall>("_BI_Int_multiply", "_BI_Int", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        } else if (binSym->type->name->value == "Void") {
+            res.push_back(std::make_unique<IRCall>("_BI_Void_multiply", "_BI_Void", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        } else {
+            res.push_back(std::make_unique<IRCall>(mangleName(binSym->type->mangledName) + "_F8multiply", mangleName(binSym->type->mangledName), std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        }
+    } else if (bin->op == "/") {
+        if (binSym->type->name->value == "Int") {
+            res.push_back(std::make_unique<IRCall>("_BI_Int_divide", "_BI_Int", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        } else if (binSym->type->name->value == "Void") {
+            res.push_back(std::make_unique<IRCall>("_BI_Void_divide", "_BI_Void", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        } else {
+            res.push_back(std::make_unique<IRCall>(mangleName(binSym->type->mangledName) + "_F6divide", mangleName(binSym->type->mangledName), std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        }
     }
 
     return {};
