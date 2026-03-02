@@ -18,13 +18,13 @@ ProjectConfig readConfig() {
     config.version = j.value("version", "0.1.0");
     config.sourceDir = j.value("sourceDir", "src");
     config.optimalization = j.value("optimalization", 1);
-    config.entrypoint = j.value("entrypoint", "main.HelloWorldProgram.main");
 
     if (j.contains("targets") && j["targets"].is_array()) {
         for (auto& t : j["targets"]) {
             Target target;
-            target.machine = t.value("machine", "linux-x86_64");
+            target.machine = t.value("machine", "x86_64-unknown-linux-lubex");
             target.outputName = t.value("outputName", "output");
+            target.entrypoint = t.value("entrypoint", "main.HelloWorldProgram.entry");
             config.targets.push_back(target);
         }
     }

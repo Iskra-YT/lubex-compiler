@@ -176,10 +176,36 @@ bool compileProject() {
         instr->debug();
     }
 
-    LLVMGenerator llvm(moduleName);
-    llvm.generate(std::move(lir)); 
+    for (auto target : config.targets) {
+        LLVMGenerator llvm(moduleName);
+        llvm.generate(std::move(lir)); 
 
-    llvm.emiterModule->print(llvm::outs(), nullptr);
+        llvm::Type* intType = llvm::Type::getInt32Ty(llvm.emiterContext);
+        llvm::FunctionType* mainType = llvm::FunctionType::get(intType, false);
+        llvm::Function* mainFunc = llvm::Function::Create(mainType, llvm::GlobalValue::LinkageTypes::ExternalLinkage, "main", llvm.emiterModule.get());
+
+        llvm::BasicBlock* entry = llvm::BasicBlock::Create(llvm.emiterContext, "entry", mainFunc);
+        llvm.emiterBuilder.SetInsertPoint(entry);
+
+        llvm::Function* callee = llvm.emiterModule->getFunction(mangleName(target.entrypoint));
+        if (!callee) {
+            std::cerr << "Function not found: " << target.entrypoint << "\n";
+            break;
+        }
+
+        llvm::StructType* biIntType = llvm.structTypes["_BI_Int"];
+        llvm::Value* callValue = llvm.emiterBuilder.CreateCall(callee);
+
+        llvm::Value* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm.emiterContext), 0);
+        llvm::Value* returnPtr = llvm.emiterBuilder.CreateGEP(biIntType, callValue, {zero, zero});
+
+        llvm::Value* returnValue = llvm.emiterBuilder.CreateLoad(llvm::Type::getDoubleTy(llvm.emiterContext), returnPtr);
+
+        llvm::Value* intVal = llvm.emiterBuilder.CreateFPToSI(returnValue, intType);
+        llvm.emiterBuilder.CreateRet(intVal);
+
+        llvm.emiterModule->print(llvm::outs(), nullptr);
+    }
 
     return true;
 }

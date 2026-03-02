@@ -6,6 +6,7 @@
 #include <vector>
 
 struct Target {
+    std::string entrypoint;
     std::string machine;
     std::string outputName;
 };
@@ -15,7 +16,6 @@ struct ProjectConfig {
     std::string version;
     std::string sourceDir;
     int optimalization;
-    std::string entrypoint;
     std::vector<Target> targets;
 };
 

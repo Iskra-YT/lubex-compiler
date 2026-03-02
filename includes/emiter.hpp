@@ -17,6 +17,8 @@ class LLVMGenerator {
 
     private:
         std::unordered_map<IRValue*, llvm::Value*> namedValues;
+    
+    public:
         std::unordered_map<std::string, llvm::StructType*> structTypes;
         
         inline llvm::Type* mapLLVMType(const std::string& type) {
@@ -35,6 +37,8 @@ class LLVMGenerator {
 
             return st->getPointerTo();
         }
+
+    private:
 
         llvm::Value* generate(IRValue* node);
 
