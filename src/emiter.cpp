@@ -33,7 +33,7 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
         return num;
     } else if (auto a = dynamic_cast<IRAlloca*>(node)) {
         llvm::Type* type = mapLLVMType(a->type);
-        llvm::Value* allocaInstr = emiterBuilder.CreateAlloca(type, nullptr, a->name);
+        llvm::Value* allocaInstr = emiterBuilder.CreateAlloca(type, nullptr);
         namedValues[a] = allocaInstr;
         return allocaInstr;
     } else if (auto v = dynamic_cast<IRVariableRead*>(node)) {
@@ -100,7 +100,7 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
             args.push_back(argVal);
         }
 
-        auto call = emiterBuilder.CreateCall(callee, args, c->name);
+        auto call = emiterBuilder.CreateCall(callee, args);
         namedValues[c] = call;
 
         return call;

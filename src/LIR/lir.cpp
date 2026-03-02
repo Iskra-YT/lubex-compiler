@@ -92,7 +92,7 @@ LIRGenerate parseVariableAssigment(VariableAssigment* assign, Context& ctx) {
 }
 
 LIRGenerate parseBinaryExpression(BinaryNode* bin, Context& ctx) {
-    Symbol* type = bin->evaluateSymbol(ctx);
+    Symbol* binSym = bin->evaluateSymbol(ctx);
     std::vector<std::unique_ptr<IRValue>> res;
     auto L = parse(std::move(bin->left), ctx);
     auto R = parse(std::move(bin->right), ctx);
@@ -107,14 +107,14 @@ LIRGenerate parseBinaryExpression(BinaryNode* bin, Context& ctx) {
 
     // TODO: Issue #2
     if (bin->op == "+") {
-        if (type->name->value == "Int") {
+        if (binSym->type->name->value == "Int") {
             res.push_back(std::make_unique<IRCall>("_BI_Int_add", "_BI_Int", std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
-        } else if (type->name->value == "Void") {
+        } else if (binSym->type->name->value == "Void") {
             res.push_back(std::make_unique<IRCall>("_BI_Void_add", "_BI_Void", std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else {
-            res.push_back(std::make_unique<IRCall>(mangleName(type->mangledName) + "_F3add", mangleName(type->mangledName), std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>(mangleName(binSym->type->mangledName) + "_F3add", mangleName(binSym->type->mangledName), std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         }
     }
