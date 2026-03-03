@@ -1,1 +1,2 @@
-./build/lubex_tests
+cd compiler
+./test.sh

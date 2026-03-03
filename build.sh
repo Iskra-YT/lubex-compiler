@@ -1,9 +1,15 @@
 #!/bin/bash
 set -e
 
-if [ ! -d build ]; then
-    cmake -B build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache "$@"
-fi
+rm -r build
+mkdir build
 
-cmake --build build --parallel
-ccache -s
+cd compiler
+./build.sh "$@"
+cd ..
+cp compiler/build/lubex build/lubex
+
+cd runtime
+./build.sh
+cd ..
+cp ./runtime/build/liblubrtx_lib.a ./build/lubrtx_lib.a
