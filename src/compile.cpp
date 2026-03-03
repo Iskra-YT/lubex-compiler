@@ -1,3 +1,10 @@
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/MC/TargetRegistry.h>
 #include <filesystem>
 #include <fstream>
 #include <ios>
@@ -20,6 +27,39 @@ IdentyfierNode addName(PositionSpan(0, 0), "add");
 IdentyfierNode subName(PositionSpan(0, 0), "subtract");
 IdentyfierNode mulName(PositionSpan(0, 0), "multiply");
 IdentyfierNode divName(PositionSpan(0, 0), "divide");
+
+std::string targetToTriple(const std::string& target) {
+    std::unordered_map<std::string, std::string> arch_map = {
+        {"x64", "x86_64"},
+        {"x86", "i386"},
+        {"arm64", "aarch64"},
+        {"arm", "arm"}
+    };
+
+    std::unordered_map<std::string, std::string> os_map = {
+        {"linux", "pc-linux-gnu"},
+        {"windows", "pc-windows-msvc"},
+        {"darwin", "apple-darwin"}
+    };
+
+    size_t dash_pos = target.find('-');
+    if (dash_pos == std::string::npos) {
+        throw std::invalid_argument("Target must be in format <os>-<arch>");
+    }
+
+    std::string os_part = target.substr(0, dash_pos);
+    std::string arch_part = target.substr(dash_pos + 1);
+
+    if (arch_map.find(arch_part) == arch_map.end()) {
+        throw std::invalid_argument("Unknown architecture: " + arch_part);
+    }
+
+    if (os_map.find(os_part) == os_map.end()) {
+        throw std::invalid_argument("Unknown OS: " + os_part);
+    }
+
+    return arch_map[arch_part] + '-' + os_map[os_part];
+}
 
 bool compileProject() {
     ProjectConfig config;
@@ -176,6 +216,13 @@ bool compileProject() {
         instr->debug();
     }
 
+    llvm::InitializeAllTargetInfos();
+    llvm::InitializeAllTargets();
+    llvm::InitializeAllTargetMCs();
+    llvm::InitializeAllAsmParsers();
+    llvm::InitializeAllAsmPrinters();
+
+
     for (auto target : config.targets) {
         LLVMGenerator llvm(moduleName);
         llvm.generate(std::move(lir)); 
@@ -205,6 +252,46 @@ bool compileProject() {
         llvm.emiterBuilder.CreateRet(intVal);
 
         llvm.emiterModule->print(llvm::outs(), nullptr);
+
+        llvm.emiterModule->setDataLayout("e-m:e-p:64:64-i64:64-n64-S128");
+
+        std::string targetTriple;
+        try {
+            targetTriple = targetToTriple(target.machine);
+        } catch (std::exception& e) {
+            std::cerr << e.what() << "\n";
+            return false;
+        }
+
+        llvm.emiterModule->setTargetTriple(targetTriple);
+
+        std::string error;
+        auto llvmTarget = llvm::TargetRegistry::lookupTarget(targetTriple, error);
+        if (!llvmTarget) {
+            llvm::errs() << "Target lookup failed for triple " << targetTriple << ": " << error << "\n";
+            return false;
+        }
+
+        llvm::TargetOptions opt;
+        auto RM = llvm::Optional<llvm::Reloc::Model>();
+        auto targetMachine = llvmTarget->createTargetMachine(targetTriple, "generic", "", opt, RM);
+
+        std::error_code EC;
+        std::filesystem::path buildDir = std::filesystem::current_path() / config.buildDir / target.machine;
+        std::filesystem::create_directories(buildDir);
+
+        std::filesystem::path outputFile = buildDir / (moduleName + ".o");
+        llvm::raw_fd_ostream dest(outputFile.string(), EC, llvm::sys::fs::OF_None);
+
+        llvm::legacy::PassManager pass;
+
+        if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, llvm::CGFT_ObjectFile)) {
+            llvm::errs() << "TargetMachine can't emit a file of this type";
+            return false;
+        }
+
+        pass.run(*llvm.emiterModule.get());
+        dest.flush();
     }
 
     return true;

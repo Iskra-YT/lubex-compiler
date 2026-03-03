@@ -20,7 +20,7 @@ class LLVMGenerator {
     
     public:
         std::unordered_map<std::string, llvm::StructType*> structTypes;
-        
+
         inline llvm::Type* mapLLVMType(const std::string& type) {
             if (type == "i32") return llvm::Type::getInt32Ty(emiterContext);
             if (type == "double") return llvm::Type::getDoubleTy(emiterContext);
@@ -68,6 +68,7 @@ class LLVMGenerator {
     public:
         LLVMGenerator(const std::string& moduleName) : emiterBuilder(emiterContext) {
             emiterModule = std::make_unique<llvm::Module>(moduleName, emiterContext);
+            emiterModule->setDataLayout("e-m:e-i64:64-f80:128-n8:16:32:64-S128");
 
             generateBuildInStruct("_BI_Int", {"double"});
             generateBuildInFunction("_BI_Int_init", "_BI_Int", {"double"});
