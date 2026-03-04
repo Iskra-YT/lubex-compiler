@@ -12,4 +12,4 @@ cp compiler/build/lubex build/lubex
 cd runtime
 ./build.sh
 cd ..
-cp ./runtime/build/liblubrtx_lib.a ./build/lubrtx_lib.a
+cp ./runtime/build/liblubrtx_lib.a ./build/lubrtx-lib.a
