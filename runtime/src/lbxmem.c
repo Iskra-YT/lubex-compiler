@@ -8,9 +8,11 @@ extern HEAP_BLOCK* mainHeap;
 
 HEAP_BLOCK* __R_cblock(HEAP_BLOCK* previous) {
     HEAP_BLOCK* newBlock = (HEAP_BLOCK*)__OS_mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (newBlock == (void*)-1) return NULL;
+
     __R_memset(newBlock, 0, 4096);
-    previous->next = newBlock;
-    
+
+    if (previous) previous->next = newBlock;
     return newBlock;
 }
 

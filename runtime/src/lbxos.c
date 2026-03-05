@@ -12,14 +12,15 @@ void __OS_exit(int exitCode) {
 
 void* __OS_mmap(void* addr, long length, int prot, int flags, int fd, long offset) {
     long ret;
-    register long r10 asm("r10") = offset;
-    register long r8  asm("r8")  = flags;
-    register long r9  asm("r9")  = fd;
+
+    register long r10 asm("r10") = flags;
+    register long r8  asm("r8")  = fd;
+    register long r9  asm("r9")  = offset;
 
     asm volatile(
         "syscall"
         : "=a"(ret)
-        : "a"(OS_MMAP), "D"(addr), "S"(length), "d"(prot), "r"(r8), "r"(r9), "r"(r10)
+        : "a"(OS_MMAP), "D"(addr), "S"(length), "d"(prot), "r"(r10), "r"(r8), "r"(r9)
         : "rcx", "r11", "memory"
     );
 
