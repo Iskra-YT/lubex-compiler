@@ -101,3 +101,8 @@ void ReturnNode::debug() {
     std::cout << "return ";
     if (value) value->debug();
 }
+
+void AttributesNode::debug(){
+    std::cout << "attr value ";
+    value->debug();
+}

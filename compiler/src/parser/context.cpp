@@ -174,3 +174,30 @@ void Parser::initReturnDecl() {
         }
     };
 }
+
+void Parser::initAttributes() {
+    attributesInstr.steps = {
+        {TokenType::DELIMITER_TOKEN, "@", [](Token&, void*){}, true, 0},
+        {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx) {
+            AttributesContext* c = (AttributesContext*)ctx;
+            c->name = parsePrimary();
+        }, false, 0},
+        {TokenType::DELIMITER_TOKEN, "(", [](Token&, void*){}, true, 1},
+        {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx) {
+            AttributesContext* c = (AttributesContext*)ctx;
+            do {
+                c->args.push_back(std::move(parsePrimary()));
+            } while (getCurrent().match(",", TokenType::DELIMITER_TOKEN) && !tokens.empty());
+        }, true, 1},
+        {TokenType::DELIMITER_TOKEN, ")", [](Token&, void*){}, true, 1},
+        {TokenType::ANY, "", [&](Token& t, void* ctx){
+            AttributesContext* c = (AttributesContext*)ctx;
+            c->value = parseExpr();
+        }, false, 0},
+    };
+
+    attributesInstr.finalize = [](PositionSpan span, void* ctx) {
+        AttributesContext* c = (AttributesContext*)ctx;
+        return std::make_unique<AttributesNode>(span, std::move(c->name), std::move(c->args), std::move(c->value));
+    };
+}

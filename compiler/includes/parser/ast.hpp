@@ -153,4 +153,14 @@ struct ReturnNode : ASTNode {
     void debug() override;
 };
 
+struct AttributesNode : ASTNode {
+    std::unique_ptr<ASTNode> name;
+    std::vector<std::unique_ptr<ASTNode>> params;
+    std::unique_ptr<ASTNode> value;
+
+    AttributesNode(PositionSpan span, std::unique_ptr<ASTNode> name, std::vector<std::unique_ptr<ASTNode>> params, std::unique_ptr<ASTNode> value) : ASTNode(span), name(std::move(name)), params(std::move(params)), value(std::move(value)) {}
+    Symbol* evaluateSymbol(Context& ctx) override;
+    void debug() override;
+};
+
 #endif // AST_NODE_HPP

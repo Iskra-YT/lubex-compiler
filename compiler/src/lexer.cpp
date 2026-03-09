@@ -5,7 +5,7 @@
 bool isVariableAllowed(char c) {
     if ((c >= 'a' && c <= 'z') || 
         (c >= 'A' && c <= 'Z') || 
-        c == '_' || c == '@' || c == '#' || c == '$') {
+        c == '_' || c == '#' || c == '$') {
         return true;
     }
     return false;
@@ -109,6 +109,12 @@ std::vector<Token> Lexer::lex() {
 
         else if (currentToken == '=') {
             tokens.push_back({{startPos, currentPosition}, std::string(1, currentToken), TokenType::ASSIGNMENT_TOKEN});
+            advance();
+            continue;
+        }
+
+        else if (currentToken == '@') {
+            tokens.push_back({{startPos, currentPosition}, std::string(1, currentToken), TokenType::DELIMITER_TOKEN});
             advance();
             continue;
         }

@@ -4,7 +4,13 @@ std::unique_ptr<llvm::LLVMContext> emiterContext;
 std::unique_ptr<llvm::Module> emiterModule;
 std::unique_ptr<llvm::IRBuilder<>> emiterBuilder;
 
+extern std::string mangleVisitor;
+
 std::string mangleName(const std::string &name) {
+    if (mangleVisitor != "") {
+        return mangleVisitor;
+    }
+
     std::vector<std::string> parts;
     size_t start = 0;
     size_t end = name.find('.');

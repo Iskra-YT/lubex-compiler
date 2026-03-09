@@ -37,4 +37,10 @@ struct ReturnDeclContext {
     std::unique_ptr<ASTNode> value;
 };
 
+struct AttributesContext {
+    std::unique_ptr<ASTNode> name;
+    std::vector<std::unique_ptr<ASTNode>> args;
+    std::unique_ptr<ASTNode> value;
+};
+
 #endif // CONTEXT_LUBEX_HPP

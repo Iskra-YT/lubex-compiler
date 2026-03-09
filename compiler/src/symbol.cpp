@@ -296,3 +296,7 @@ Symbol* ReturnNode::evaluateSymbol(Context& ctx) {
         return voidSym;
     }
 }
+
+Symbol* AttributesNode::evaluateSymbol(Context &ctx) {
+    return value->evaluateSymbol(ctx);
+}

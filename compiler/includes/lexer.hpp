@@ -48,11 +48,13 @@ struct Token {
     Token(std::string value, TokenType type): position(0, 0), value(value), type(type) {}
     Token(PositionSpan span, std::string value, TokenType type): position(span), value(value), type(type) {}
 
-    bool match(Token token) const noexcept {
-        if (token.value == value && token.type == type) {
-            return true;
-        }
-        return false;
+    inline bool match(Token token) const noexcept {
+        return match(token.value, token.type);
+    }
+
+    inline bool match(std::string val, TokenType ty) const noexcept {
+        if (value == val && ty == type) return true;
+        else return false;
     }
 };
 

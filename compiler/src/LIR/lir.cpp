@@ -1,6 +1,8 @@
 #include "LIR/lir.hpp"
 #include "emiter.hpp"
 
+std::string mangleVisitor = "";
+
 int lastId = 0;
 int lastClassId = 0;
 static std::unordered_map<std::string, IRValue*> variables;
@@ -360,6 +362,17 @@ LIRGenerate parseReturnNode(ReturnNode* ret, Context& ctx) {
     };
 }
 
+LIRGenerate parseAttributes(AttributesNode* attr, Context& ctx) {
+    if (static_cast<IdentyfierNode*>(attr->name.get())->value == "mangle") {
+        mangleVisitor = static_cast<IdentyfierNode*>(attr->params[0].get())->value;
+        auto value = parse(std::move(attr->value), ctx);
+        mangleVisitor = "";
+        return value;
+    } else {
+        throw LIRException(Error(attr->position, "Unknown attribute: " + static_cast<IdentyfierNode*>(attr->name.get())->value));
+    }
+}
+
 LIRGenerate parse(std::unique_ptr<ASTNode> node, Context& ctx) {
     if (auto stmt = dynamic_cast<StatementNode*>(node.get())) {
         return parse(std::move(stmt->value), ctx);
@@ -385,6 +398,8 @@ LIRGenerate parse(std::unique_ptr<ASTNode> node, Context& ctx) {
         return parseMemberAccessNode(access, ctx);
     } else if (auto ret = dynamic_cast<ReturnNode*>(node.get())) {
         return parseReturnNode(ret, ctx);
+    } else if (auto attr = dynamic_cast<AttributesNode*>(node.get())) {
+        return parseAttributes(attr, ctx);
     }
 
     return {};

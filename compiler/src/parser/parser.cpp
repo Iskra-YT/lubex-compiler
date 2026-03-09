@@ -12,6 +12,7 @@ Parser::Parser(std::vector<Token> toks): tokens(toks) {
     initModuleDecl();
     initConstDecl();
     initReturnDecl();
+    initAttributes();
 }
 
 Token Parser::getCurrent() {
@@ -215,6 +216,9 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
     } else if (tok.match(Token("return", TokenType::KEYWORD_TOKEN))) {
         ReturnDeclContext ctx;
         return parseInstruction(returnDeclInstr, &ctx);
+    } else if (tok.match(Token("@", TokenType::DELIMITER_TOKEN))) {
+        AttributesContext ctx;
+        return parseInstruction(attributesInstr, &ctx);
     }
     
     auto node = parseTerm();

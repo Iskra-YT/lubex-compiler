@@ -95,7 +95,7 @@ LEXER_TEST(Delimiters) {
 }
 
 LEXER_TEST(Identyfier) {
-    std::string input = "i32 a test _and $e @qwerty";
+    std::string input = "i32 a test _and $e #qwerty";
     std::vector<char> in(input.begin(), input.end());
 
     Lexer lexer(in);
@@ -119,7 +119,7 @@ LEXER_TEST(Identyfier) {
     ASSERT_EQ(tokens[4].value, "$e");
 
     ASSERT_EQ(tokens[5].type, TokenType::IDENTYFIER_TOKEN);
-    ASSERT_EQ(tokens[5].value, "@qwerty");
+    ASSERT_EQ(tokens[5].value, "#qwerty");
 
     ASSERT_EQ(tokens[6].type, TokenType::EOF_TOKEN);
 }

@@ -26,7 +26,7 @@ void createCompilerConfig(const std::filesystem::path& projectDir, const std::st
 
     config["targets"] = nlohmann::json::array();
     nlohmann::json target;
-    target["machine"] = "linux-x86_64";
+    target["machine"] = "linux-x64";
     target["outputName"] = projectName;
     target["entrypoint"] = "main." + std::string(1, std::toupper(projectName[0])) + projectName.substr(1) + ".entry"; // module.class.function
     config["targets"].push_back(target);
