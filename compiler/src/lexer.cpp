@@ -74,6 +74,28 @@ std::vector<Token> Lexer::lex() {
         } 
 
         else if (currentToken == '+' || currentToken == '-' || currentToken == '*' || currentToken == '/') {
+            if (currentToken == '/' && !input.empty() && input.front() == '/') {
+                auto pos = currentPosition;
+                while (!input.empty() && currentPosition.line == pos.line) {
+                    advance();
+                }
+                continue;
+            } else if (currentToken == '/' && !input.empty() && input.front() == '*') {
+                advance();
+                advance();
+
+                while (!input.empty()) {
+                    if (currentToken == '*' && !input.empty() && input.front() == '/') {
+                        advance(); 
+                        advance(); 
+                        break;
+                    }
+                    advance();
+                }
+            
+                continue;
+            }
+
             tokens.push_back({{startPos, currentPosition}, std::string(1, currentToken), TokenType::ARITHMETIC_TOKEN});
             advance();
             continue;
