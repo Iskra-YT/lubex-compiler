@@ -176,6 +176,7 @@ std::unique_ptr<ASTNode> Parser::parseInstruction(InstructionSet& instrSet, void
 
 
 std::unique_ptr<ASTNode> Parser::parseStatement() {
+    setDefaultVisibility();
     auto node = parseExpr();
     if (!node) {
         pushError(Error(getCurrent().position, "Invalid expression in statement"));
@@ -198,6 +199,7 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
         return parseInstruction(varDeclInstr, &ctx);
     } else if (tok.match(Token("func", TokenType::KEYWORD_TOKEN)) || tok.match(Token("static", TokenType::KEYWORD_TOKEN))) {
         FuncDeclContext ctx;
+        ctx.visibility = currentVisibilityLevel;
         if (tok.match(Token("static", TokenType::KEYWORD_TOKEN))) {
             ctx.isStatic = true;
             advance();
@@ -206,6 +208,7 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
         return parseInstruction(funcDeclInstr, &ctx);
     } else if (tok.match(Token("class", TokenType::KEYWORD_TOKEN))) {
         ClassDeclContext ctx;
+        ctx.visibility = currentVisibilityLevel;
         return parseInstruction(classDeclInstr, &ctx);
     } else if (tok.match(Token("module", TokenType::KEYWORD_TOKEN))) {
         ModuleDeclContext ctx;
@@ -219,6 +222,20 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
     } else if (tok.match(Token("@", TokenType::DELIMITER_TOKEN))) {
         AttributesContext ctx;
         return parseInstruction(attributesInstr, &ctx);
+    }
+
+    if (tok.match("private", TokenType::KEYWORD_TOKEN)) {
+        currentVisibilityLevel = VisibilityKind::PRIVATE;
+        advance();
+        return parseExpr();
+    } else if (tok.match("internal", TokenType::KEYWORD_TOKEN)) {
+        currentVisibilityLevel = VisibilityKind::INTERNAL;
+        advance();
+        return parseExpr();
+    } else if (tok.match("public", TokenType::KEYWORD_TOKEN)) {
+        currentVisibilityLevel = VisibilityKind::PUBLIC;
+        advance();
+        return parseExpr();
     }
     
     auto node = parseTerm();

@@ -49,6 +49,11 @@ class Parser {
         Token getCurrent();
         Token advance();
 
+        VisibilityKind currentVisibilityLevel = VisibilityKind::PRIVATE;
+        inline void setDefaultVisibility() {
+            currentVisibilityLevel = VisibilityKind::PRIVATE;
+        }
+
         std::unique_ptr<ASTNode> parsePrimary();
         std::unique_ptr<ASTNode> parseFactor();
         std::unique_ptr<ASTNode> parseTerm();

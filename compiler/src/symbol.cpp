@@ -273,6 +273,10 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
         if (!funcDecl->isStatic) {
             ctx.errors.push_back(Error(position, "Cannot access non-static member without instance"));
         }
+
+        if (funcDecl->visibility == VisibilityKind::PRIVATE && obj->type->name->value != ctx.generativeSymbol->name->value) {
+            ctx.errors.push_back(Error(position, "Cannot access private member from outside the class"));
+        }
     }
 
     return memberSym;

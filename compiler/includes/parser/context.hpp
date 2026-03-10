@@ -2,6 +2,7 @@
 #define CONTEXT_LUBEX_HPP
 
 #include "parser/parser.hpp"
+#include "evaluator.hpp"
 
 struct VarDeclContext {
     std::unique_ptr<ASTNode> name;
@@ -19,6 +20,7 @@ struct FuncDeclContext {
     std::unique_ptr<ASTNode> returnType;
     std::vector<std::unique_ptr<ASTNode>> parameters;
     std::vector<std::unique_ptr<ASTNode>> body;
+    VisibilityKind visibility;
     bool isForward = true;
     bool isStatic = false;
 };
@@ -26,6 +28,7 @@ struct FuncDeclContext {
 struct ClassDeclContext {
     std::unique_ptr<ASTNode> name;
     std::vector<std::unique_ptr<ASTNode>> members;
+    VisibilityKind visibility;
     bool isForward = true;
 };
 

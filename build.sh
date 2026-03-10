@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-rm -r build
+rm -rf build
 mkdir build
 
 cd compiler

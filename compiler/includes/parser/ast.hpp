@@ -8,6 +8,12 @@
 
 #include "lexer.hpp"
 
+enum class VisibilityKind {
+    PRIVATE,
+    INTERNAL,
+    PUBLIC
+};
+
 struct Symbol;
 struct Context;
 
@@ -81,10 +87,11 @@ struct FunctionDeclaration : ASTNode {
     std::unique_ptr<ASTNode> type;
     std::vector<std::unique_ptr<ASTNode>> body;
     std::vector<std::unique_ptr<ASTNode>> parameters;
+    VisibilityKind visibility;
     bool isForward;
     bool isStatic;
 
-    FunctionDeclaration(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> type, std::vector<std::unique_ptr<ASTNode>> parameters, std::vector<std::unique_ptr<ASTNode>> body, bool isForward, bool isStatic) : ASTNode(span), name(std::move(name)), type(std::move(type)), body(std::move(body)), parameters(std::move(parameters)), isForward(isForward), isStatic(isStatic) {}
+    FunctionDeclaration(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> type, std::vector<std::unique_ptr<ASTNode>> parameters, std::vector<std::unique_ptr<ASTNode>> body, bool isForward, bool isStatic, VisibilityKind visibility) : ASTNode(span), name(std::move(name)), type(std::move(type)), body(std::move(body)), parameters(std::move(parameters)), isForward(isForward), isStatic(isStatic), visibility(visibility) {}
 
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
@@ -93,12 +100,13 @@ struct FunctionDeclaration : ASTNode {
 struct ClassDeclNode : ASTNode {
     std::unique_ptr<ASTNode> name;
     std::vector<std::unique_ptr<ASTNode>> members;
+    VisibilityKind visibility;
     bool isForward;
 
     ClassDeclNode(PositionSpan span,
                   std::unique_ptr<ASTNode> name,
-                  std::vector<std::unique_ptr<ASTNode>> members, bool isForward)
-        : ASTNode(span), name(std::move(name)), members(std::move(members)), isForward(isForward) {}
+                  std::vector<std::unique_ptr<ASTNode>> members, bool isForward, VisibilityKind visibility)
+        : ASTNode(span), name(std::move(name)), members(std::move(members)), isForward(isForward), visibility(visibility) {}
 
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;

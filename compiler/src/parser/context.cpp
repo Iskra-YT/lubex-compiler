@@ -69,7 +69,7 @@ void Parser::initFuncDecl() {
 
     funcDeclInstr.finalize = [](PositionSpan span, void* ctx){
         FuncDeclContext* c = (FuncDeclContext*)ctx;
-        return std::make_unique<FunctionDeclaration>(span, std::move(c->name), std::move(c->returnType), std::move(c->parameters), std::move(c->body), c->isForward, c->isStatic);
+        return std::make_unique<FunctionDeclaration>(span, std::move(c->name), std::move(c->returnType), std::move(c->parameters), std::move(c->body), c->isForward, c->isStatic, c->visibility);
     };
 }
 
@@ -93,7 +93,7 @@ void Parser::initClassDecl() {
 
     classDeclInstr.finalize = [](PositionSpan span, void* ctx){
         ClassDeclContext* c = (ClassDeclContext*)ctx;
-        return std::make_unique<ClassDeclNode>(span, std::move(c->name), std::move(c->members), c->isForward);
+        return std::make_unique<ClassDeclNode>(span, std::move(c->name), std::move(c->members), c->isForward, c->visibility);
     };
 }
 
