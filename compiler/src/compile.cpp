@@ -253,8 +253,6 @@ bool compileProject() {
 
         llvm.emiterModule->print(llvm::outs(), nullptr);
 
-        llvm.emiterModule->setDataLayout("e-m:e-p:64:64-i64:64-n64-S128");
-
         std::string targetTriple;
         try {
             targetTriple = targetToTriple(target.machine);

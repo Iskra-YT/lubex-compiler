@@ -39,13 +39,26 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
         return num;
     } else if (auto a = dynamic_cast<IRAlloca*>(node)) {
         llvm::Type* type = mapLLVMType(a->type);
-        llvm::Value* allocaInstr = emiterBuilder.CreateAlloca(type, nullptr);
-        namedValues[a] = allocaInstr;
-        return allocaInstr;
+
+        llvm::Function* callee = emiterModule->getFunction("_BI_malloc");
+        if (!callee) {
+            std::cerr << "Function not found: _BI_malloc\n";
+            return nullptr;
+        }
+
+        llvm::DataLayout DL(emiterModule.get());
+        uint64_t sizeBytes = DL.getTypeAllocSize(type);
+        llvm::Value* sizeVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(emiterContext), sizeBytes);
+
+        llvm::Value* mallocCall = emiterBuilder.CreateCall(callee, {sizeVal});
+        llvm::Value* typedPtr = emiterBuilder.CreateBitCast(mallocCall, type->getPointerTo());
+
+        namedValues[a] = typedPtr;
+        return typedPtr;
     } else if (auto v = dynamic_cast<IRVariableRead*>(node)) {
         for (auto& [key, val] : namedValues) {
             if (key->name == v->name) {
-                auto var = emiterBuilder.CreateLoad(mapLLVMType(v->type), val, v->type);
+                auto var = emiterBuilder.CreateLoad(mapLLVMType(v->type), val);
                 namedValues[v] = var;
                 return var;
             }

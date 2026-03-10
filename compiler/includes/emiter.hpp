@@ -25,6 +25,8 @@ class LLVMGenerator {
             if (type == "i32") return llvm::Type::getInt32Ty(emiterContext);
             if (type == "double") return llvm::Type::getDoubleTy(emiterContext);
             if (type == "i1") return llvm::Type::getInt1Ty(emiterContext);
+            if (type == "i64") return llvm::Type::getInt64Ty(emiterContext);
+            if (type == "void*") return llvm::Type::getVoidTy(emiterContext)->getPointerTo();
 
             auto it = structTypes.find(type);
             llvm::StructType* st = nullptr;
@@ -90,6 +92,8 @@ class LLVMGenerator {
             generateBuildInFunction("_BI_Object_subtract", "_BI_Object", {"_BI_Object", "_BI_Object"});
             generateBuildInFunction("_BI_Object_multiply", "_BI_Object", {"_BI_Object", "_BI_Object"});
             generateBuildInFunction("_BI_Object_divide", "_BI_Object", {"_BI_Object", "_BI_Object"});
+
+            generateBuildInFunction("_BI_malloc", "void*", {"i64"});
         }
 
         std::vector<llvm::Value*> generate(std::vector<std::unique_ptr<IRValue>> lir);
