@@ -114,7 +114,7 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
 
         std::vector<llvm::Value*> args;
         for (auto argNode : c->args) {
-            llvm::Value* argVal = generate(argNode);
+            llvm::Value* argVal = namedValues[argNode];
             if (!argVal) return nullptr;
             args.push_back(argVal);
         }

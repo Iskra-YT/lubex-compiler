@@ -1,5 +1,9 @@
 #include "parser/ast.hpp"
 #include "evaluator.hpp"
+#include "parser/parser.hpp"
+#include <filesystem>
+#include <ios>
+#include <fstream>
 
 extern IdentyfierNode intType;
 extern IdentyfierNode objectType;
@@ -211,12 +215,17 @@ Symbol* ClassDeclNode::evaluateSymbol(Context& ctx) {
 
 Symbol* ModuleDeclaration::evaluateSymbol(Context& ctx) {
     if (ctx.phase == PassPhase::DECLARATION) {
-        ctx.declare(std::make_unique<Symbol>(
+        auto sym = std::make_unique<Symbol>(
             SymbolKind::MODULE,
             static_cast<IdentyfierNode*>(name.get()),
             nullptr,
             static_cast<ASTNode*>(this)
-        ));
+        );
+
+        sym->scope = &ctx;
+        ctx.generativeSymbol = sym.get();
+
+        ctx.parent->declare(std::move(sym));
     }
 
     ctx.symbolKind = SymbolKind::MODULE;
@@ -253,7 +262,7 @@ Symbol* CallNode::evaluateSymbol(Context& ctx) {
 
 Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
     auto obj = object->evaluateSymbol(ctx);
-    if (!obj || (obj->kind != SymbolKind::CLASS && obj->type->kind != SymbolKind::CLASS)) {
+    if (!obj || (obj->kind != SymbolKind::CLASS && obj->kind != SymbolKind::MODULE && obj->type->kind != SymbolKind::CLASS)) {
         ctx.errors.push_back(Error(position, "Object is not a class instance"));
         return nullptr;
     }
@@ -303,4 +312,28 @@ Symbol* ReturnNode::evaluateSymbol(Context& ctx) {
 
 Symbol* AttributesNode::evaluateSymbol(Context &ctx) {
     return value->evaluateSymbol(ctx);
+}
+
+#include "config.hpp"
+
+extern bool compile(std::filesystem::path, Context&);
+extern ProjectConfig config;
+extern bool parsingModule;
+
+Symbol* ImportNode::evaluateSymbol(Context& ctx){
+    if (ctx.phase != PassPhase::DECLARATION) return nullptr;
+    parsingModule = true;
+
+    auto name = static_cast<IdentyfierNode*>(value.get());
+    std::filesystem::path module = std::filesystem::path(config.sourceDir) / std::filesystem::path(name->value + ".lbx");
+
+    Context* moduleCtx = ctx.parent->addChild();
+    moduleCtx->symbolKind = SymbolKind::NOT;
+
+    if (!compile(module, *moduleCtx)) {
+        ctx.errors.emplace_back(position, "Cannot import module " + name->value);
+    }
+
+    parsingModule = false;
+    return nullptr;
 }

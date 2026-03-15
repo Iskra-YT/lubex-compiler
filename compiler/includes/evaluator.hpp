@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <iostream>
 #include <string>
 #include <memory>
 #include "error.hpp"
@@ -38,6 +39,9 @@ struct Symbol {
 };
 
 struct Context {
+    static int nextId;
+    int debugId;
+
     Context* parent = nullptr;
     SymbolKind symbolKind;
     std::unordered_map<std::string, std::unique_ptr<Symbol>> symbols;
@@ -46,7 +50,18 @@ struct Context {
     
     PassPhase phase;
     Symbol* generativeSymbol = nullptr;
-    Context(Context* parent = nullptr) : parent(parent) {}
+    Context(Context* parent_) : parent(parent_), debugId(nextId++) {
+        std::cout << "[Context CREATED] id=" << debugId << " parent=" << (parent ? std::to_string(parent->debugId) : "nullptr") << "\n";
+    }
+
+    ~Context() {
+        std::cout << "[Context DESTROYED] id=" << debugId << " parent=" << (parent ? std::to_string(parent->debugId) : "nullptr") << "\n";
+    }
+
+    Context(const Context&) = delete;
+    Context& operator=(const Context&) = delete;
+    Context(Context&&) = default;
+    Context& operator=(Context&&) = default;
 
     void declare(std::unique_ptr<Symbol> sym);
     Symbol* lookup(const IdentyfierNode* name, bool getError = true);
@@ -57,6 +72,6 @@ struct Context {
 };
 
 void normalizeSymbols(Context& ctx, const std::string& prefix = "");
-void printContext(const Context* ctx, int level = 0);
+void printContext(const Context* ctx, const std::string& prefix = "", bool isLast = true);
 
 #endif // EVALUATOR_LUBEX_HPP

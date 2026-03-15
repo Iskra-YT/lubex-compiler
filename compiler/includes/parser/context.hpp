@@ -46,4 +46,8 @@ struct AttributesContext {
     std::unique_ptr<ASTNode> value;
 };
 
+struct ImportContext {
+    std::unique_ptr<ASTNode> value;
+};
+
 #endif // CONTEXT_LUBEX_HPP

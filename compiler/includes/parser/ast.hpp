@@ -171,4 +171,12 @@ struct AttributesNode : ASTNode {
     void debug() override;
 };
 
+struct ImportNode : ASTNode {
+    std::unique_ptr<ASTNode> value;
+
+    ImportNode(PositionSpan span, std::unique_ptr<ASTNode> value) : ASTNode(span), value(std::move(value)) {}
+    Symbol* evaluateSymbol(Context& ctx) override;
+    void debug() override;
+};
+
 #endif // AST_NODE_HPP

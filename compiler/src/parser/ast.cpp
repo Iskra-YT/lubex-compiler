@@ -92,9 +92,11 @@ void CallNode::debug() {
 }
 
 void MemberAccessNode::debug() {
+    std::cout << "(";
     object->debug();
     std::cout << ".";
     member->debug();
+    std::cout << ")";
 }
 
 void ReturnNode::debug() {
@@ -104,5 +106,9 @@ void ReturnNode::debug() {
 
 void AttributesNode::debug(){
     std::cout << "attr value ";
+    value->debug();
+}
+void ImportNode::debug() {
+    std::cout << "import ";
     value->debug();
 }

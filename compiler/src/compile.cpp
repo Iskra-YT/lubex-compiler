@@ -28,6 +28,9 @@ IdentyfierNode subName(PositionSpan(0, 0), "subtract");
 IdentyfierNode mulName(PositionSpan(0, 0), "multiply");
 IdentyfierNode divName(PositionSpan(0, 0), "divide");
 
+ProjectConfig config;
+bool parsingModule = false;
+
 std::string targetToTriple(const std::string& target) {
     std::unordered_map<std::string, std::string> arch_map = {
         {"x64", "x86_64"},
@@ -61,8 +64,9 @@ std::string targetToTriple(const std::string& target) {
     return arch_map[arch_part] + '-' + os_map[os_part];
 }
 
+bool compile(std::filesystem::path mainSource, Context& globalCtx);
+
 bool compileProject() {
-    ProjectConfig config;
     try {
         config = readConfig();
     } catch (const std::exception& e) {
@@ -71,9 +75,79 @@ bool compileProject() {
     }
 
     std::filesystem::path mainSource = std::filesystem::current_path() / config.sourceDir / "main.lbx";
+    Context globalCtx(nullptr);
+    globalCtx.symbolKind = SymbolKind::NOT;
+
+    auto objectContext = std::make_unique<Context>(&globalCtx);
+    auto intContext = std::make_unique<Context>(&globalCtx);
+    auto voidContext = std::make_unique<Context>(&globalCtx);
+
+    // Object
+    auto object = std::make_unique<Symbol>(SymbolKind::CLASS, &objectType, nullptr, nullptr);
+    //Object.init
+    auto func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, object.get(), nullptr);
+    func->isStatic = true;
+    objectContext->declare(std::move(func));
+
+    objectContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &addName, object.get(), nullptr));
+    objectContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &subName, object.get(), nullptr));
+    objectContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &mulName, object.get(), nullptr));
+    objectContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &divName, object.get(), nullptr));
+    object->scope = objectContext.get();
+    globalCtx.declare(std::move(object));
+
+    // Int
+    auto intClass = std::make_unique<Symbol>(SymbolKind::CLASS, &intType, nullptr, nullptr);
+    // Int.init
+    func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, intClass.get(), nullptr);
+    func->isStatic = true;
+    intContext->declare(std::move(func));
+
+    intContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &addName, intClass.get(), nullptr));
+    intContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &subName, intClass.get(), nullptr));
+    intContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &mulName, intClass.get(), nullptr));
+    intContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &divName, intClass.get(), nullptr));
+    intClass->scope = intContext.get();
+    globalCtx.declare(std::move(intClass));
+
+    // Void
+    auto voidClass = std::make_unique<Symbol>(SymbolKind::CLASS, &voidType, nullptr, nullptr);
+    // Void.init
+    func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, voidClass.get(), nullptr);
+    func->isStatic = true;
+    voidContext->declare(std::move(func));
+
+    voidContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &addName, voidClass.get(), nullptr));
+    voidContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &subName, voidClass.get(), nullptr));
+    voidContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &mulName, voidClass.get(), nullptr));
+    voidContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &divName, voidClass.get(), nullptr));
+    voidClass->scope = voidContext.get();
+    globalCtx.declare(std::move(voidClass));
+
+    if (!compile(mainSource, *globalCtx.addChild()))
+        return false;
+    
+    return true;
+}
+
+std::unordered_map<std::string, std::vector<std::unique_ptr<ASTNode>>> moduleAST;
+void printModuleASTPtrs() {
+    std::cout << "moduleAST pointers {" << std::endl;
+    for (const auto& pair : moduleAST) {
+        const std::string& key = pair.first;
+        const auto* vecPtr = &pair.second;
+        std::cout << "  key: " << key << ", vector ptr: " << vecPtr << std::endl;
+        for (auto& node : pair.second) {
+            std::cout << "    nodeptr: " << node.get() << std::endl;
+        }
+    }
+    std::cout << "}" << std::endl;
+}
+
+bool compile(std::filesystem::path mainSource, Context& globalCtx) {
     std::ifstream mainSourceData(mainSource, std::ios::binary);
     if (!mainSourceData) {
-        std::cerr << "Error: Cannot open main.lbx\n";
+        std::cerr << std::string("Error: Cannot open ") + std::string(mainSource) + std::string("\n");
         return EXIT_FAILURE;
     }
 
@@ -125,53 +199,16 @@ bool compileProject() {
         return false;
     }
 
-    Context globalCtx(nullptr);
-    globalCtx.symbolKind = SymbolKind::NOT;
+    
+    for (const auto& node : nodes) {
+        node->debug();
+        std::cout << "\n";
+    }
 
-    // Object
-    Context objectContext;
-    auto object = std::make_unique<Symbol>(SymbolKind::CLASS, &objectType, nullptr, nullptr);
-    //Object.init
-    auto func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, object.get(), nullptr);
-    func->isStatic = true;
-    objectContext.declare(std::move(func));
+    std::cout << "\n\n";
 
-    objectContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &addName, object.get(), nullptr));
-    objectContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &subName, object.get(), nullptr));
-    objectContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &mulName, object.get(), nullptr));
-    objectContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &divName, object.get(), nullptr));
-    object->scope = &objectContext;
-    globalCtx.declare(std::move(object));
-
-    // Int
-    Context intContext;
-    auto intClass = std::make_unique<Symbol>(SymbolKind::CLASS, &intType, nullptr, nullptr);
-    // Int.init
-    func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, intClass.get(), nullptr);
-    func->isStatic = true;
-    intContext.declare(std::move(func));
-
-    intContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &addName, intClass.get(), nullptr));
-    intContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &subName, intClass.get(), nullptr));
-    intContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &mulName, intClass.get(), nullptr));
-    intContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &divName, intClass.get(), nullptr));
-    intClass->scope = &intContext;
-    globalCtx.declare(std::move(intClass));
-
-    // Void
-    Context voidContext;
-    auto voidClass = std::make_unique<Symbol>(SymbolKind::CLASS, &voidType, nullptr, nullptr);
-    // Void.init
-    func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, voidClass.get(), nullptr);
-    func->isStatic = true;
-    voidContext.declare(std::move(func));
-
-    voidContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &addName, voidClass.get(), nullptr));
-    voidContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &subName, voidClass.get(), nullptr));
-    voidContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &mulName, voidClass.get(), nullptr));
-    voidContext.declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &divName, voidClass.get(), nullptr));
-    voidClass->scope = &voidContext;
-    globalCtx.declare(std::move(voidClass));
+    std::string moduleName = static_cast<IdentyfierNode*>(static_cast<ModuleDeclaration*>(static_cast<StatementNode*>(nodes[0].get())->value.get())->name.get())->value;
+    moduleAST[moduleName] = std::move(nodes);
 
     for (auto phase : {
         PassPhase::DECLARATION,
@@ -179,33 +216,26 @@ bool compileProject() {
         PassPhase::TYPE_CHECK
     }) {
         globalCtx.phase = phase;
-        for (auto& node : nodes) {
+        for (auto& node : moduleAST[moduleName]) {
             node->evaluateSymbol(globalCtx);
         }
-    }
 
-    if (globalCtx.getErrors().size() != 0) {
-        for (auto error : globalCtx.getErrors()) {
-            std::cerr << error.returnError() << "\n";
-            return false;
+        if (globalCtx.getErrors().size() != 0) {
+            for (auto error : globalCtx.getErrors()) {
+                std::cerr << error.returnError() << "\n";
+                return false;
+            }
         }
     }
 
-    for (const auto& node : nodes) {
-        node->debug();
-        std::cout << "\n";
-    }
-
-    std::string moduleName = static_cast<IdentyfierNode*>(static_cast<ModuleDeclaration*>(static_cast<StatementNode*>(nodes[0].get())->value.get())->name.get())->value;
-
-    std::cout << "\n\n";
+    auto mainCtx = globalCtx.parent;
     normalizeSymbols(globalCtx, moduleName);
-    printContext(&globalCtx, 0);
+    printContext(mainCtx);
     std::cout << "\n\n";
 
     std::vector<std::unique_ptr<IRValue>> lir;
     try {
-        lir = generateLIR(std::move(nodes), globalCtx);
+        lir = generateLIR(moduleAST[moduleName], mainCtx);
     } catch (const LIRException& e) {
         std::cerr << e.error.returnError() << "\n";
         return false;
@@ -227,29 +257,31 @@ bool compileProject() {
         LLVMGenerator llvm(moduleName);
         llvm.generate(std::move(lir)); 
 
-        llvm::Type* intType = llvm::Type::getInt32Ty(llvm.emiterContext);
-        llvm::FunctionType* mainType = llvm::FunctionType::get(intType, false);
-        llvm::Function* mainFunc = llvm::Function::Create(mainType, llvm::GlobalValue::LinkageTypes::ExternalLinkage, "main", llvm.emiterModule.get());
+        if (!parsingModule) {
+            llvm::Type* intType = llvm::Type::getInt32Ty(llvm.emiterContext);
+            llvm::FunctionType* mainType = llvm::FunctionType::get(intType, false);
+            llvm::Function* mainFunc = llvm::Function::Create(mainType, llvm::GlobalValue::LinkageTypes::ExternalLinkage, "main", llvm.emiterModule.get());
 
-        llvm::BasicBlock* entry = llvm::BasicBlock::Create(llvm.emiterContext, "entry", mainFunc);
-        llvm.emiterBuilder.SetInsertPoint(entry);
+            llvm::BasicBlock* entry = llvm::BasicBlock::Create(llvm.emiterContext, "entry", mainFunc);
+            llvm.emiterBuilder.SetInsertPoint(entry);
 
-        llvm::Function* callee = llvm.emiterModule->getFunction(mangleName(target.entrypoint));
-        if (!callee) {
-            std::cerr << "Function not found: " << target.entrypoint << "\n";
-            break;
+            llvm::Function* callee = llvm.emiterModule->getFunction(mangleName(target.entrypoint));
+            if (!callee) {
+                std::cerr << "Function not found: " << target.entrypoint << "\n";
+                break;
+            }
+
+            llvm::StructType* biIntType = llvm.structTypes["_BI_Int"];
+            llvm::Value* callValue = llvm.emiterBuilder.CreateCall(callee);
+
+            llvm::Value* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm.emiterContext), 0);
+            llvm::Value* returnPtr = llvm.emiterBuilder.CreateGEP(biIntType, callValue, {zero, zero});
+
+            llvm::Value* returnValue = llvm.emiterBuilder.CreateLoad(llvm::Type::getDoubleTy(llvm.emiterContext), returnPtr);
+
+            llvm::Value* intVal = llvm.emiterBuilder.CreateFPToSI(returnValue, intType);
+            llvm.emiterBuilder.CreateRet(intVal);
         }
-
-        llvm::StructType* biIntType = llvm.structTypes["_BI_Int"];
-        llvm::Value* callValue = llvm.emiterBuilder.CreateCall(callee);
-
-        llvm::Value* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm.emiterContext), 0);
-        llvm::Value* returnPtr = llvm.emiterBuilder.CreateGEP(biIntType, callValue, {zero, zero});
-
-        llvm::Value* returnValue = llvm.emiterBuilder.CreateLoad(llvm::Type::getDoubleTy(llvm.emiterContext), returnPtr);
-
-        llvm::Value* intVal = llvm.emiterBuilder.CreateFPToSI(returnValue, intType);
-        llvm.emiterBuilder.CreateRet(intVal);
 
         llvm.emiterModule->print(llvm::outs(), nullptr);
 
@@ -274,6 +306,21 @@ bool compileProject() {
         auto RM = llvm::Optional<llvm::Reloc::Model>();
         auto targetMachine = llvmTarget->createTargetMachine(targetTriple, "generic", "", opt, RM);
 
+        switch (config.optimalization) {
+            case 0:
+                targetMachine->setOptLevel(llvm::CodeGenOpt::None);
+                break;
+            case 1:
+                targetMachine->setOptLevel(llvm::CodeGenOpt::Less);
+                break;
+            case 2:
+                targetMachine->setOptLevel(llvm::CodeGenOpt::Default);
+                break;
+            case 3:
+                targetMachine->setOptLevel(llvm::CodeGenOpt::Aggressive);
+                break;
+        }
+
         std::error_code EC;
         std::filesystem::path buildDir = std::filesystem::current_path() / config.buildDir / target.machine;
         std::filesystem::create_directories(buildDir);
@@ -288,6 +335,7 @@ bool compileProject() {
             return false;
         }
 
+        
         pass.run(*llvm.emiterModule.get());
         dest.flush();
     }

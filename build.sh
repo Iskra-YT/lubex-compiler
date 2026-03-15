@@ -13,3 +13,5 @@ cd runtime
 ./build.sh
 cd ..
 cp ./runtime/build/liblubrtx_lib.a ./build/lubrtx-lib.a
+
+./test.sh

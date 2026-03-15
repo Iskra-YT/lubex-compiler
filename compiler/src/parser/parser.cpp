@@ -13,6 +13,7 @@ Parser::Parser(std::vector<Token> toks): tokens(toks) {
     initConstDecl();
     initReturnDecl();
     initAttributes();
+    initIncludeDecl();
 }
 
 Token Parser::getCurrent() {
@@ -222,6 +223,9 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
     } else if (tok.match(Token("@", TokenType::DELIMITER_TOKEN))) {
         AttributesContext ctx;
         return parseInstruction(attributesInstr, &ctx);
+    } else if (tok.match(Token("import", TokenType::KEYWORD_TOKEN))) {
+        ImportContext ctx;
+        return parseInstruction(includeInstr, &ctx);
     }
 
     if (tok.match("private", TokenType::KEYWORD_TOKEN)) {

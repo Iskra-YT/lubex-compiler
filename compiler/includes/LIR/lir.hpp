@@ -170,6 +170,6 @@ struct LIRGenerate {
     std::vector<std::unique_ptr<IRValue>> code;
 };
 
-std::vector<std::unique_ptr<IRValue>> generateLIR(std::vector<std::unique_ptr<ASTNode>> nodes, Context& ctx);
+std::vector<std::unique_ptr<IRValue>> generateLIR(std::vector<std::unique_ptr<ASTNode>>& nodes, Context* ctx);
 
 #endif // LIR_LUBEX_H

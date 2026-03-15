@@ -1,6 +1,8 @@
 #include "evaluator.hpp"
 #include <iostream>
 
+int Context::nextId = 0;
+
 void Context::declare(std::unique_ptr<Symbol> sym) {
     if (lookup(sym->name, false)) {
         errors.push_back(Error(sym->name->position, "Symbol '" + sym->name->value + "' is already defined"));
@@ -31,7 +33,7 @@ Symbol* Context::lookup(const std::string name, PositionSpan span, bool getError
     } 
 
     if (parent) {
-        return parent->lookup(name);
+        return parent->lookup(name, span, getError);
     }
 
     if (getError) {
@@ -104,35 +106,72 @@ std::string passPhaseToString(PassPhase phase) {
     }
 }
 
-void printSymbol(const Symbol* sym, int level = 0) {
+void printSymbol(const Symbol* sym, const std::string& prefix = "", bool isLast = true) {
     if (!sym) return;
-    printIndent(level);
+
+    std::cout << prefix;
+    std::cout << (isLast ? "└─ " : "├─ ");
     std::cout << "Symbol: " << (sym->name ? sym->name->value : "nullptr")
               << " [" << symbolKindToString(sym->kind) << "]"
               << ", mangled: " << sym->mangledName << "\n";
+
     if (sym->type && sym->kind != SymbolKind::CLASS) {
-        printIndent(level + 1);
-        std::cout << "Type:\n";
-        printSymbol(sym->type, level + 2);
+        printSymbol(sym->type, prefix + (isLast ? "   " : "│  "), true);
     }
 }
 
-void printContext(const Context* ctx, int level) {
+void printContext(const Context* ctx, const std::string& prefix, bool isLast, std::unordered_set<const Context*>& visited) {
     if (!ctx) return;
-    printIndent(level);
-    std::cout << "Context [" << passPhaseToString(ctx->phase) << "], Symbol: \n";
-    if (ctx->generativeSymbol) printSymbol(ctx->generativeSymbol, level + 1);
 
+    if (visited.find(ctx) != visited.end()) {
+        std::string genName = (ctx->generativeSymbol && ctx->generativeSymbol->name)
+                              ? ctx->generativeSymbol->name->value
+                              : "unnamed";
+        std::cout << prefix << (isLast ? "└─ " : "├─ ")
+                  << "[CYCLE DETECTED: generativeSymbol=\"" << genName << "\"]\n";
+        return;
+    }
+    visited.insert(ctx);
+
+    std::cout << prefix;
+    std::cout << (isLast ? "└─ " : "├─ ");
+    std::cout << "Context [" << passPhaseToString(ctx->phase) << "]\n";
+
+    std::string childPrefix = prefix + (isLast ? "   " : "│  ");
+
+    std::cout << childPrefix << "├─ GenerativeSymbol:\n";
+    if (ctx->generativeSymbol)
+        printSymbol(ctx->generativeSymbol, childPrefix + "│  ", true);
+
+    std::cout << childPrefix << "├─ SymbolKind: " << symbolKindToString(ctx->symbolKind) << "\n";
+
+    int count = 0;
+    int totalSymbols = ctx->symbols.size();
     for (const auto& [name, sym] : ctx->symbols) {
-        printSymbol(sym.get(), level + 2);
+        ++count;
+        bool lastSym = (count == totalSymbols) && ctx->children.empty() && ctx->errors.empty();
+        printSymbol(sym.get(), childPrefix, lastSym);
     }
 
+    count = 0;
+    int totalChildren = ctx->children.size();
     for (const auto& child : ctx->children) {
-        printContext(child.get(), level + 2);
+        ++count;
+        bool lastChild = (count == totalChildren) && ctx->errors.empty();
+        printContext(child.get(), childPrefix, lastChild, visited);
     }
 
+    count = 0;
+    int totalErrors = ctx->errors.size();
     for (auto err : ctx->errors) {
-        printIndent(level + 2);
-        std::cout << "Error: " << err.returnError() << "\n"; 
+        ++count;
+        bool lastErr = (count == totalErrors);
+        std::cout << childPrefix << (lastErr ? "└─ " : "├─ ");
+        std::cout << "Error: " << err.returnError() << "\n";
     }
+}
+
+void printContext(const Context* ctx, const std::string& prefix, bool isLast) {
+    std::unordered_set<const Context*> visited;
+    printContext(ctx, prefix, isLast, visited);
 }

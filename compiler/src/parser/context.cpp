@@ -201,3 +201,18 @@ void Parser::initAttributes() {
         return std::make_unique<AttributesNode>(span, std::move(c->name), std::move(c->args), std::move(c->value));
     };
 }
+
+void Parser::initIncludeDecl() {
+    includeInstr.steps = {
+        {TokenType::KEYWORD_TOKEN, "import", [](Token&, void*){}, true, 0},
+        {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx) {
+            ImportContext* c = (ImportContext*)ctx;
+            c->value = parsePrimary();
+        }, false, 0}
+    };
+
+    includeInstr.finalize = [](PositionSpan span, void* ctx) {
+        ImportContext* c = (ImportContext*)ctx;
+        return std::make_unique<ImportNode>(span, std::move(c->value));
+    };
+}
