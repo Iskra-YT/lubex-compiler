@@ -1,6 +1,8 @@
 #ifndef LUBRTX_LIB_LBXOS_H
 #define LUBRTX_LIB_LBXOS_H
 
+#define OS_READ 0x00
+#define OS_WRITE 0x01
 #define OS_MMAP 0x09
 #define OS_EXIT 0x3C
 
@@ -16,5 +18,7 @@
 
 void __OS_exit(int exitCode);
 void* __OS_mmap(void* addr, long length, int prot, int flags, int fd, long offset);
+long __OS_output(const char* buffer, long length);
+long __OS_input(char* buffer, long length);
 
 #endif // LUBRTX_LIB_LBXOS_H

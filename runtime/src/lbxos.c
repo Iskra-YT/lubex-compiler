@@ -27,3 +27,29 @@ void* __OS_mmap(void* addr, long length, int prot, int flags, int fd, long offse
     if (ret < 0) return (void*)-1;
     return (void*)ret;
 }
+
+long __OS_output(const char* buffer, long length) {
+    long ret;
+
+    asm volatile(
+        "syscall"
+        : "=a"(ret)
+        : "a"(OS_WRITE), "D"(1), "S"(buffer), "d"(length)
+        : "rcx", "r11", "memory"
+    );
+
+    return ret;
+}
+
+long __OS_input(char* buffer, long length) {
+    long ret;
+
+    asm volatile(
+        "syscall"
+        : "=a"(ret)
+        : "a"(OS_READ), "D"(0), "S"(buffer), "d"(length)
+        : "rcx", "r11", "memory"
+    );
+
+    return ret;
+}
