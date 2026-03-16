@@ -13,8 +13,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build build-essential gcc g++ llvm-dev clang ccache lld
+          chmod +x ./setup.sh
+          ./setup.sh
 
       - name: Cache ccache
         uses: actions/cache@v4
