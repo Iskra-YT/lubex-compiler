@@ -32,6 +32,14 @@ std::string mangleName(const std::string &name) {
     return mangledName;
 }
 
+std::string mangleName(Symbol* sym) {
+    if (!sym->forcedMangle.empty()) {
+        return sym->forcedMangle;
+    }
+
+    return mangleName(sym->mangledName);
+}
+
 llvm::Value* LLVMGenerator::generate(IRValue* node) {
     if (auto n = dynamic_cast<IRNumber*>(node)) {
         auto num = llvm::ConstantFP::get(mapLLVMType(n->type), n->number);

@@ -34,6 +34,7 @@ struct Symbol {
     ASTNode* node;
     std::string mangledName;
     bool isStatic = false;
+    std::string forcedMangle = "";
 
     Symbol(SymbolKind kind, IdentyfierNode* name, Symbol* type, ASTNode* node) : kind(kind), name(name), type(type), node(node) {}
 };

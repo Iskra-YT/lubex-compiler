@@ -99,6 +99,7 @@ class LLVMGenerator {
         std::vector<llvm::Value*> generate(std::vector<std::unique_ptr<IRValue>> lir);
 };
 
+std::string mangleName(Symbol* sym);
 std::string mangleName(const std::string &name);
 
 #endif //EMITER_LUBEX_HPP
