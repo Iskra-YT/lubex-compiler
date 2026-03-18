@@ -30,6 +30,15 @@ file(GLOB_RECURSE LIB_SOURCES CONFIGURE_DEPENDS
 list(FILTER LIB_SOURCES EXCLUDE REGEX ".*src/main\\.cpp$")
 
 # ========================
+# Debug
+# ========================
+option(DEBUG_BUILD "Enable debug console outputs" OFF)
+
+if(DEBUG_BUILD)
+    add_compile_definitions(DEBUG=1)
+endif()
+
+# ========================
 # Main Library
 # ========================
 add_library(lubex_lib ${LIB_SOURCES})

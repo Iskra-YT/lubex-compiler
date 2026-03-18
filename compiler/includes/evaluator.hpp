@@ -8,6 +8,7 @@
 #include <memory>
 #include "error.hpp"
 #include "parser/ast.hpp"
+#include "debug.hpp"
 
 struct IdentyfierNode;
 
@@ -52,11 +53,11 @@ struct Context {
     PassPhase phase;
     Symbol* generativeSymbol = nullptr;
     Context(Context* parent_) : parent(parent_), debugId(nextId++) {
-        std::cout << "[Context CREATED] id=" << debugId << " parent=" << (parent ? std::to_string(parent->debugId) : "nullptr") << "\n";
+        DEBUG_OUTPUT << "[Context CREATED] id=" << debugId << " parent=" << (parent ? std::to_string(parent->debugId) : "nullptr") << "\n";
     }
 
     ~Context() {
-        std::cout << "[Context DESTROYED] id=" << debugId << " parent=" << (parent ? std::to_string(parent->debugId) : "nullptr") << "\n";
+        DEBUG_OUTPUT << "[Context DESTROYED] id=" << debugId << " parent=" << (parent ? std::to_string(parent->debugId) : "nullptr") << "\n";
     }
 
     Context(const Context&) = delete;

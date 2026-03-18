@@ -4,6 +4,7 @@
 #include <cmath>
 #include "emiter.hpp"
 #include "evaluator.hpp"
+#include "debug.hpp"
 
 IdentyfierNode intType(PositionSpan(0, 0), "Int");
 IdentyfierNode objectType(PositionSpan(0, 0), "Object");
@@ -15,62 +16,62 @@ void ASTNode::debug() {
 
 void StatementNode::debug() {
     value->debug();
-    std::cout << ";";
+    DEBUG_OUTPUT << ";";
 }
 
 void NumberNode::debug() {
-    std::cout << value;
+    DEBUG_OUTPUT << value;
 }
 
 void BinaryNode::debug() {
-    std::cout << "(";
+    DEBUG_OUTPUT << "(";
     left->debug();
-    std::cout << op;
+    DEBUG_OUTPUT << op;
     right->debug();
-    std::cout << ")";
+    DEBUG_OUTPUT << ")";
 }
 
 void VariableDeclarationNode::debug() {
-    std::cout << "let";
+    DEBUG_OUTPUT << "let";
     name->debug();
-    std::cout << ":";
+    DEBUG_OUTPUT << ":";
     type->debug();
-    std::cout << "=";
+    DEBUG_OUTPUT << "=";
     if(value) value->debug();
 }
 
 void IdentyfierNode::debug() {
-    std::cout << value;
+    DEBUG_OUTPUT << value;
 }
 
 void VariableAssigment::debug() {
     name->debug();
-    std::cout << "=";
+    DEBUG_OUTPUT << "=";
     value->debug();
 }
 
 void ArgDeclaration::debug() {
-    std::cout << "arg";
+    DEBUG_OUTPUT << "arg";
     name->debug();
-    std::cout << ":";
+    DEBUG_OUTPUT << ":";
     type->debug();
 }
 
 void FunctionDeclaration::debug() {
-    std::cout << "func";
+    DEBUG_OUTPUT << "func";
     name->debug();
-    std::cout << "(";
+    DEBUG_OUTPUT << "(";
     for (auto& param : parameters) {
         param->debug();
     }
-    std::cout << ") -> ";
+    DEBUG_OUTPUT << ") -> ";
     for (auto& node : body) {
         node->debug();
     }
 }
 
 void ClassDeclNode::debug() {
-    std::cout << "class";
+    DEBUG_OUTPUT << "class";
     name->debug();
     for (auto& node : members) {
         node->debug();
@@ -78,37 +79,37 @@ void ClassDeclNode::debug() {
 }
 
 void ModuleDeclaration::debug() {
-    std::cout << "module";
+    DEBUG_OUTPUT << "module";
     name->debug();
 }
 
 void CallNode::debug() {
     callee->debug();
-    std::cout << "(";
+    DEBUG_OUTPUT << "(";
     for (auto& arg : args) {
         arg->debug();
     }
-    std::cout << ")";
+    DEBUG_OUTPUT << ")";
 }
 
 void MemberAccessNode::debug() {
-    std::cout << "(";
+    DEBUG_OUTPUT << "(";
     object->debug();
-    std::cout << ".";
+    DEBUG_OUTPUT << ".";
     member->debug();
-    std::cout << ")";
+    DEBUG_OUTPUT << ")";
 }
 
 void ReturnNode::debug() {
-    std::cout << "return ";
+    DEBUG_OUTPUT << "return ";
     if (value) value->debug();
 }
 
 void AttributesNode::debug(){
-    std::cout << "attr value ";
+    DEBUG_OUTPUT << "attr value ";
     value->debug();
 }
 void ImportNode::debug() {
-    std::cout << "import ";
+    DEBUG_OUTPUT << "import ";
     value->debug();
 }

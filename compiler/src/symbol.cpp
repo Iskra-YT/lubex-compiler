@@ -1,6 +1,7 @@
 #include "parser/ast.hpp"
 #include "evaluator.hpp"
 #include "parser/parser.hpp"
+#include "debug.hpp"
 #include <filesystem>
 #include <ios>
 #include <fstream>
@@ -332,7 +333,7 @@ Symbol* ImportNode::evaluateSymbol(Context& ctx){
         moduleName = std::filesystem::path(config.sourceDir) / std::filesystem::path(name->value + ".lbx");
     }
 
-    std::cout << moduleName << "\n";
+    DEBUG_OUTPUT << moduleName << "\n";
 
     Context* moduleCtx = ctx.parent->addChild();
     moduleCtx->symbolKind = SymbolKind::NOT;

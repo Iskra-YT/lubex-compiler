@@ -17,6 +17,7 @@
 #include "evaluator.hpp"
 #include "parser/parser.hpp"
 #include "LIR/lir.hpp"
+#include "debug.hpp"
 
 extern IdentyfierNode intType;
 extern IdentyfierNode objectType;
@@ -132,16 +133,16 @@ bool compileProject() {
 
 std::unordered_map<std::string, std::vector<std::unique_ptr<ASTNode>>> moduleAST;
 void printModuleASTPtrs() {
-    std::cout << "moduleAST pointers {" << std::endl;
+    DEBUG_OUTPUT << "moduleAST pointers {\n";
     for (const auto& pair : moduleAST) {
         const std::string& key = pair.first;
         const auto* vecPtr = &pair.second;
-        std::cout << "  key: " << key << ", vector ptr: " << vecPtr << std::endl;
+        DEBUG_OUTPUT << "  key: " << key << ", vector ptr: " << vecPtr << "\n";
         for (auto& node : pair.second) {
-            std::cout << "    nodeptr: " << node.get() << std::endl;
+            DEBUG_OUTPUT << "    nodeptr: " << node.get() << "\n";
         }
     }
-    std::cout << "}" << std::endl;
+    DEBUG_OUTPUT << "}\n";
 }
 
 bool compile(std::filesystem::path mainSource, Context& globalCtx) {
@@ -202,10 +203,10 @@ bool compile(std::filesystem::path mainSource, Context& globalCtx) {
     
     for (const auto& node : nodes) {
         node->debug();
-        std::cout << "\n";
+        DEBUG_OUTPUT << "\n";
     }
 
-    std::cout << "\n\n";
+    DEBUG_OUTPUT << "\n\n";
 
     std::string moduleName = static_cast<IdentyfierNode*>(static_cast<ModuleDeclaration*>(static_cast<StatementNode*>(nodes[0].get())->value.get())->name.get())->value;
     moduleAST[moduleName] = std::move(nodes);
@@ -231,7 +232,7 @@ bool compile(std::filesystem::path mainSource, Context& globalCtx) {
     auto mainCtx = globalCtx.parent;
     normalizeSymbols(globalCtx, moduleName);
     printContext(mainCtx);
-    std::cout << "\n\n";
+    DEBUG_OUTPUT << "\n\n";
 
     std::vector<std::unique_ptr<IRValue>> lir;
     try {
@@ -241,7 +242,7 @@ bool compile(std::filesystem::path mainSource, Context& globalCtx) {
         return false;
     }
     
-    std::cout << "Size: " << lir.size() << "\n";
+    DEBUG_OUTPUT << "Size: " << lir.size() << "\n";
     for (auto& instr : lir) {
         instr->debug();
     }
@@ -283,7 +284,9 @@ bool compile(std::filesystem::path mainSource, Context& globalCtx) {
             llvm.emiterBuilder.CreateRet(intVal);
         }
 
+#ifdef DEBUG
         llvm.emiterModule->print(llvm::outs(), nullptr);
+#endif // DEBUG
 
         std::string targetTriple;
         try {

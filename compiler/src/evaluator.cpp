@@ -1,5 +1,5 @@
 #include "evaluator.hpp"
-#include <iostream>
+#include "debug.hpp"
 
 int Context::nextId = 0;
 
@@ -82,7 +82,7 @@ void normalizeSymbols(Context& ctx, const std::string& prefix) {
 }
 
 void printIndent(int level) {
-    for (int i = 0; i < level; ++i) std::cout << "  ";
+    for (int i = 0; i < level; ++i) DEBUG_OUTPUT << "  ";
 }
 
 std::string symbolKindToString(SymbolKind kind) {
@@ -109,9 +109,9 @@ std::string passPhaseToString(PassPhase phase) {
 void printSymbol(const Symbol* sym, const std::string& prefix = "", bool isLast = true) {
     if (!sym) return;
 
-    std::cout << prefix;
-    std::cout << (isLast ? "└─ " : "├─ ");
-    std::cout << "Symbol: " << (sym->name ? sym->name->value : "nullptr")
+    DEBUG_OUTPUT << prefix;
+    DEBUG_OUTPUT << (isLast ? "└─ " : "├─ ");
+    DEBUG_OUTPUT << "Symbol: " << (sym->name ? sym->name->value : "nullptr")
               << " [" << symbolKindToString(sym->kind) << "]"
               << ", mangled: " << sym->mangledName << "\n";
 
@@ -127,23 +127,23 @@ void printContext(const Context* ctx, const std::string& prefix, bool isLast, st
         std::string genName = (ctx->generativeSymbol && ctx->generativeSymbol->name)
                               ? ctx->generativeSymbol->name->value
                               : "unnamed";
-        std::cout << prefix << (isLast ? "└─ " : "├─ ")
+        DEBUG_OUTPUT << prefix << (isLast ? "└─ " : "├─ ")
                   << "[CYCLE DETECTED: generativeSymbol=\"" << genName << "\"]\n";
         return;
     }
     visited.insert(ctx);
 
-    std::cout << prefix;
-    std::cout << (isLast ? "└─ " : "├─ ");
-    std::cout << "Context [" << passPhaseToString(ctx->phase) << "]\n";
+    DEBUG_OUTPUT << prefix;
+    DEBUG_OUTPUT << (isLast ? "└─ " : "├─ ");
+    DEBUG_OUTPUT << "Context [" << passPhaseToString(ctx->phase) << "]\n";
 
     std::string childPrefix = prefix + (isLast ? "   " : "│  ");
 
-    std::cout << childPrefix << "├─ GenerativeSymbol:\n";
+    DEBUG_OUTPUT << childPrefix << "├─ GenerativeSymbol:\n";
     if (ctx->generativeSymbol)
         printSymbol(ctx->generativeSymbol, childPrefix + "│  ", true);
 
-    std::cout << childPrefix << "├─ SymbolKind: " << symbolKindToString(ctx->symbolKind) << "\n";
+    DEBUG_OUTPUT << childPrefix << "├─ SymbolKind: " << symbolKindToString(ctx->symbolKind) << "\n";
 
     int count = 0;
     int totalSymbols = ctx->symbols.size();
@@ -166,8 +166,8 @@ void printContext(const Context* ctx, const std::string& prefix, bool isLast, st
     for (auto err : ctx->errors) {
         ++count;
         bool lastErr = (count == totalErrors);
-        std::cout << childPrefix << (lastErr ? "└─ " : "├─ ");
-        std::cout << "Error: " << err.returnError() << "\n";
+        DEBUG_OUTPUT << childPrefix << (lastErr ? "└─ " : "├─ ");
+        DEBUG_OUTPUT << "Error: " << err.returnError() << "\n";
     }
 }
 

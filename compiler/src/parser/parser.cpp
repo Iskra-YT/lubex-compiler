@@ -1,6 +1,5 @@
 #include "parser/parser.hpp"
 #include <exception>
-#include <iostream>
 #include "parser/context.hpp"
 
 struct ASTNode;
