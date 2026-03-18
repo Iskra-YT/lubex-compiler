@@ -3,10 +3,10 @@
 
 extern int main();
 
-HEAP_BLOCK* mainHeap;
+HEAP_BLOCK* __R_mainHeap;
 
 void _start() {
-    mainHeap = __R_malloc_init();
+    __R_mainHeap = __R_malloc_init();
     int exitCode = main();
     __OS_exit(exitCode);
 }

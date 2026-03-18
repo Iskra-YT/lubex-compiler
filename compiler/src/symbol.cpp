@@ -325,12 +325,19 @@ Symbol* ImportNode::evaluateSymbol(Context& ctx){
     parsingModule = true;
 
     auto name = static_cast<IdentyfierNode*>(value.get());
-    std::filesystem::path module = std::filesystem::path(config.sourceDir) / std::filesystem::path(name->value + ".lbx");
+    std::filesystem::path moduleName;
+    if (name->value == "std") {
+        moduleName = std::filesystem::path(config.options.stdPath);
+    } else {
+        moduleName = std::filesystem::path(config.sourceDir) / std::filesystem::path(name->value + ".lbx");
+    }
+
+    std::cout << moduleName << "\n";
 
     Context* moduleCtx = ctx.parent->addChild();
     moduleCtx->symbolKind = SymbolKind::NOT;
 
-    if (!compile(module, *moduleCtx)) {
+    if (!compile(moduleName, *moduleCtx)) {
         ctx.errors.emplace_back(position, "Cannot import module " + name->value);
     }
 

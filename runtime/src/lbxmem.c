@@ -4,7 +4,7 @@
 #define SET_BIT(bitmap, bit) ((bitmap)[(bit)/8] |= (1 << ((bit)%8)))
 #define GET_BIT(bitmap, bit) (((bitmap)[(bit)/8] & (1 << ((bit)%8))) != 0)
 
-extern HEAP_BLOCK* mainHeap;
+extern HEAP_BLOCK* __R_mainHeap;
 
 HEAP_BLOCK* __R_cblock(HEAP_BLOCK* previous) {
     HEAP_BLOCK* newBlock = (HEAP_BLOCK*)__OS_mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -22,7 +22,7 @@ HEAP_BLOCK* __R_malloc_init(void) {
 
 void* _BI_malloc(long size) {
     int blocks_needed = (size + 7) / 8;
-    HEAP_BLOCK* block = mainHeap;
+    HEAP_BLOCK* block = __R_mainHeap;
 
     while (block) {
         int start = -1;

@@ -11,6 +11,10 @@ struct Target {
     std::string outputName;
 };
 
+struct Options {
+    std::string stdPath;
+};
+
 struct ProjectConfig {
     std::string name;
     std::string version;
@@ -18,6 +22,7 @@ struct ProjectConfig {
     std::string buildDir;
     int optimalization;
     std::vector<Target> targets;
+    Options options;
 };
 
 ProjectConfig readConfig();
