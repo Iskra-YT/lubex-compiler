@@ -1,8 +1,10 @@
 # Lubex Compiler & Core Libs
+
 Lubex Compiler is a hobbyist project: a small, educational programming language with its own minimal runtime and core std library. 
 It compiles source code into ELF64-x86-64 binaries and provides basic types and operations.
 
 ## Requirements
+
 - GCC compiler with C++23 and C23 support
 - LLVM IR API v15 (for C++ backend)
 - CMake >= 3.28
@@ -12,6 +14,7 @@ It compiles source code into ELF64-x86-64 binaries and provides basic types and 
 Install required packages using the provided script: `setup.sh` (for Debian/Ubuntu systems)
 
 ## Building
+
 Use the provided build script:
 
 ```bash
@@ -25,6 +28,7 @@ Use the provided build script:
 Generated binaries to use will be placed in the `build/` directory.
 
 ## Repository Structure
+
 - `compiler/` - Compiler source files
     - `build/` - Generated build files
     - `includes/` - Header files
@@ -39,4 +43,5 @@ Generated binaries to use will be placed in the `build/` directory.
     - `src/` - Source `.c` files
 
 ## Authors
+
 **Iskra** - [GitHub Profile](https://github.com/Iskra-YT)
