@@ -42,6 +42,14 @@ Generated binaries to use will be placed in the `build/` directory.
     - `includes/` - Header files
     - `src/` - Source `.c` files
 
+## Contributing
+
+We welcome contributions!
+
+If you want to help:
+- Report issues or suggest new features via [GitHub Issues](https://github.com/Iskra-YT/lubex-compiler/issues).
+- Submit pull requests with new modules or improvements.
+
 ## Authors
 
 **Iskra** - [GitHub Profile](https://github.com/Iskra-YT)
