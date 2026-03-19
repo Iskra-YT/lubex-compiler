@@ -51,7 +51,7 @@ After running this command there should append folder `helloProgram` with catalo
 - `project.json`
 
 
-> ![WARNING]
+> [!WARNING]
 > Presented code will only apear on lubex-r202604a01 and newer versions
 
 At `src/` folder there is a file named `main.lbx`, that contains following code:
