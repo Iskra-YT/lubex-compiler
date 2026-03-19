@@ -166,6 +166,17 @@ struct IRReturn : IRValue {
     }
 };
 
+struct IRString : IRValue {
+    std::string value;
+
+    IRString(const IRName& name, IRType type, std::string value)
+        : IRValue{name, type}, value(std::move(value)) {}
+
+    void debug() const override {
+        DEBUG_OUTPUT << name << ": " << type << " = \"" << value << "\"\n";
+    }
+};
+
 struct LIRGenerate {
     IRValue* mainValue;
     std::vector<std::unique_ptr<IRValue>> code;

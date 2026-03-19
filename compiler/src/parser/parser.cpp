@@ -314,6 +314,14 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
         return node;
     }
 
+    if (tok.type == TokenType::STRING_TOKEN) {
+        advance();
+        return std::make_unique<StringNode>(
+            PositionSpan(tok.position.start, tok.position.end),
+            tok.value
+        );
+    }
+
     pushError(Error(tok.position, "Expected primary expression, got '" + tok.value + "'"));
     return nullptr;
 }

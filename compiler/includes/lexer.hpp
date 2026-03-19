@@ -17,6 +17,7 @@ enum class TokenType {
     KEYWORD_TOKEN,
     IDENTYFIER_TOKEN,
     ASSIGNMENT_TOKEN,
+    STRING_TOKEN,
 
 
     ANY

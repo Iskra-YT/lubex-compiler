@@ -15,5 +15,7 @@ HEAP_BLOCK* __R_malloc_init(void);
 void* _BI_malloc(long size);
 
 void* __R_memset(void* ptr, int value, unsigned long num);
+unsigned long __R_strlen(const char* str);
+void* __R_memcpy(void* dest, const void* src, unsigned long n);
 
 #endif // LUBRTX_LIB_LBXMEM_H

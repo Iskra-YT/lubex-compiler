@@ -468,6 +468,16 @@ LIRGenerate parseImport(ImportNode* imp) {
     return { nullptr, std::move(res) };
 }
 
+LIRGenerate parseString(StringNode* str) {
+    auto strIR = std::make_unique<IRString>("%" + std::to_string(lastId++), "carr", str->value);
+    std::vector<std::unique_ptr<IRValue>> res;
+    
+    auto call = std::make_unique<IRCall>("_BI_String_init", "_BI_String", std::vector<IRValue*>{strIR.get()});
+    res.push_back(std::move(strIR));
+    res.push_back(std::move(call));
+    return { res.back().get(), std::move(res) };
+}
+
 LIRGenerate parse(ASTNode* node) {
     if (auto stmt = dynamic_cast<StatementNode*>(node)) {
         return parse(stmt->value.get());
@@ -499,6 +509,8 @@ LIRGenerate parse(ASTNode* node) {
         currentContext = currentContext->lookup(static_cast<IdentyfierNode*>(mod->name.get()), false)->scope;
     } else if (auto imp = dynamic_cast<ImportNode*>(node)) {
         return parseImport(imp);
+    } else if (auto str = dynamic_cast<StringNode*>(node)) {
+        return parseString(str);
     }
 
     return {};

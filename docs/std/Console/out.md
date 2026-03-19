@@ -23,7 +23,7 @@ import std;
 
 class Hello -> {
     public static func entry(): Int -> {
-        std.Console.out(97);
+        std.Console.out("Hello, World!\n");
         return 0;
     };
 };
@@ -31,7 +31,7 @@ class Hello -> {
 
 **Output**:
 ```
-A
+Hello, World!
 ```
 
 ## Notes
@@ -42,3 +42,4 @@ A
 | Version | Action | Description |
 | ------- | ------ | ----------- |
 | lubex-r202603a01 | Create | Create function for printing ASCII value into standard output |
+| lubex-r202604a01 | Modify | Change `Int`type format parameter into `String` type format parameter | 

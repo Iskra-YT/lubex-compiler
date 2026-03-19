@@ -142,6 +142,33 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
 
         namedValues[r] = ret;
         return ret;
+    } else if (auto s = dynamic_cast<IRString*>(node)) {
+        std::string str = s->value;
+
+        llvm::Constant* constStr = llvm::ConstantDataArray::getString(emiterContext, str, true);
+
+        auto global = new llvm::GlobalVariable(
+            *emiterModule,
+            constStr->getType(),
+            true,
+            llvm::GlobalValue::PrivateLinkage,
+            constStr
+        );
+
+        llvm::Value* zero = llvm::ConstantInt::get(
+            llvm::Type::getInt32Ty(emiterContext), 0
+        );
+
+        llvm::Value* indices[] = { zero, zero };
+
+        llvm::Value* ptr = emiterBuilder.CreateInBoundsGEP(
+            global->getValueType(),
+            global,
+            indices
+        );
+
+        namedValues[s] = ptr;
+        return ptr;
     }
 
     return nullptr;

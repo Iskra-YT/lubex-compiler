@@ -60,3 +60,21 @@ void* __R_memset(void* ptr, int value, unsigned long num) {
     );
     return ptr;
 }
+
+unsigned long __R_strlen(const char* str) {
+    const char* s = str;
+    while (*s) {
+        s++;
+    }
+    return (unsigned long)(s - str);
+}
+
+void* __R_memcpy(void* dest, const void* src, unsigned long n) {
+    asm volatile (
+        "rep movsb"
+        : "+D" (dest), "+S" (src), "+c" (n)
+        :
+        : "memory"
+    );
+    return dest;
+}

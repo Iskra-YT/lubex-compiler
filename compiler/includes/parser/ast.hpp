@@ -179,4 +179,12 @@ struct ImportNode : ASTNode {
     void debug() override;
 };
 
+struct StringNode : ASTNode {
+    std::string value;
+    explicit StringNode(PositionSpan span, std::string val): ASTNode(span),  value(val) {}
+
+    Symbol* evaluateSymbol(Context& ctx) override;
+    void debug() override;
+};
+
 #endif // AST_NODE_HPP

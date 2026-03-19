@@ -81,17 +81,12 @@ class LLVMGenerator {
 
             generateBuildInStruct("_BI_Void", {});
             generateBuildInFunction("_BI_Void_init", "_BI_Void", {});
-            generateBuildInFunction("_BI_Void_add", "_BI_Void", {"_BI_Void", "_BI_Void"});
-            generateBuildInFunction("_BI_Void_subtract", "_BI_Void", {"_BI_Void", "_BI_Void"});
-            generateBuildInFunction("_BI_Void_multiply", "_BI_Void", {"_BI_Void", "_BI_Void"});
-            generateBuildInFunction("_BI_Void_divide", "_BI_Void", {"_BI_Void", "_BI_Void"});
 
             generateBuildInStruct("_BI_Object", {});
-            generateBuildInFunction("_BI_Object_init", "_BI_Object", {});
-            generateBuildInFunction("_BI_Object_add", "_BI_Object", {"_BI_Object", "_BI_Object"});
-            generateBuildInFunction("_BI_Object_subtract", "_BI_Object", {"_BI_Object", "_BI_Object"});
-            generateBuildInFunction("_BI_Object_multiply", "_BI_Object", {"_BI_Object", "_BI_Object"});
-            generateBuildInFunction("_BI_Object_divide", "_BI_Object", {"_BI_Object", "_BI_Object"});
+            generateBuildInFunction("_BI_Object_init", "_BI_Object", {});   
+
+            generateBuildInStruct("_BI_String", {"i8*"});
+            generateBuildInFunction("_BI_String_init", "_BI_String", {"i8*"});
 
             generateBuildInFunction("_BI_malloc", "void*", {"i64"});
         }

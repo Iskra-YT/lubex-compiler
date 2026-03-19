@@ -9,6 +9,7 @@
 extern IdentyfierNode intType;
 extern IdentyfierNode objectType;
 extern IdentyfierNode voidType;
+extern IdentyfierNode stringType;
 
 bool inStatic = false;
 
@@ -344,4 +345,10 @@ Symbol* ImportNode::evaluateSymbol(Context& ctx){
 
     parsingModule = false;
     return nullptr;
+}
+
+Symbol* StringNode::evaluateSymbol(Context& ctx) {
+    auto sym = ctx.lookup(&stringType);
+    sym->type = sym;
+    return sym;
 }

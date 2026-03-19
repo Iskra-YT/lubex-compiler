@@ -119,6 +119,41 @@ std::vector<Token> Lexer::lex() {
             continue;
         }
 
+        else if (currentToken == '"') {
+            advance();
+            std::string value;
+
+            while (currentToken != '\0' && currentToken != '"') {
+                if (currentToken == '\\') {
+                    advance();
+                    if (currentToken == 'n') {
+                        value += '\n';
+                    } else if (currentToken == 't') {
+                        value += '\t';
+                    } else if (currentToken == '"') {
+                        value += '"';
+                    } else if (currentToken == '\\') {
+                        value += '\\';
+                    } else {
+                        value += currentToken;
+                    }
+                } else {
+                    value += currentToken;
+                }
+            
+                advance();
+            }
+
+            if (currentToken != '"') {
+                tokens.push_back({{startPos, currentPosition}, value, TokenType::ERR_TOKEN});
+                continue;
+            }
+
+            advance();
+            tokens.push_back({{startPos, currentPosition}, value, TokenType::STRING_TOKEN});
+            continue;
+        }
+
         std::string unknown(1, currentToken);
         Position endPos = currentPosition;
         tokens.push_back({{startPos, endPos}, unknown, TokenType::ERR_TOKEN});

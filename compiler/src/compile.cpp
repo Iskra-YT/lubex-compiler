@@ -22,6 +22,7 @@
 extern IdentyfierNode intType;
 extern IdentyfierNode objectType;
 extern IdentyfierNode voidType;
+extern IdentyfierNode stringType;
 
 IdentyfierNode initName(PositionSpan(0, 0), "init");
 IdentyfierNode addName(PositionSpan(0, 0), "add");
@@ -82,6 +83,7 @@ bool compileProject() {
     auto objectContext = std::make_unique<Context>(&globalCtx);
     auto intContext = std::make_unique<Context>(&globalCtx);
     auto voidContext = std::make_unique<Context>(&globalCtx);
+    auto stringContext = std::make_unique<Context>(&globalCtx);
 
     // Object
     auto object = std::make_unique<Symbol>(SymbolKind::CLASS, &objectType, nullptr, nullptr);
@@ -89,11 +91,6 @@ bool compileProject() {
     auto func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, object.get(), nullptr);
     func->isStatic = true;
     objectContext->declare(std::move(func));
-
-    objectContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &addName, object.get(), nullptr));
-    objectContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &subName, object.get(), nullptr));
-    objectContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &mulName, object.get(), nullptr));
-    objectContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &divName, object.get(), nullptr));
     object->scope = objectContext.get();
     globalCtx.declare(std::move(object));
 
@@ -117,13 +114,16 @@ bool compileProject() {
     func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, voidClass.get(), nullptr);
     func->isStatic = true;
     voidContext->declare(std::move(func));
-
-    voidContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &addName, voidClass.get(), nullptr));
-    voidContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &subName, voidClass.get(), nullptr));
-    voidContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &mulName, voidClass.get(), nullptr));
-    voidContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &divName, voidClass.get(), nullptr));
     voidClass->scope = voidContext.get();
     globalCtx.declare(std::move(voidClass));
+
+    // String
+    auto stringClass = std::make_unique<Symbol>(SymbolKind::CLASS, &stringType, nullptr, nullptr);
+    func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, stringClass.get(), nullptr);
+    func->isStatic = true;
+    stringContext->declare(std::move(func));
+    stringClass->scope = stringContext.get();
+    globalCtx.declare(std::move(stringClass));
 
     if (!compile(mainSource, *globalCtx.addChild()))
         return false;

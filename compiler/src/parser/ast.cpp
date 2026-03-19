@@ -9,6 +9,7 @@
 IdentyfierNode intType(PositionSpan(0, 0), "Int");
 IdentyfierNode objectType(PositionSpan(0, 0), "Object");
 IdentyfierNode voidType(PositionSpan(0, 0), "Void");
+IdentyfierNode stringType(PositionSpan(0, 0), "String");
 
 void ASTNode::debug() {
     throw std::runtime_error("Internal error: unreachable path");
@@ -112,4 +113,8 @@ void AttributesNode::debug(){
 void ImportNode::debug() {
     DEBUG_OUTPUT << "import ";
     value->debug();
+}
+
+void StringNode::debug() {
+    DEBUG_OUTPUT << "\"" << value << "\"";
 }

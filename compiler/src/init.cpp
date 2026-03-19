@@ -49,9 +49,12 @@ bool initProject(char* name) {
 
     out << "module main;\n";
     out << "\n";
+    out << "import std;\n";
+    out << "\n";
     out << "class " + std::string(1, std::toupper(projectName[0])) + projectName.substr(1) + " -> {\n";
-    out << "    public static func entry(): Int -> {\n"; // TODO: Issue #3
-    out << "        \n";
+    out << "    public static func entry(): Int -> {\n";
+    out << "        std.Console.out(\"Hello, World!\");\n";
+    out << "        return 0;\n";
     out << "    };\n";
     out << "};\n";
 
