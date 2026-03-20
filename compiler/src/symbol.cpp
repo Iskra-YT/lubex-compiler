@@ -57,17 +57,32 @@ Symbol* BinaryNode::evaluateSymbol(Context& ctx) {
 
 Symbol* VariableDeclarationNode::evaluateSymbol(Context& ctx) {
     auto declareVariable = [&]() {
-        auto t = type->evaluateSymbol(ctx);
-        ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), t, static_cast<ASTNode*>(this)));
+        if (type) {
+            auto t = type->evaluateSymbol(ctx);
 
-        if (value && ctx.generativeSymbol->kind != SymbolKind::CLASS) {
-            auto v = value->evaluateSymbol(ctx);
-            auto sym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
-            if (v && t && sym && t->name->value != v->type->name->value) {
-                ctx.errors.push_back(Error(position, "Type mismatch in variable declaration"));
+            if (value && ctx.generativeSymbol->kind != SymbolKind::CLASS) {
+                auto v = value->evaluateSymbol(ctx);
+                auto sym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
+                if (v && t && sym && t->name->value != v->type->name->value) {
+                    ctx.errors.push_back(Error(position, "Type mismatch in variable declaration"));
+                }
+
+                ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), t, static_cast<ASTNode*>(this)));
+            } else if (value) {
+                ctx.errors.push_back(Error(position, "Cannot initialize class member variables"));
             }
-        } else if (value) {
-            ctx.errors.push_back(Error(position, "Cannot initialize class member variables"));
+        } else {
+            if (value) {
+                auto v = value->evaluateSymbol(ctx);
+                if (!v || !v->type) {
+                    ctx.errors.push_back(Error(position, "Cannot infer type from initializer"));
+                    return;
+                }
+
+                ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), v->type, static_cast<ASTNode*>(this)));
+            } else {
+                ctx.errors.push_back(Error(position, "Variable declaration must have a type or an initializer"));
+            }
         }
     };
 

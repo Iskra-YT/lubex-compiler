@@ -36,9 +36,9 @@ void VariableDeclarationNode::debug() {
     DEBUG_OUTPUT << "let";
     name->debug();
     DEBUG_OUTPUT << ":";
-    type->debug();
+    if (type) type->debug();
     DEBUG_OUTPUT << "=";
-    if(value) value->debug();
+    if (value) value->debug();
 }
 
 void IdentyfierNode::debug() {
@@ -110,6 +110,7 @@ void AttributesNode::debug(){
     DEBUG_OUTPUT << "attr value ";
     value->debug();
 }
+
 void ImportNode::debug() {
     DEBUG_OUTPUT << "import ";
     value->debug();

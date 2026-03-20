@@ -8,11 +8,11 @@ void Parser::initVarDecl() {
             auto& c = *(VarDeclContext*)ctx;
             c.name = parsePrimary();
         }, false, 0},
-        {TokenType::DELIMITER_TOKEN, ":", [](Token&, void*){}, true, 0},
+        {TokenType::DELIMITER_TOKEN, ":", [](Token&, void*){}, true, 2},
         {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx){ 
             auto& c = *(VarDeclContext*)ctx;
             c.type = parsePrimary();
-        }, false, 0},
+        }, false, 2},
         {TokenType::ASSIGNMENT_TOKEN, "=", [](Token&, void*){}, true, 1},
         {TokenType::ANY, "", [&](Token&, void* ctx){
             auto& c = *(VarDeclContext*)ctx;
@@ -121,11 +121,11 @@ void Parser::initConstDecl() {
             auto& c = *(VarDeclContext*)ctx;
             c.name = parsePrimary();
         }, false, 0},
-        {TokenType::DELIMITER_TOKEN, ":", [](Token&, void*){}, true, 0},
+        {TokenType::DELIMITER_TOKEN, ":", [](Token&, void*){}, true, 2},
         {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx){ 
             auto& c = *(VarDeclContext*)ctx;
             c.type = parsePrimary();
-        }, false, 0},
+        }, false, 2},
         {TokenType::ASSIGNMENT_TOKEN, "=", [](Token&, void*){}, true, 1},
         {TokenType::ANY, "", [&](Token&, void* ctx){
             auto& c = *(VarDeclContext*)ctx;
