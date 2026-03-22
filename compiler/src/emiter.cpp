@@ -183,6 +183,23 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
         auto* gep = emiterBuilder.CreateStructGEP(mapLLVMType(a->object->type, false), obj, idx);
         namedValues[a] = gep;
         return gep;
+    } else if (auto g = dynamic_cast<IRAllocaStruct*>(node)) {
+        llvm::Type* type = mapLLVMType(g->type, false);
+
+        llvm::Function* callee = emiterModule->getFunction("_BI_malloc");
+        if (!callee) {
+            std::cerr << "Function not found: _BI_malloc\n";
+            return nullptr;
+        }
+
+        const llvm::DataLayout &dl = emiterModule->getDataLayout();
+        uint64_t size = dl.getTypeAllocSize(type);
+
+        llvm::Value* sizeVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(emiterContext), size);
+        llvm::Value* allocated = emiterBuilder.CreateCall(callee, { sizeVal });
+
+        namedValues[g] = allocated;
+        return allocated;
     }
 
     return nullptr;

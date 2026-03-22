@@ -131,15 +131,8 @@ LIRGenerate parseVariableDeclaration(VariableDeclarationNode* decl) {
 
 LIRGenerate parseVariableAssigment(VariableAssigment* assign) {
     std::vector<std::unique_ptr<IRValue>> res;
-    Symbol* assignSym = nullptr;
-    if (auto a = dynamic_cast<IdentyfierNode*>(assign->name.get())) {
-        assignSym = currentContext->lookup(a, false);
-    } else if (auto m = dynamic_cast<MemberAccessNode*>(assign->name.get())) {
-        auto objSym = currentContext->lookup(static_cast<IdentyfierNode*>(m->object.get()), false);
-        if (objSym) {
-            assignSym = objSym->scope ? objSym->scope->lookup(static_cast<IdentyfierNode*>(m->member.get()), false) : objSym->type->scope->lookup(static_cast<IdentyfierNode*>(m->member.get()), false);
-        }
-    }
+    IRValue* base = nullptr;
+    Symbol* sym = resolveCallChain(assign->name.get(), base);
     
     auto valIR = parse(assign->value.get());
 
@@ -235,8 +228,8 @@ LIRGenerate parseFunction(FunctionDeclaration* func) {
 
     lastId = 0;
 
-    if (!static_cast<FunctionDeclaration*>(funcSym->node)->isStatic) {
-        variables[mangleName(funcSym->mangledName + ".this")] = createArg(mangleName(currentContext->parent->generativeSymbol));
+    if (!func->isStatic) {
+        variables[mangleName(funcSym->mangledName + ".this")] = createArg(mangleName(funcSym->scope->parent->generativeSymbol));
         args.push_back(variables[mangleName(funcSym->mangledName + ".this")]);
     }
 
@@ -415,7 +408,9 @@ LIRGenerate parseCallNode(CallNode* call) {
             }
             baseObject = new IRVariableRead("%0", mangleName(currentContext->parent->generativeSymbol));
         }
-        args.push_back(baseObject);
+        
+        if (callSym->name->value != "init")
+            args.push_back(baseObject);
     }
 
     for (auto& arg : call->args) {
@@ -424,8 +419,12 @@ LIRGenerate parseCallNode(CallNode* call) {
         args.push_back(argIR.mainValue);
     }
 
-    if (callSym->kind == SymbolKind::CLASS) {
-        auto callIR = std::make_unique<IRCall>(mangleName(callSym) + "_F4init", mangleName(callSym), args);
+    if (callSym->name->value == "init" && callSym->kind == SymbolKind::FUNCTION) {
+        auto alloc = std::make_unique<IRAllocaStruct>("%" + std::to_string(lastId++), mangleName(callSym->type), mangleName(callSym));
+        res.push_back(std::move(alloc));
+        args.insert(args.begin(), res.back().get());
+
+        auto callIR = std::make_unique<IRCall>(mangleName(callSym), mangleName(callSym->type), args);
         res.push_back(std::move(callIR));
     } else {
         auto callIR = std::make_unique<IRCall>(mangleName(callSym), getType(callSym->type->name, callSym->type), args);

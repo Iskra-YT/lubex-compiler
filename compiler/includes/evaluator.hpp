@@ -39,6 +39,15 @@ struct Symbol {
     std::string forcedMangle = "";
 
     Symbol(SymbolKind kind, IdentyfierNode* name, Symbol* type, ASTNode* node) : kind(kind), name(name), type(type), node(node) {}
+    Symbol* clone() const {
+        Symbol* copy = new Symbol(kind, name, type, node);
+        copy->mangledName = mangledName;
+        copy->classMemberIndex = classMemberIndex;
+        copy->isStatic = isStatic;
+        copy->forcedMangle = forcedMangle;
+        copy->scope = scope;
+        return copy;
+    }
 };
 
 struct Context {

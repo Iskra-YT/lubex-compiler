@@ -317,6 +317,11 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
         return nullptr;
     }
 
+    if (memberSym->name->value == "init") {
+        ctx.errors.push_back(Error(position, "Direct call to init() is not allowed"));
+        return nullptr;
+    }
+
     if (memberSym->kind == SymbolKind::FUNCTION) {
         auto funcDecl = static_cast<FunctionDeclaration*>(memberSym->node);
 
@@ -417,5 +422,7 @@ Symbol* ThisNode::evaluateSymbol(Context& ctx) {
     }
 
     DEBUG_OUTPUT << "ctx.parent->generativeSymbol: " << (ctx.parent && ctx.parent->generativeSymbol ? ctx.parent->generativeSymbol->name->value : "nullptr") << "\n";
-    return ctx.parent->generativeSymbol;
+    auto sym = ctx.parent->generativeSymbol->clone();
+    sym->type = sym;
+    return sym;
 }

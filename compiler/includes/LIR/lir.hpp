@@ -53,6 +53,14 @@ struct IRAlloca : IRValue {
     }
 };
 
+struct IRAllocaStruct : IRValue {
+    IRAllocaStruct(const IRName& name, IRType type, IRType structType): IRValue{name, type} {}
+
+    void debug() const override {
+        DEBUG_OUTPUT << name << ": " << type << " = alloca struct\n";
+    }
+};
+
 struct IRStore : IRValue {
     IRValue* value;
     IRValue* ptr;
