@@ -11,7 +11,7 @@ static Context* currentContext = nullptr;
 
 std::string getType(IdentyfierNode* name, Symbol* sym) {
     if (name->value == "Int") {
-        return "_BI_Int";
+        return "_BI_Number";
     } else if (name->value == "Void") {
         return "_BI_Void";
     } else if (name->value == "Object") {
@@ -79,7 +79,7 @@ LIRGenerate parseNumbers(NumberNode* num) {
 
     std::vector<IRValue*> args;
     args.push_back(n.get());
-    auto call = std::make_unique<IRCall>("_BI_Int_init", "_BI_Int", args);
+    auto call = std::make_unique<IRCall>("_BI_Number_init", "_BI_Number", args);
 
     std::vector<std::unique_ptr<IRValue>> code;
     code.push_back(std::move(n));
@@ -92,7 +92,7 @@ LIRGenerate parseVariableDeclaration(VariableDeclarationNode* decl) {
     
     std::string typeName;
     if (varSym->type->name->value == "Int") {
-        typeName = "_BI_Int";
+        typeName = "_BI_Number";
     } else if (varSym->type->name->value == "Void") {
         typeName = "_BI_Void";
     } else {
@@ -174,7 +174,7 @@ LIRGenerate parseBinaryExpression(BinaryNode* bin) {
     // TODO: Add Object type support
     if (bin->op == "+") {
         if (binSym->type->name->value == "Int") {
-            res.push_back(std::make_unique<IRCall>("_BI_Int_add", "_BI_Int", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_add", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else if (binSym->type->name->value == "Void") {
             res.push_back(std::make_unique<IRCall>("_BI_Void_add", "_BI_Void", std::vector<IRValue*>{L.mainValue, R.mainValue}));
@@ -185,7 +185,7 @@ LIRGenerate parseBinaryExpression(BinaryNode* bin) {
         }
     } else if (bin->op == "-") {
         if (binSym->type->name->value == "Int") {
-            res.push_back(std::make_unique<IRCall>("_BI_Int_subtract", "_BI_Int", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_subtract", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else if (binSym->type->name->value == "Void") {
             res.push_back(std::make_unique<IRCall>("_BI_Void_subtract", "_BI_Void", std::vector<IRValue*>{L.mainValue, R.mainValue}));
@@ -196,7 +196,7 @@ LIRGenerate parseBinaryExpression(BinaryNode* bin) {
         }
     } else if (bin->op == "*") {
         if (binSym->type->name->value == "Int") {
-            res.push_back(std::make_unique<IRCall>("_BI_Int_multiply", "_BI_Int", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_multiply", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else if (binSym->type->name->value == "Void") {
             res.push_back(std::make_unique<IRCall>("_BI_Void_multiply", "_BI_Void", std::vector<IRValue*>{L.mainValue, R.mainValue}));
@@ -207,7 +207,7 @@ LIRGenerate parseBinaryExpression(BinaryNode* bin) {
         }
     } else if (bin->op == "/") {
         if (binSym->type->name->value == "Int") {
-            res.push_back(std::make_unique<IRCall>("_BI_Int_divide", "_BI_Int", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_divide", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else if (binSym->type->name->value == "Void") {
             res.push_back(std::make_unique<IRCall>("_BI_Void_divide", "_BI_Void", std::vector<IRValue*>{L.mainValue, R.mainValue}));
@@ -241,7 +241,7 @@ LIRGenerate parseFunction(FunctionDeclaration* func) {
 
     std::string typeName;
     if (funcSym->type->name->value == "Int") {
-        typeName = "_BI_Int";
+        typeName = "_BI_Number";
     } else if (funcSym->type->name->value == "Void") {
         typeName = "_BI_Void";
     } else {
@@ -278,7 +278,7 @@ LIRGenerate parseClassDeclaration(ClassDeclNode* cls) {
 
             std::string typeName;
             if (varSym->type->name->value == "Int") {
-                typeName = "_BI_Int";
+                typeName = "_BI_Number";
             } else if (varSym->type->name->value == "Void") {
                 typeName = "_BI_Void";
             } else {
@@ -526,7 +526,7 @@ LIRGenerate parseImport(ImportNode* imp) {
                     }
 
                     std::string typeName;
-                    if (methodSym->type->name->value == "Int") typeName = "_BI_Int";
+                    if (methodSym->type->name->value == "Int") typeName = "_BI_Number";
                     else if (methodSym->type->name->value == "Void") typeName = "_BI_Void";
                     else typeName = mangleName(methodSym->type);
 

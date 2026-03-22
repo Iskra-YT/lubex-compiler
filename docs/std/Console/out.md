@@ -5,20 +5,22 @@
 ## Syntax
 
 ```lubex
-std.Console.out(text: Int): Void
+std.Console.out(text: String): Void
 ```
 
 ## Parameters
 
-| Parameter | Type | String |
+| Parameter | Type | Description |
 | --------- | ---- | ------ | 
-| `format` | Int | ASCII value of output char |
+| `text` | String | The text to be written to the standard output |
 
 ## Returns
 `Void` - This function does not return any value.
 
 ## Usage
 ```lubex
+module main;
+
 import std;
 
 class Hello -> {

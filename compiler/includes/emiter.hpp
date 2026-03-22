@@ -76,12 +76,12 @@ class LLVMGenerator {
             emiterModule = std::make_unique<llvm::Module>(moduleName, emiterContext);
             emiterModule->setDataLayout("e-m:e-i64:64-f80:128-n8:16:32:64-S128");
 
-            generateBuildInStruct("_BI_Int", {"double"});
-            generateBuildInFunction("_BI_Int_init", "_BI_Int", {"double"});
-            generateBuildInFunction("_BI_Int_add", "_BI_Int", {"_BI_Int", "_BI_Int"});
-            generateBuildInFunction("_BI_Int_subtract", "_BI_Int", {"_BI_Int", "_BI_Int"});
-            generateBuildInFunction("_BI_Int_multiply", "_BI_Int", {"_BI_Int", "_BI_Int"});
-            generateBuildInFunction("_BI_Int_divide", "_BI_Int", {"_BI_Int", "_BI_Int"});
+            generateBuildInStruct("_BI_Number", {"double"});
+            generateBuildInFunction("_BI_Number_init", "_BI_Number", {"double"});
+            generateBuildInFunction("_BI_Number_add", "_BI_Number", {"_BI_Number", "_BI_Number"});
+            generateBuildInFunction("_BI_Number_subtract", "_BI_Number", {"_BI_Number", "_BI_Number"});
+            generateBuildInFunction("_BI_Number_multiply", "_BI_Number", {"_BI_Number", "_BI_Number"});
+            generateBuildInFunction("_BI_Number_divide", "_BI_Number", {"_BI_Number", "_BI_Number"});
 
             generateBuildInStruct("_BI_Void", {});
             generateBuildInFunction("_BI_Void_init", "_BI_Void", {});

@@ -52,7 +52,7 @@ bool initProject(char* name) {
     out << "import std;\n";
     out << "\n";
     out << "class " + std::string(1, std::toupper(projectName[0])) + projectName.substr(1) + " -> {\n";
-    out << "    public static func entry(): Int -> {\n";
+    out << "    public static func entry(): Number -> {\n";
     out << "        std.Console.out(\"Hello, World!\");\n";
     out << "        return 0;\n";
     out << "    };\n";

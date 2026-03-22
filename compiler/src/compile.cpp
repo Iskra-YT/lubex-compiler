@@ -94,9 +94,9 @@ bool compileProject() {
     object->scope = objectContext.get();
     globalCtx.declare(std::move(object));
 
-    // Int
+    // Number
     auto intClass = std::make_unique<Symbol>(SymbolKind::CLASS, &intType, nullptr, nullptr);
-    // Int.init
+    // Number.init
     func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, intClass.get(), nullptr);
     func->isStatic = true;
     intContext->declare(std::move(func));
@@ -272,7 +272,7 @@ bool compile(std::filesystem::path mainSource, Context& globalCtx) {
                 break;
             }
 
-            llvm::StructType* biIntType = llvm.structTypes["_BI_Int"];
+            llvm::StructType* biIntType = llvm.structTypes["_BI_Number"];
             llvm::Value* callValue = llvm.emiterBuilder.CreateCall(callee);
 
             llvm::Value* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm.emiterContext), 0);

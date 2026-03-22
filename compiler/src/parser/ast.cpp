@@ -6,7 +6,7 @@
 #include "evaluator.hpp"
 #include "debug.hpp"
 
-IdentyfierNode intType(PositionSpan(0, 0), "Int");
+IdentyfierNode intType(PositionSpan(0, 0), "Number");
 IdentyfierNode objectType(PositionSpan(0, 0), "Object");
 IdentyfierNode voidType(PositionSpan(0, 0), "Void");
 IdentyfierNode stringType(PositionSpan(0, 0), "String");
