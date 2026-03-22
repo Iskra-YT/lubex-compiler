@@ -17,9 +17,11 @@ int main(int argc, char** argv) {
         initProject(argv[2]);
     } else if (strcmp(argv[1], "build") == 0) {
         if(compileProject()) {
+            std::cout << "Build successful\n";
             return EXIT_SUCCESS;
         }
 
+        std::cerr << "Build failed\n";
         return EXIT_FAILURE;
     }
 

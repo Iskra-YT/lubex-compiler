@@ -314,6 +314,11 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
         return node;
     }
 
+    if (tok.match(Token("this", TokenType::KEYWORD_TOKEN))) {
+        advance();
+        return std::make_unique<ThisNode>(tok.position);
+    }
+
     if (tok.type == TokenType::STRING_TOKEN) {
         advance();
         return std::make_unique<StringNode>(

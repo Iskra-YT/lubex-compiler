@@ -3,6 +3,7 @@
 std::unique_ptr<llvm::LLVMContext> emiterContext;
 std::unique_ptr<llvm::Module> emiterModule;
 std::unique_ptr<llvm::IRBuilder<>> emiterBuilder;
+std::unordered_map<IRValue*, std::unordered_map<std::string, int>> structValues;
 
 extern std::string mangleVisitor;
 
@@ -83,6 +84,7 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
 
         return store;
     } else if (auto f = dynamic_cast<IRFunction*>(node)) {
+        DEBUG_OUTPUT << "Generating function: " << f->name << "\n";
         auto func = emiterModule->getFunction(f->name);
 
         if (!func) {
@@ -106,10 +108,6 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
             generate(instr.get());
         }
 
-        if (f->returnType == "_BI_Void") {
-            emiterBuilder.CreateRetVoid();
-        }
-
         namedValues[f] = func;
 
         return func;
@@ -123,7 +121,11 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
         std::vector<llvm::Value*> args;
         for (auto argNode : c->args) {
             llvm::Value* argVal = namedValues[argNode];
-            if (!argVal) return nullptr;
+            if (!argVal) {
+                std::cerr << "Missing arg value in call: " << c->funcName << "\n";
+                return nullptr;
+            }
+            
             args.push_back(argVal);
         }
 
@@ -133,12 +135,8 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
         return call;
     } else if (auto r = dynamic_cast<IRReturn*>(node)) {
         llvm::Value* ret;
-        if (r->type == "_BI_Void") {
-            ret = emiterBuilder.CreateRetVoid();
-        } else {
-            llvm::Value* value = namedValues[r->value];
-            ret = emiterBuilder.CreateRet(value);
-        }
+        llvm::Value* value = namedValues[r->value];
+        ret = emiterBuilder.CreateRet(value);
 
         namedValues[r] = ret;
         return ret;
@@ -169,6 +167,22 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
 
         namedValues[s] = ptr;
         return ptr;
+    } else if (auto a = dynamic_cast<IRAccess*>(node)) {
+        llvm::Value* obj = namedValues[a->object];
+        if (!obj) {
+            std::cerr << "Object not found in access: " << a->object->name << "\n";
+            return nullptr;
+        }
+
+        int idx = a->memberName;
+        
+        if (!obj->getType()->isPointerTy()) {
+            std::cerr << "Object is not a pointer type\n";
+            return nullptr;
+        }
+        auto* gep = emiterBuilder.CreateStructGEP(mapLLVMType(a->object->type, false), obj, idx);
+        namedValues[a] = gep;
+        return gep;
     }
 
     return nullptr;
@@ -187,10 +201,12 @@ std::vector<llvm::Value*> LLVMGenerator::generate(std::vector<std::unique_ptr<IR
             llvm::Function* func = llvm::Function::Create(funcType, llvm::GlobalValue::LinkageTypes::ExternalLinkage, f->name, emiterModule.get());
         } else if (auto c = dynamic_cast<IRStruct*>(instr.get())) {
             std::vector<llvm::Type*> body;
+            int memberIdx = 0;
             for (auto& type : c->data) {
                 auto member = dynamic_cast<IRMember*>(type.get());
                 if (!member) continue;
 
+                structValues[instr.get()][member->name] = memberIdx++;
                 body.push_back(mapLLVMType(member->type));
             }
 

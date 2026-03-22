@@ -187,4 +187,11 @@ struct StringNode : ASTNode {
     void debug() override;
 };
 
+struct ThisNode : ASTNode {
+    ThisNode(PositionSpan span) : ASTNode(span) {}
+
+    Symbol* evaluateSymbol(Context& ctx) override;
+    void debug() override;
+};
+
 #endif // AST_NODE_HPP

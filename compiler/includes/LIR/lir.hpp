@@ -29,7 +29,9 @@ struct IRValue {
 };
 
 struct IRMember : IRValue {
-    IRMember(const IRName& name, IRType type): IRValue{name, type} {}
+    IRMember(const IRName& name, IRType type, size_t idx): IRValue{name, type}, index(idx) {}
+    size_t index;
+
     void debug() const override {
         DEBUG_OUTPUT << name << ": " << type << "\n";
     }
@@ -138,12 +140,12 @@ struct IRStruct : IRValue {
 
 struct IRAccess : IRValue {
     IRValue* object;
-    std::string memberName;
+    int memberName;
 
-    IRAccess(const IRName& name, const IRType& type, IRValue* object, const std::string& memberName) : IRValue(name, type), object(object), memberName(memberName) {}
+    IRAccess(const IRName& name, const IRType& type, IRValue* object, const std::string& memberName) : IRValue(name, type), object(object), memberName(std::stoi(memberName)) {}
 
     void debug() const override {
-        DEBUG_OUTPUT << name + " = access " + object->name + ", " + memberName + "\n";
+        DEBUG_OUTPUT << name + " = access " + object->name + ", " + std::to_string(memberName) + "\n";
     }
 };
 
@@ -162,7 +164,8 @@ struct IRReturn : IRValue {
     IRReturn(const IRType& type, IRValue* value): IRValue("%tmp", type), value(value) {}
 
     void debug() const override {
-        DEBUG_OUTPUT << "ret " << value->name << " : " << type << "\n";
+        if (value) DEBUG_OUTPUT << "ret " << value->name << " : " << type << "\n";
+        else DEBUG_OUTPUT << "ret void\n";
     }
 };
 

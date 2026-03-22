@@ -34,6 +34,7 @@ struct Symbol {
     Context* scope = nullptr;
     ASTNode* node;
     std::string mangledName;
+    size_t classMemberIndex;
     bool isStatic = false;
     std::string forcedMangle = "";
 

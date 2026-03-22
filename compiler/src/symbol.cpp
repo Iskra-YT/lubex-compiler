@@ -65,11 +65,16 @@ Symbol* VariableDeclarationNode::evaluateSymbol(Context& ctx) {
                 auto sym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
                 if (v && t && sym && t->name->value != v->type->name->value) {
                     ctx.errors.push_back(Error(position, "Type mismatch in variable declaration"));
+                    return;
                 }
 
                 ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), t, static_cast<ASTNode*>(this)));
             } else if (value) {
                 ctx.errors.push_back(Error(position, "Cannot initialize class member variables"));
+                return;
+            } else {
+                ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), t, static_cast<ASTNode*>(this)));
+                return;
             }
         } else {
             if (value) {
@@ -82,15 +87,14 @@ Symbol* VariableDeclarationNode::evaluateSymbol(Context& ctx) {
                 ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), v->type, static_cast<ASTNode*>(this)));
             } else {
                 ctx.errors.push_back(Error(position, "Variable declaration must have a type or an initializer"));
+                return;
             }
         }
     };
 
     if (ctx.generativeSymbol && ctx.generativeSymbol->kind == SymbolKind::CLASS && ctx.phase == PassPhase::DECLARATION) {
         declareVariable();
-    }
-
-    if (ctx.phase == PassPhase::TYPE_CHECK && ctx.generativeSymbol && ctx.generativeSymbol->kind != SymbolKind::CLASS) {
+    } else if (ctx.phase == PassPhase::TYPE_CHECK && ctx.generativeSymbol && ctx.generativeSymbol->kind != SymbolKind::CLASS) {
         declareVariable();
     }
 
@@ -279,29 +283,61 @@ Symbol* CallNode::evaluateSymbol(Context& ctx) {
 
 Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
     auto obj = object->evaluateSymbol(ctx);
-    if (!obj || (obj->kind != SymbolKind::CLASS && obj->kind != SymbolKind::MODULE && obj->type->kind != SymbolKind::CLASS)) {
-        ctx.errors.push_back(Error(position, "Object is not a class instance"));
+    if (!obj) {
         return nullptr;
     }
-    
-    auto memberSym = obj->scope ? obj->scope->lookup(
-        static_cast<IdentyfierNode*>(member.get())
-    ) : obj->type->scope->lookup(
-        static_cast<IdentyfierNode*>(member.get())
-    );
+
+    Symbol* memberSym = nullptr;
+    bool isStaticAccess = false;
+
+    if (obj->kind == SymbolKind::CLASS || obj->kind == SymbolKind::MODULE) {
+        isStaticAccess = true;
+
+        if (!obj->scope) {
+            ctx.errors.push_back(Error(position, "Class or module has no scope"));
+            return nullptr;
+        }
+
+        memberSym = obj->scope->lookup(
+            static_cast<IdentyfierNode*>(member.get())
+        );
+    } else {
+        if (!obj->type || obj->type->kind != SymbolKind::CLASS || !obj->type->scope) {
+            ctx.errors.push_back(Error(position, "Object is not a class instance"));
+            return nullptr;
+        }
+
+        memberSym = obj->type->scope->lookup(
+            static_cast<IdentyfierNode*>(member.get())
+        );
+    }
 
     if (!memberSym) {
         ctx.errors.push_back(Error(position, "No such class member"));
+        return nullptr;
     }
 
     if (memberSym->kind == SymbolKind::FUNCTION) {
         auto funcDecl = static_cast<FunctionDeclaration*>(memberSym->node);
-        if (!funcDecl->isStatic) {
-            ctx.errors.push_back(Error(position, "Cannot access non-static member without instance"));
+
+        if (isStaticAccess) {
+            if (!funcDecl->isStatic) {
+                ctx.errors.push_back(Error(position, "Cannot access non-static member without instance"));
+                return nullptr;
+            }
+        } else {
+            if (funcDecl->isStatic) {
+                ctx.errors.push_back(Error(position, "Cannot access static member through instance"));
+                return nullptr;
+            }
         }
 
-        if (funcDecl->visibility == VisibilityKind::PRIVATE && obj->type->name->value != ctx.generativeSymbol->name->value) {
-            ctx.errors.push_back(Error(position, "Cannot access private member from outside the class"));
+        if (funcDecl->visibility == VisibilityKind::PRIVATE) {
+            if (!ctx.generativeSymbol ||
+                obj->type->name->value != ctx.generativeSymbol->name->value) {
+                ctx.errors.push_back(Error(position, "Cannot access private member from outside the class"));
+                return nullptr;
+            }
         }
     }
 
@@ -366,4 +402,20 @@ Symbol* StringNode::evaluateSymbol(Context& ctx) {
     auto sym = ctx.lookup(&stringType);
     sym->type = sym;
     return sym;
+}
+
+Symbol* ThisNode::evaluateSymbol(Context& ctx) {
+    if (ctx.symbolKind != SymbolKind::FUNCTION) {
+        ctx.errors.push_back(Error(position, "Cannot use 'this' outside of a function"));
+        return nullptr;
+    }
+
+
+    if (inStatic) {
+        ctx.errors.push_back(Error(position, "Cannot use 'this' in static context"));
+        return nullptr;
+    }
+
+    DEBUG_OUTPUT << "ctx.parent->generativeSymbol: " << (ctx.parent && ctx.parent->generativeSymbol ? ctx.parent->generativeSymbol->name->value : "nullptr") << "\n";
+    return ctx.parent->generativeSymbol;
 }

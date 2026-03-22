@@ -21,7 +21,7 @@ class LLVMGenerator {
     public:
         std::unordered_map<std::string, llvm::StructType*> structTypes;
 
-        inline llvm::Type* mapLLVMType(const std::string& type) {
+        inline llvm::Type* mapLLVMType(const std::string& type, bool getPointer = true) {
             if (type == "i32") return llvm::Type::getInt32Ty(emiterContext);
             if (type == "double") return llvm::Type::getDoubleTy(emiterContext);
             if (type == "i1") return llvm::Type::getInt1Ty(emiterContext);
@@ -37,7 +37,11 @@ class LLVMGenerator {
                 structTypes[type] = st;
             }
 
-            return st->getPointerTo();
+            if (getPointer) {
+                return st->getPointerTo();
+            }
+
+            return st;
         }
 
     private:

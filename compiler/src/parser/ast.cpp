@@ -119,3 +119,7 @@ void ImportNode::debug() {
 void StringNode::debug() {
     DEBUG_OUTPUT << "\"" << value << "\"";
 }
+
+void ThisNode::debug() {
+    DEBUG_OUTPUT << "this";
+}
