@@ -77,20 +77,20 @@ class LLVMGenerator {
             emiterModule->setDataLayout("e-m:e-i64:64-f80:128-n8:16:32:64-S128");
 
             generateBuildInStruct("_BI_Number", {"double"});
-            generateBuildInFunction("_BI_Number_init", "_BI_Number", {"double"});
+            generateBuildInFunction("_BI_Number_init", "_BI_Number", {"_BI_Number", "double"});
             generateBuildInFunction("_BI_Number_add", "_BI_Number", {"_BI_Number", "_BI_Number"});
             generateBuildInFunction("_BI_Number_subtract", "_BI_Number", {"_BI_Number", "_BI_Number"});
             generateBuildInFunction("_BI_Number_multiply", "_BI_Number", {"_BI_Number", "_BI_Number"});
             generateBuildInFunction("_BI_Number_divide", "_BI_Number", {"_BI_Number", "_BI_Number"});
 
             generateBuildInStruct("_BI_Void", {});
-            generateBuildInFunction("_BI_Void_init", "_BI_Void", {});
+            generateBuildInFunction("_BI_Void_init", "_BI_Void", {"_BI_Void"});
 
             generateBuildInStruct("_BI_Object", {});
-            generateBuildInFunction("_BI_Object_init", "_BI_Object", {});   
+            generateBuildInFunction("_BI_Object_init", "_BI_Object", {"_BI_Object"});   
 
-            generateBuildInStruct("_BI_String", {"i8*"});
-            generateBuildInFunction("_BI_String_init", "_BI_String", {"i8*"});
+            generateBuildInStruct("_BI_String", {"i8*", "i64"});
+            generateBuildInFunction("_BI_String_init", "_BI_String", {"_BI_String", "i8*"});
 
             generateBuildInFunction("_BI_malloc", "void*", {"i64"});
         }

@@ -10,7 +10,7 @@ static std::unordered_map<std::string, IRValue*> variables;
 static Context* currentContext = nullptr;
 
 std::string getType(IdentyfierNode* name, Symbol* sym) {
-    if (name->value == "Int") {
+    if (name->value == "Number") {
         return "_BI_Number";
     } else if (name->value == "Void") {
         return "_BI_Void";
@@ -69,19 +69,22 @@ inline IRArg* createArg(const std::string& type) {
 IRValue* parseArg(ASTNode* node) {
     auto arg = static_cast<ArgDeclaration*>(node);
     auto argSym = currentContext->lookup(static_cast<IdentyfierNode*>(arg->name.get()));
-    auto argIr = createArg(getType(static_cast<IdentyfierNode*>(arg->type.get()), argSym));
+    auto argIr = createArg(getType(argSym->type->name, argSym->type));
     variables[mangleName(argSym)] = argIr;
     return argIr;
 }
 
 LIRGenerate parseNumbers(NumberNode* num) {
     auto n = std::make_unique<IRNumber>("%" + std::to_string(lastId++), "double", num->value);
+    auto alloc = std::make_unique<IRAllocaStruct>("%" + std::to_string(lastId++), "_BI_Number");
 
     std::vector<IRValue*> args;
+    args.push_back(alloc.get());
     args.push_back(n.get());
     auto call = std::make_unique<IRCall>("_BI_Number_init", "_BI_Number", args);
 
     std::vector<std::unique_ptr<IRValue>> code;
+    code.push_back(std::move(alloc));
     code.push_back(std::move(n));
     code.push_back(std::move(call));
     return {code.back().get(), std::move(code)};
@@ -90,14 +93,7 @@ LIRGenerate parseNumbers(NumberNode* num) {
 LIRGenerate parseVariableDeclaration(VariableDeclarationNode* decl) {
     auto varSym = currentContext->lookup(static_cast<IdentyfierNode*>(decl->name.get()));
     
-    std::string typeName;
-    if (varSym->type->name->value == "Int") {
-        typeName = "_BI_Number";
-    } else if (varSym->type->name->value == "Void") {
-        typeName = "_BI_Void";
-    } else {
-        typeName = mangleName(varSym->type);
-    }
+    std::string typeName = getType(varSym->type->name, varSym->type);
     auto alloca = std::make_unique<IRAlloca>("%" + std::to_string(lastId++), typeName);
     IRValue* allocaPtr = alloca.get();
     variables[mangleName(varSym)] = allocaPtr;
@@ -239,15 +235,7 @@ LIRGenerate parseFunction(FunctionDeclaration* func) {
         args.push_back(argIr);
     }
 
-    std::string typeName;
-    if (funcSym->type->name->value == "Int") {
-        typeName = "_BI_Number";
-    } else if (funcSym->type->name->value == "Void") {
-        typeName = "_BI_Void";
-    } else {
-        typeName = mangleName(funcSym->type);
-    }
-
+    std::string typeName = getType(funcSym->type->name, funcSym->type);
     auto funcIr = std::make_unique<IRFunction>(mangleName(funcSym), std::move(args), typeName);
     for (auto& node : func->body) {
         currentContext = funcSym->scope;
@@ -276,14 +264,7 @@ LIRGenerate parseClassDeclaration(ClassDeclNode* cls) {
         if (auto var = dynamic_cast<VariableDeclarationNode*>(dynamic_cast<StatementNode*>(node.get())->value.get())) {
             auto varSym = classSym->scope->lookup(dynamic_cast<IdentyfierNode*>(var->name.get()));
 
-            std::string typeName;
-            if (varSym->type->name->value == "Int") {
-                typeName = "_BI_Number";
-            } else if (varSym->type->name->value == "Void") {
-                typeName = "_BI_Void";
-            } else {
-                typeName = mangleName(varSym->type);
-            }
+            std::string typeName = getType(varSym->type->name, varSym->type);
 
             auto member = std::make_unique<IRMember>("$" + std::to_string(lastClassId++), typeName, lastClassId - 1);
             varSym->classMemberIndex = lastClassId - 1;
@@ -420,7 +401,7 @@ LIRGenerate parseCallNode(CallNode* call) {
     }
 
     if (callSym->name->value == "init" && callSym->kind == SymbolKind::FUNCTION) {
-        auto alloc = std::make_unique<IRAllocaStruct>("%" + std::to_string(lastId++), mangleName(callSym->type), mangleName(callSym));
+        auto alloc = std::make_unique<IRAllocaStruct>("%" + std::to_string(lastId++), mangleName(callSym->type));
         res.push_back(std::move(alloc));
         args.insert(args.begin(), res.back().get());
 

@@ -1,10 +1,9 @@
 #include "lbxint.h"
 #include "lbxmem.h"
 
-_BI_Number* _BI_Number_init(double val) {
-    _BI_Number* intVal = (_BI_Number*)_BI_malloc(sizeof(_BI_Number));
-    intVal->value = val;
-    return intVal;
+_BI_Number* _BI_Number_init(_BI_Number* mem, double val) {
+    mem->value = val;
+    return mem;
 }
 
 _BI_Number* _BI_Number_add(_BI_Number* a, _BI_Number* b) {

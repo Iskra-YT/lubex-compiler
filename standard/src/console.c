@@ -2,5 +2,6 @@
 
 _BI_Void* _std_console_out(_BI_String* fmt) {
     __R_print(fmt->data);
-    return _BI_Void_init();
+    _BI_Void* voidVal = (_BI_Void*)_BI_malloc(sizeof(_BI_Void));
+    return _BI_Void_init(voidVal);
 }

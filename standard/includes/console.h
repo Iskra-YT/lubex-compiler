@@ -4,6 +4,7 @@
 #include "lbxio.h"
 #include "lbxstr.h"
 #include "lbxvoid.h"
+#include "lbxmem.h"
 
 _BI_Void* _std_console_out(_BI_String* fmt);
 
