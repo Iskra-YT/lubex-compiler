@@ -7,7 +7,7 @@
 
 typedef struct HEAP_BLOCK {
     struct HEAP_BLOCK* next;
-    uint8_t bitmap[63];
+    uint64_t bitmap[8];
     uint64_t data[503];
 } __attribute__((packed)) HEAP_BLOCK;
 

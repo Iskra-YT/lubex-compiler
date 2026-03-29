@@ -60,6 +60,8 @@ std::vector<Token> Lexer::lex() {
 
             if (keywords.find(value) != keywords.end())
                 tokens.push_back({{startPos, currentPosition}, value, TokenType::KEYWORD_TOKEN});
+            else if (value == "NaN" || value == "Infinity")
+                tokens.push_back({{startPos, currentPosition}, value, TokenType::NUMBER_TOKEN});
             else
                 tokens.push_back({{startPos, currentPosition}, value, TokenType::IDENTYFIER_TOKEN});
 

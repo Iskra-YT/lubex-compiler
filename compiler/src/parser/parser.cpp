@@ -287,6 +287,12 @@ std::unique_ptr<ASTNode> Parser::parseTerm() {
     return node;
 }
 
+double strToDouble(std::string str) {
+    if (str == "Infinity") return INFINITY;
+    else if (str == "NaN") return NAN;
+    else return std::stod(str);
+}
+
 std::unique_ptr<ASTNode> Parser::parsePrimary() {
     Token tok = getCurrent();
 
@@ -294,7 +300,7 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
         advance();
         return std::make_unique<NumberNode>(
             PositionSpan(tok.position.start, tok.position.end),
-            std::stod(tok.value)
+            strToDouble(tok.value)
         );
     }
 

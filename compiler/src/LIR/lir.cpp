@@ -527,8 +527,11 @@ LIRGenerate parseImport(ImportNode* imp) {
 LIRGenerate parseString(StringNode* str) {
     auto strIR = std::make_unique<IRString>("%" + std::to_string(lastId++), "carr", str->value);
     std::vector<std::unique_ptr<IRValue>> res;
+
+    auto alloc = std::make_unique<IRAllocaStruct>("%" + std::to_string(lastId++), "_BI_String");
+    res.push_back(std::move(alloc));
     
-    auto call = std::make_unique<IRCall>("_BI_String_init", "_BI_String", std::vector<IRValue*>{strIR.get()});
+    auto call = std::make_unique<IRCall>("_BI_String_init", "_BI_String", std::vector<IRValue*>{res.back().get(), strIR.get()});
     res.push_back(std::move(strIR));
     res.push_back(std::move(call));
     return { res.back().get(), std::move(res) };

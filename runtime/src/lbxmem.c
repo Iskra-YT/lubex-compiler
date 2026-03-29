@@ -1,9 +1,6 @@
 #include "lbxmem.h"
 #include "lbxos.h"
 
-#define SET_BIT(bitmap, bit) ((bitmap)[(bit)/8] |= (1 << ((bit)%8)))
-#define GET_BIT(bitmap, bit) (((bitmap)[(bit)/8] & (1 << ((bit)%8))) != 0)
-
 extern HEAP_BLOCK* __R_mainHeap;
 
 HEAP_BLOCK* __R_cblock(HEAP_BLOCK* previous) {
@@ -25,23 +22,42 @@ void* _BI_malloc(long size) {
     HEAP_BLOCK* block = __R_mainHeap;
 
     while (block) {
-        int start = -1;
-        int free_count = 0;
+        for (int i = 0; i < 63; i++) {
+            uint64_t chunk = block->bitmap[i];
 
-        for (int i = 0; i < 63*8; i++) {
-            if (!GET_BIT(block->bitmap, i)) {
-                if (start == -1) start = i;
-                free_count++;
-                if (free_count == blocks_needed) break;
-            } else {
-                start = -1;
-                free_count = 0;
+            if (~chunk == 0) continue;
+
+            uint64_t free_bits = ~chunk;
+
+            while (free_bits) {
+                int bit = __builtin_ctzll(free_bits);
+                int start = i * 64 + bit;
+                int ok = 1;
+                for (int j = 0; j < blocks_needed; j++) {
+                    int idx = start + j;
+                    int ci = idx / 64;
+                    int bi = idx % 64;
+
+                    if (ci >= 63 || (block->bitmap[ci] & (1ULL << bi))) {
+                        ok = 0;
+                        break;
+                    }
+                }
+
+                if (ok) {
+                    for (int j = 0; j < blocks_needed; j++) {
+                        int idx = start + j;
+                        int ci = idx / 64;
+                        int bi = idx % 64;
+
+                        block->bitmap[ci] |= (1ULL << bi);
+                    }
+
+                    return (void*)(&block->data[start]);
+                }
+
+                free_bits &= free_bits - 1;
             }
-        }
-
-        if (free_count >= blocks_needed) {
-            for (int i = start; i < start + blocks_needed; i++) SET_BIT(block->bitmap, i);     
-            return (void*)(&block->data[start]);
         }
 
         if (!block->next) block = __R_cblock(block);
