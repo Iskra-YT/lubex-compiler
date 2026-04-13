@@ -1,7 +1,10 @@
 #ifndef LUBRTX_LIB_LBXINT_H
 #define LUBRTX_LIB_LBXINT_H
 
+#include "lbxtype.h"
+
 typedef struct {
+    _BI_TypeInfo* type;
     double value;
 } _BI_Number;
 

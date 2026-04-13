@@ -39,6 +39,37 @@ std::string mangleName(Symbol* sym) {
     return mangleName(sym->mangledName);
 }
 
+std::string getMethodName(std::string fn) {
+    auto pos = fn.find_last_of('_');
+    if (pos == std::string::npos) return fn;
+    return fn.substr(pos + 1);
+}
+
+llvm::GlobalVariable* LLVMGenerator::updateTypeInfoWithVTable(llvm::GlobalVariable* typeInfo, llvm::Constant* vtablePtr) {
+    auto* ty = structTypes["_BI_TypeInfo"];
+
+    llvm::Constant* oldInit = typeInfo->getInitializer();
+    auto* oldStruct = llvm::dyn_cast<llvm::ConstantStruct>(oldInit);
+
+    if (!oldStruct) {
+        std::cerr << "Invalid TypeInfo initializer\n";
+        return typeInfo;
+    }
+
+    std::vector<llvm::Constant*> newFields;
+
+    for (unsigned i = 0; i < 2; i++) {
+        newFields.push_back(oldStruct->getOperand(i));
+    }
+
+    newFields.push_back(vtablePtr);
+
+    llvm::Constant* newInit = llvm::ConstantStruct::get(ty, newFields);
+
+    typeInfo->setInitializer(newInit);
+    return typeInfo;
+}
+
 llvm::GlobalVariable* LLVMGenerator::getOrCreateTypeInfo(const std::string& name, const std::string& parentName) {
     if (typeInfos.count(name)) return typeInfos[name];
 
@@ -148,13 +179,70 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
                 std::cerr << "Missing arg value in call: " << c->funcName << "\n";
                 return nullptr;
             }
-            
             args.push_back(argVal);
         }
 
-        auto call = emiterBuilder.CreateCall(callee, args);
-        namedValues[c] = call;
+        std::string className;
+        bool isStatic = false;
 
+        if (builtinMethodClass.count(callee)) {
+            className = builtinMethodClass[callee];
+            isStatic = false; 
+        } else {
+            auto funcIr = dynamic_cast<IRFunction*>(functionTable[callee]);
+        
+            if (!funcIr) {
+                std::cerr << "Missing IR for function\n";
+                return nullptr;
+            }
+        
+            className = funcIr->className;
+            isStatic = funcIr->isStatic;
+        }
+
+        llvm::Value* call = nullptr;
+        if (isStatic) {
+            auto* typeInfoGV = typeInfos[className];
+            llvm::Value* typeInfoPtr = emiterBuilder.CreateBitCast(typeInfoGV, structTypes["_BI_TypeInfo"]->getPointerTo());
+
+            llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(structTypes["_BI_TypeInfo"], typeInfoPtr, 2);
+            llvm::Value* vtablePtr = emiterBuilder.CreateLoad(llvm::Type::getInt8PtrTy(emiterContext)->getPointerTo(), vtablePtrPtr);
+
+            std::string methodName = getMethodName(c->funcName);
+            int idx = vTablePos[className][methodName];
+
+            llvm::Value* idxVal = llvm::ConstantInt::get(llvm::Type::getInt32Ty(emiterContext), idx);
+
+            llvm::Value* fnPtrPtr = emiterBuilder.CreateGEP(llvm::Type::getInt8PtrTy(emiterContext), vtablePtr, idxVal);
+            llvm::Value* fnPtr = emiterBuilder.CreateLoad(llvm::Type::getInt8PtrTy(emiterContext), fnPtrPtr);
+
+            llvm::FunctionType* fnType = callee->getFunctionType();
+
+            llvm::Value* typedFn = emiterBuilder.CreateBitCast(fnPtr, fnType->getPointerTo());
+            call = emiterBuilder.CreateCall(fnType, typedFn, args);
+        } else {
+            llvm::Value* thisPtr = args[0];
+
+            llvm::Value* typeInfoPtrPtr = emiterBuilder.CreateStructGEP(mapLLVMType(className, false), thisPtr, 0);
+            llvm::Value* typeInfoPtr = emiterBuilder.CreateLoad(structTypes["_BI_TypeInfo"]->getPointerTo(), typeInfoPtrPtr);
+
+            llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(structTypes["_BI_TypeInfo"], typeInfoPtr, 2);
+
+            llvm::Value* vtablePtr = emiterBuilder.CreateLoad(llvm::Type::getInt8PtrTy(emiterContext)->getPointerTo(), vtablePtrPtr);
+
+            std::string methodName = getMethodName(c->funcName);
+            int idx = vTablePos[className][methodName];
+            llvm::Value* idxVal = llvm::ConstantInt::get(llvm::Type::getInt32Ty(emiterContext), idx);
+
+            llvm::Value* fnPtrPtr = emiterBuilder.CreateGEP(llvm::Type::getInt8PtrTy(emiterContext), vtablePtr, idxVal);
+            llvm::Value* fnPtr = emiterBuilder.CreateLoad(llvm::Type::getInt8PtrTy(emiterContext), fnPtrPtr);
+
+            llvm::FunctionType* fnType = callee->getFunctionType();
+            llvm::Value* typedFn = emiterBuilder.CreateBitCast(fnPtr, fnType->getPointerTo());
+            call = emiterBuilder.CreateCall(fnType, typedFn, args);
+        }
+
+        namedValues[c] = call;
         return call;
     } else if (auto r = dynamic_cast<IRReturn*>(node)) {
         llvm::Value* ret;
@@ -203,26 +291,37 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
             std::cerr << "Object is not a pointer type\n";
             return nullptr;
         }
-        auto* gep = emiterBuilder.CreateStructGEP(mapLLVMType(a->object->type, false), obj, idx);
+        auto* gep = emiterBuilder.CreateStructGEP(mapLLVMType(a->object->type, false), obj, idx + 1);
         namedValues[a] = gep;
         return gep;
     } else if (auto g = dynamic_cast<IRAllocaStruct*>(node)) {
         llvm::Type* type = mapLLVMType(g->type, false);
 
-        llvm::Function* callee = emiterModule->getFunction("_BI_malloc");
-        if (!callee) {
-            std::cerr << "Function not found: _BI_malloc\n";
-            return nullptr;
-        }
+        llvm::Function* callee = emiterModule->getFunction("_BI_malloc");        if (!callee) return nullptr;
 
         const llvm::DataLayout &dl = emiterModule->getDataLayout();
         uint64_t size = dl.getTypeAllocSize(type);
+        uint64_t typeInfoSize = dl.getPointerSize();
+        uint64_t totalSize = size + typeInfoSize;
 
-        llvm::Value* sizeVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(emiterContext), size);
+        llvm::Value* sizeVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(emiterContext), totalSize);
+
         llvm::Value* allocated = emiterBuilder.CreateCall(callee, { sizeVal });
+        llvm::Value* objPtr = emiterBuilder.CreateBitCast(allocated, type->getPointerTo());
 
-        namedValues[g] = allocated;
-        return allocated;
+
+        llvm::Value* typeInfo = typeInfos[g->type];
+        if (!typeInfo) {
+            std::cerr << "Missing TypeInfo for: " << g->type << "\n";
+            return nullptr;
+        }
+
+        llvm::Value* typeInfoPtr = emiterBuilder.CreateBitCast(typeInfo, structTypes["_BI_TypeInfo"]->getPointerTo());
+        llvm::Value* gep = emiterBuilder.CreateStructGEP(type, objPtr, 0);
+        emiterBuilder.CreateStore(typeInfoPtr, gep);
+
+        namedValues[g] = objPtr;
+        return objPtr;
     }
 
     return nullptr;
@@ -239,6 +338,8 @@ std::vector<llvm::Value*> LLVMGenerator::generate(std::vector<std::unique_ptr<IR
 
             llvm::FunctionType* funcType = llvm::FunctionType::get(mapLLVMType(f->returnType), argTypes, false);
             llvm::Function* func = llvm::Function::Create(funcType, llvm::GlobalValue::LinkageTypes::ExternalLinkage, f->name, emiterModule.get());
+            typeMethods[f->className].push_back(func);
+            functionTable[func] = instr.get();
         } else if (auto c = dynamic_cast<IRStruct*>(instr.get())) {
             std::vector<llvm::Type*> body;
             int memberIdx = 0;
@@ -252,6 +353,54 @@ std::vector<llvm::Value*> LLVMGenerator::generate(std::vector<std::unique_ptr<IR
 
             llvm::StructType* namedStruct = generateStruct(c->name, body);
         }
+    }
+
+    for (auto& [key, methods] : typeMethods) {
+        
+        std::string parent = classHierarchy[key].empty() ? "" : classHierarchy[key][0];
+        std::vector<llvm::Function*> finalMethods;
+        
+        std::unordered_map<std::string, int> indexMap;
+        if (!parent.empty()) {
+            for (auto* fn : typeMethods[parent]) {
+                std::string name = getMethodName(fn->getName().str());
+            
+                indexMap[name] = finalMethods.size();
+                finalMethods.push_back(fn);
+            }
+        }
+
+        for (auto* fn : methods) {
+            std::string name = getMethodName(fn->getName().str());
+        
+            if (indexMap.count(name)) {
+                int idx = indexMap[name];
+                finalMethods[idx] = fn;
+                vTablePos[key][name] = idx;
+            } else {
+                vTablePos[key][name] = finalMethods.size();
+                indexMap[name] = finalMethods.size();
+                finalMethods.push_back(fn);
+            }
+        }
+    
+        std::vector<llvm::Constant*> entries;
+        entries.reserve(finalMethods.size());
+    
+        for (auto* fn : finalMethods) {
+            entries.push_back(
+                llvm::ConstantExpr::getBitCast(
+                    fn,
+                    llvm::Type::getInt8PtrTy(emiterContext)
+                )
+            );
+        }
+    
+        auto* vtableType = llvm::ArrayType::get(llvm::Type::getInt8PtrTy(emiterContext), entries.size());
+        llvm::Constant* vTable = llvm::ConstantArray::get(vtableType, entries);
+        auto* vTableGlobal = new llvm::GlobalVariable(*emiterModule, vtableType, true, llvm::GlobalValue::InternalLinkage, vTable, "_VT" + key);
+        auto* vtablePtr = llvm::ConstantExpr::getBitCast(vTableGlobal, llvm::Type::getInt8PtrTy(emiterContext)->getPointerTo());
+        typeInfos[key] = updateTypeInfoWithVTable(typeInfos[key], vtablePtr);
     }
 
     for (auto& instr : lir) {

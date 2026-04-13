@@ -1,7 +1,10 @@
 #ifndef LUBRTX_LIB_LBXSTRING_H
 #define LUBRTX_LIB_LBXSTRING_H
 
+#include "lbxtype.h"
+
 typedef struct {
+    _BI_TypeInfo* type;
     char* data;
     long size;
 } _BI_String;

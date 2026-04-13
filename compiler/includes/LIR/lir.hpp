@@ -94,9 +94,11 @@ struct IRFunction : IRValue {
     std::vector<IRValue*> args;
     std::vector<std::unique_ptr<IRValue>> body;
     IRType returnType;
+    IRName className;
+    bool isStatic;
 
-    IRFunction(const IRName& funcName, std::vector<IRValue*> args, IRType returnType)
-        : IRValue{funcName, returnType}, args(args), returnType(returnType) {}
+    IRFunction(const IRName& funcName, std::vector<IRValue*> args, IRType returnType, IRName className, bool isStatic)
+        : IRValue{funcName, returnType}, args(args), returnType(returnType), className(className), isStatic(isStatic) {}
 
     void debug() const override {
         DEBUG_OUTPUT << "function " << name << "(";

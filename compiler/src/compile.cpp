@@ -276,7 +276,7 @@ bool compile(std::filesystem::path mainSource, Context& globalCtx) {
             llvm::Value* callValue = llvm.emiterBuilder.CreateCall(callee);
 
             llvm::Value* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm.emiterContext), 0);
-            llvm::Value* returnPtr = llvm.emiterBuilder.CreateGEP(biIntType, callValue, {zero, zero});
+            llvm::Value* returnPtr = llvm.emiterBuilder.CreateStructGEP(biIntType, callValue, 1);
 
             llvm::Value* returnValue = llvm.emiterBuilder.CreateLoad(llvm::Type::getDoubleTy(llvm.emiterContext), returnPtr);
 

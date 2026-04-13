@@ -236,7 +236,7 @@ LIRGenerate parseFunction(FunctionDeclaration* func) {
     }
 
     std::string typeName = getType(funcSym->type->name, funcSym->type);
-    auto funcIr = std::make_unique<IRFunction>(mangleName(funcSym), std::move(args), typeName);
+    auto funcIr = std::make_unique<IRFunction>(mangleName(funcSym), std::move(args), typeName, mangleName(funcSym->scope->parent->generativeSymbol), funcSym->isStatic);
     for (auto& node : func->body) {
         currentContext = funcSym->scope;
         auto ir = parse(node.get());
@@ -511,7 +511,7 @@ LIRGenerate parseImport(ImportNode* imp) {
                     else if (methodSym->type->name->value == "Void") typeName = "_BI_Void";
                     else typeName = mangleName(methodSym->type);
 
-                    auto funcIR = std::make_unique<IRFunction>(mangleName(methodSym.get()), args, typeName);
+                    auto funcIR = std::make_unique<IRFunction>(mangleName(methodSym.get()), args, typeName, mangleName(methodSym->scope->parent->generativeSymbol), methodSym->isStatic);
                     variables[mangleName(methodSym.get())] = funcIR.get();
                     res.push_back(std::move(funcIR));
                 }

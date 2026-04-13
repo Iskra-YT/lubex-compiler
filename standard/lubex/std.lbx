@@ -1,5 +1,5 @@
 module std;
 
 class Console -> {
-    @mangle(_std_console_out) public static func out(format: String): Void;
+    @mangle(_std_console_out) public static func write(text: String): Void;
 };
