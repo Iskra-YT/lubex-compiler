@@ -22,7 +22,7 @@ Use the provided build script:
 ./build.sh
 
 # Debug build with debug prints
-./build.sh -DBUILD
+./build.sh -DDEBUG
 ```
 
 Generated binaries to use will be placed in the `build/` directory.

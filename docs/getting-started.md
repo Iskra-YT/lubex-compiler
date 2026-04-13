@@ -34,7 +34,7 @@ Build the project using:
 ./build.sh
 
 # Debug build
-./build.sh -DBUILD
+./build.sh -DDEBUG
 ```
 
 After building, the compiler will be available in: `build/`
@@ -61,7 +61,7 @@ module main;
 import std;
 
 class HelloProgram -> {
-    public static func entry(): Int -> {
+    public static func entry(): Number -> {
         std.Console.out("Hello, World!\n");
         return 0;
     };

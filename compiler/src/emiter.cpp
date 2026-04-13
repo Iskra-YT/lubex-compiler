@@ -1,8 +1,6 @@
 #include "emiter.hpp"
 
-std::unique_ptr<llvm::LLVMContext> emiterContext;
-std::unique_ptr<llvm::Module> emiterModule;
-std::unique_ptr<llvm::IRBuilder<>> emiterBuilder;
+std::unordered_map<std::string, Hash128> typeIds;
 std::unordered_map<IRValue*, std::unordered_map<std::string, int>> structValues;
 
 extern std::string mangleVisitor;
@@ -39,6 +37,31 @@ std::string mangleName(Symbol* sym) {
     }
 
     return mangleName(sym->mangledName);
+}
+
+llvm::GlobalVariable* LLVMGenerator::getOrCreateTypeInfo(const std::string& name, const std::string& parentName) {
+    if (typeInfos.count(name)) return typeInfos[name];
+
+    auto* ty = structTypes["_BI_TypeInfo"];
+
+    Hash128 id;
+    if (typeIds.count(name)) id = typeIds[name];
+    else id = hash128(name);
+
+    llvm::Constant* parent = llvm::ConstantPointerNull::get(ty->getPointerTo());
+
+    if (!parentName.empty() && typeInfos.count(parentName)) {
+        parent = typeInfos[parentName];
+    }
+
+    llvm::Constant* vtable = llvm::ConstantPointerNull::get(llvm::Type::getInt64PtrTy(emiterContext)->getPointerTo()); // TODO: Change null into vTable ptr
+
+    llvm::Constant* idConst = llvm::ConstantInt::get(llvm::Type::getInt128Ty(emiterContext), toAPInt(id));
+    llvm::Constant* init = llvm::ConstantStruct::get(ty, {idConst, parent, vtable});
+
+    auto* gv = new llvm::GlobalVariable(*emiterModule, ty, true, llvm::GlobalValue::LinkageTypes::InternalLinkage, init, "_T" + name);
+    typeInfos[name] = gv;
+    return gv;
 }
 
 llvm::Value* LLVMGenerator::generate(IRValue* node) {
@@ -227,9 +250,7 @@ std::vector<llvm::Value*> LLVMGenerator::generate(std::vector<std::unique_ptr<IR
                 body.push_back(mapLLVMType(member->type));
             }
 
-            llvm::StructType* namedStruct = llvm::StructType::create(emiterContext, c->name);
-            namedStruct->setBody(body);
-            structTypes[c->name] = namedStruct;
+            llvm::StructType* namedStruct = generateStruct(c->name, body);
         }
     }
 

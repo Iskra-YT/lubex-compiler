@@ -2,7 +2,7 @@
 set -e
 
 DEBUG_FLAG=""
-if [[ "$1" == "-DBUILD" ]]; then
+if [[ "$1" == "-DDEBUG" ]]; then
     DEBUG_FLAG="-DDEBUG_BUILD=ON"
     shift 
 fi
