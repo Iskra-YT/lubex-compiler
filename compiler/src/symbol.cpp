@@ -147,6 +147,8 @@ Symbol* ArgDeclaration::evaluateSymbol(Context& ctx) {
     return nullptr;
 }
 
+Symbol* lookupWithInheritance(Symbol* cls, const std::string& name, Symbol* objectClass, bool isCall = false);
+
 Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
     if (ctx.symbolKind != SymbolKind::CLASS) {
         ctx.errors.push_back(Error(position, "Function declarations are only allowed inside class declarations"));
@@ -187,6 +189,29 @@ Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
 
         for (auto& param : parameters) {
             param->evaluateSymbol(*fnCtx);
+        }
+
+        auto currentClass = ctx.generativeSymbol;
+
+        if (!currentClass->classTypes.empty()) {
+            auto parent = currentClass->classTypes[0];
+            auto parentFn = lookupWithInheritance(parent, fnSym->name->value, ctx.lookup(&objectType));
+
+            if (parentFn && parentFn->kind == SymbolKind::FUNCTION) {
+                auto parentDecl = static_cast<FunctionDeclaration*>(parentFn->node);
+
+                if (parentDecl->parameters.size() != parameters.size()) {
+                    ctx.errors.push_back(Error(position, "Override signature mismatch"));
+                }
+
+                if (parentFn->type->name->value != fnSym->type->name->value) {
+                    ctx.errors.push_back(Error(position, "Override return type mismatch"));
+                }
+
+                if (!isOverride) {
+                    ctx.errors.push_back(Error(position, "Overriding function must be marked with 'override'"));
+                }
+            }
         }
     }
 
@@ -258,7 +283,7 @@ Symbol* ModuleDeclaration::evaluateSymbol(Context& ctx) {
     return nullptr;
 }
 
-Symbol* lookupWithInheritance(Symbol* cls, const std::string& name, Symbol* objectClass, bool isCall = false) {
+Symbol* lookupWithInheritance(Symbol* cls, const std::string& name, Symbol* objectClass, bool isCall) {
     if (!cls || !cls->scope) return nullptr;
 
     if (auto sym = cls->scope->lookup(name)) {

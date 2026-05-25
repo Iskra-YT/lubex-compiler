@@ -6,7 +6,7 @@
 #include <vector>
 #include <unordered_set>
 
-const std::unordered_set<std::string> keywords = {"let", "func", "class", "module", "static", "const", "return", "private", "public", "internal", "import", "this", "extends"};
+const std::unordered_set<std::string> keywords = {"let", "func", "class", "module", "static", "const", "return", "private", "public", "internal", "import", "this", "extends", "override"};
 
 enum class TokenType {
     EOF_TOKEN,

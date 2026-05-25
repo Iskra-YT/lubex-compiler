@@ -23,6 +23,7 @@ struct FuncDeclContext {
     VisibilityKind visibility;
     bool isForward = true;
     bool isStatic = false;
+    bool isOverride = false;
 };
 
 struct ClassDeclContext {

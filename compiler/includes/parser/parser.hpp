@@ -54,6 +54,11 @@ class Parser {
             currentVisibilityLevel = VisibilityKind::PRIVATE;
         }
 
+        bool currentOverrideLevel = false;
+        inline void setDefaultOverride() {
+            currentOverrideLevel = false;
+        }
+
         std::unique_ptr<ASTNode> parsePrimary();
         std::unique_ptr<ASTNode> parseFactor();
         std::unique_ptr<ASTNode> parseTerm();

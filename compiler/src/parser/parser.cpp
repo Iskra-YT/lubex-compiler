@@ -177,6 +177,8 @@ std::unique_ptr<ASTNode> Parser::parseInstruction(InstructionSet& instrSet, void
 
 std::unique_ptr<ASTNode> Parser::parseStatement() {
     setDefaultVisibility();
+    setDefaultOverride();
+
     auto node = parseExpr();
     if (!node) {
         pushError(Error(getCurrent().position, "Invalid expression in statement"));
@@ -200,6 +202,7 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
     } else if (tok.match(Token("func", TokenType::KEYWORD_TOKEN)) || tok.match(Token("static", TokenType::KEYWORD_TOKEN))) {
         FuncDeclContext ctx;
         ctx.visibility = currentVisibilityLevel;
+        ctx.isOverride = currentOverrideLevel;
         if (tok.match(Token("static", TokenType::KEYWORD_TOKEN))) {
             ctx.isStatic = true;
             advance();
@@ -237,6 +240,12 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
         return parseExpr();
     } else if (tok.match("public", TokenType::KEYWORD_TOKEN)) {
         currentVisibilityLevel = VisibilityKind::PUBLIC;
+        advance();
+        return parseExpr();
+    }
+
+    if (tok.match("override", TokenType::KEYWORD_TOKEN)) {
+        currentOverrideLevel = true;
         advance();
         return parseExpr();
     }
