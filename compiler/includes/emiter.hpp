@@ -27,9 +27,11 @@ class LLVMGenerator {
         std::unordered_map<std::string, std::unordered_map<std::string, llvm::Function*>> methodMap;
         std::unordered_map<llvm::Function*, IRValue*> functionTable;
         std::unordered_map<llvm::Function*, std::string> builtinMethodClass;
+        std::unordered_map<std::string, std::vector<llvm::Function*>> vTables;
 
         llvm::GlobalVariable* getOrCreateTypeInfo(const std::string& name, const std::string& parentName = "");
         llvm::GlobalVariable* updateTypeInfoWithVTable(llvm::GlobalVariable* typeInfo, llvm::Constant* vtablePtr);
+        void buildVTable(const std::string& cls);
     
     public:
         std::unordered_map<std::string, llvm::StructType*> structTypes;
@@ -43,6 +45,7 @@ class LLVMGenerator {
             if (type == "i128") return llvm::Type::getInt128Ty(emiterContext);
             if (type == "void*") return llvm::Type::getVoidTy(emiterContext)->getPointerTo();
             if (type == "void**") return llvm::Type::getVoidTy(emiterContext)->getPointerTo()->getPointerTo();
+            if (type == "i8**") return llvm::Type::getInt8Ty(emiterContext)->getPointerTo()->getPointerTo();
 
             auto it = structTypes.find(type);
             llvm::StructType* st = nullptr;
@@ -66,6 +69,7 @@ class LLVMGenerator {
         inline llvm::StructType* generateStruct(const std::string& name, const std::vector<llvm::Type*>& types, const std::string parentName = "_BI_Object") {
             std::vector<llvm::Type*> finalTypes;
             if (!parentName.empty() && structTypes.count(parentName)) {
+                classHierarchy[name].push_back(parentName);
                 auto* parentStruct = structTypes[parentName];
             
                 for (auto* ty : parentStruct->elements()) {
@@ -81,7 +85,38 @@ class LLVMGenerator {
             namedStruct->setBody(finalTypes);
             structTypes[name] = namedStruct;
 
-            getOrCreateTypeInfo(name, parentName);       
+            getOrCreateTypeInfo(name, parentName);
+            return namedStruct;
+        }
+
+        inline llvm::StructType* generateStruct(const std::string& name, const std::vector<llvm::Type*>& types, const std::vector<std::string>& parents = {"_BI_Object"}) {
+            std::vector<llvm::Type*> finalTypes;
+
+            classHierarchy[name] = parents;
+
+            for (auto& parentName : parents) {
+                if (parentName.empty()) continue;
+            
+                auto it = structTypes.find(parentName);
+                if (it == structTypes.end()) continue;
+            
+                auto* parentStruct = it->second;
+            
+                for (auto* ty : parentStruct->elements()) {
+                    finalTypes.push_back(ty);
+                }
+            }
+        
+            for (auto* ty : types) {
+                finalTypes.push_back(ty);
+            }
+        
+            llvm::StructType* namedStruct = llvm::StructType::create(emiterContext, name);
+            namedStruct->setBody(finalTypes);
+            structTypes[name] = namedStruct;
+    
+            getOrCreateTypeInfo(name, parents.back());
+        
             return namedStruct;
         }
 
@@ -91,7 +126,7 @@ class LLVMGenerator {
                 types.push_back(mapLLVMType(type));
             }
 
-            return generateStruct(name, types);
+            return generateStruct(name, types, parentName);
         }
 
         inline llvm::Function* generateBuildInFunction(std::string name, std::string returnType, std::vector<std::string> argTypes, std::string className) {

@@ -136,10 +136,11 @@ struct IRVariableRead : IRValue {
 
 struct IRStruct : IRValue {
     std::vector<std::unique_ptr<IRValue>> data;
-    IRStruct(const IRName& name, std::vector<std::unique_ptr<IRValue>> body) : IRValue{name, "%tmp"}, data(std::move(body)) {}
+    IRName parentName;
+    IRStruct(const IRName& name, std::vector<std::unique_ptr<IRValue>> body, IRName parentName) : IRValue{name, "%tmp"}, data(std::move(body)), parentName(parentName) {}
 
     void debug() const override {
-        DEBUG_OUTPUT << "struct " << name << "\n";
+        DEBUG_OUTPUT << "struct " << name << ":" << parentName << "\n";
         for (auto& val : data) {
             DEBUG_OUTPUT << "\t";
             val->debug();

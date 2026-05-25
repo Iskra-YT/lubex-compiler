@@ -5,3 +5,10 @@ _BI_Void* _std_console_out(_BI_String* fmt) {
     _BI_Void* voidVal = (_BI_Void*)_BI_malloc(sizeof(_BI_Void));
     return _BI_Void_init(voidVal);
 }
+
+_BI_Void* _std_console_outl(_BI_String* text) {
+    __R_print(text->data);
+    __R_print("\n");
+    _BI_Void* voidVal = (_BI_Void*)_BI_malloc(sizeof(_BI_Void));
+    return _BI_Void_init(voidVal);
+}

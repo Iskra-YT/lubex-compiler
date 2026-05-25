@@ -22,7 +22,7 @@ std::string getType(IdentyfierNode* name, Symbol* sym) {
 }
 
 LIRGenerate parse(ASTNode* node);
-Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase = false);
+Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase = false, bool isCall = false);
 
 LIRGenerate parseLValue(ASTNode* node) {
     if (auto id = dynamic_cast<IdentyfierNode*>(node)) {
@@ -281,7 +281,7 @@ LIRGenerate parseClassDeclaration(ClassDeclNode* cls) {
         }
     }
 
-    auto stc = std::make_unique<IRStruct>(mangleName(classSym), std::move(structBody));
+    auto stc = std::make_unique<IRStruct>(mangleName(classSym), std::move(structBody), classSym->classTypes.size() != 0 ? mangleName(classSym->classTypes[0]) : "");
     body.insert(body.begin(), std::move(stc));
     variables[mangleName(classSym)] = body[0].get();
 
@@ -313,50 +313,62 @@ LIRGenerate parseIdentyfierNode(IdentyfierNode* id) {
 }
 
 extern IdentyfierNode* initName;
+extern IdentyfierNode objectType;
+extern Symbol* lookupWithInheritance(Symbol* cls, const std::string& name, Symbol* objectClass, bool isCall = false);
 
-Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase) {
+Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase, bool isCall) {
     if (auto id = dynamic_cast<IdentyfierNode*>(node)) {
         Symbol* sym = currentContext->lookup(id);
-        if (!sym) throw LIRException(Error(id->position, "Unknown identifier: " + id->value));
+        if (!sym) {
+            throw LIRException(Error(id->position, "Unknown identifier: " + id->value));
+        }
+
         auto it = variables.find(mangleName(sym));
         baseIR = (it != variables.end()) ? it->second : nullptr;
 
         if (callBase && sym->kind == SymbolKind::CLASS) {
-            Symbol* initSym = sym->scope->lookup("init");
-            if (!initSym) throw LIRException(Error(id->position, "Class " + id->value + " has no init method"));
+            Symbol* initSym = lookupWithInheritance(sym, "init", currentContext->lookup(&objectType));
+            
+            if (!initSym) {
+                throw LIRException(Error(id->position, "Class " + id->value + " has no init method"));
+            }
+        
+            baseIR = nullptr;
+            initSym->type = sym;
             return initSym;
         }
+
         return sym;
     } else if (auto access = dynamic_cast<MemberAccessNode*>(node)) {
         IRValue* leftIR = nullptr;
-        Symbol* leftSym = resolveCallChain(access->object.get(), leftIR, false);
+        Symbol* leftSym = resolveCallChain(access->object.get(), leftIR, false, isCall);
 
         if (!leftSym) {
             throw LIRException(Error(node->position, "Cannot resolve call chain"));
         }
 
-        Symbol* memberSym = nullptr;
+        auto memberId = static_cast<IdentyfierNode*>(access->member.get());
+        const std::string& memberName = memberId->value;
+
+        Symbol* classToSearch = nullptr;
 
         if (leftSym->kind == SymbolKind::CLASS || leftSym->kind == SymbolKind::MODULE) {
-            if (!leftSym->scope) {
-                throw LIRException(Error(node->position, "Class has no scope"));
-            }
-        
-            memberSym = leftSym->scope->lookup(
-                static_cast<IdentyfierNode*>(access->member.get())
-            );
+            classToSearch = leftSym;
         } else {
-            if (!leftSym->type || !leftSym->type->scope) {
+            if (!leftSym->type) {
                 throw LIRException(Error(node->position, "Invalid object in call chain"));
             }
-        
-            memberSym = leftSym->type->scope->lookup(
-                static_cast<IdentyfierNode*>(access->member.get())
-            );
+            classToSearch = leftSym->type;
         }
 
+        if (!classToSearch || !classToSearch->scope) {
+            throw LIRException(Error(node->position, "Class/module has no scope"));
+        }
+
+        Symbol* memberSym = lookupWithInheritance(classToSearch, memberName, currentContext->lookup(&objectType));
+
         if (!memberSym) {
-            throw LIRException(Error(node->position, "Unknown member in call chain"));
+            throw LIRException(Error(node->position, "Unknown member in call chain: " + memberName));
         }
 
         baseIR = leftIR;
@@ -367,7 +379,11 @@ Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase) {
         }
 
         auto classSym = currentContext->parent->generativeSymbol;
-        baseIR = variables[mangleName(currentContext->generativeSymbol->mangledName + ".this")];
+
+        baseIR = variables[
+            mangleName(currentContext->generativeSymbol->mangledName + ".this")
+        ];
+
         return classSym;
     }
 
@@ -376,7 +392,7 @@ Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase) {
 
 LIRGenerate parseCallNode(CallNode* call) {
     IRValue* baseObject = nullptr;
-    Symbol* callSym = resolveCallChain(call->callee.get(), baseObject, true);
+    Symbol* callSym = resolveCallChain(call->callee.get(), baseObject, true, true);
 
     std::vector<std::unique_ptr<IRValue>> res;
     std::vector<IRValue*> args;
@@ -388,6 +404,12 @@ LIRGenerate parseCallNode(CallNode* call) {
                 throw LIRException(Error(call->position, "Cannot call non-static method from static context"));
             }
             baseObject = new IRVariableRead("%0", mangleName(currentContext->parent->generativeSymbol));
+        } else {
+            if (dynamic_cast<IRAlloca*>(baseObject) || dynamic_cast<IRAccess*>(baseObject)) {
+                auto load = std::make_unique<IRVariableRead>(baseObject->name, baseObject->type);
+                baseObject = load.get();
+                res.push_back(std::move(load));
+            }
         }
         
         if (callSym->name->value != "init")
@@ -401,11 +423,14 @@ LIRGenerate parseCallNode(CallNode* call) {
     }
 
     if (callSym->name->value == "init" && callSym->kind == SymbolKind::FUNCTION) {
-        auto alloc = std::make_unique<IRAllocaStruct>("%" + std::to_string(lastId++), mangleName(callSym->type));
-        res.push_back(std::move(alloc));
-        args.insert(args.begin(), res.back().get());
+        auto ownerClass = callSym->type;
+        auto alloc = std::make_unique<IRAllocaStruct>("%" + std::to_string(lastId++), mangleName(ownerClass));
 
-        auto callIR = std::make_unique<IRCall>(mangleName(callSym), mangleName(callSym->type), args);
+        IRValue* objPtr = alloc.get();
+        res.push_back(std::move(alloc));
+        args.insert(args.begin(), objPtr);
+
+        auto callIR = std::make_unique<IRCall>(mangleName(callSym), mangleName(ownerClass), args);
         res.push_back(std::move(callIR));
     } else {
         auto callIR = std::make_unique<IRCall>(mangleName(callSym), getType(callSym->type->name, callSym->type), args);
@@ -440,8 +465,10 @@ LIRGenerate parseReturnNode(ReturnNode* ret) {
     LIRGenerate valueIr;
     if (ret->value) valueIr = parse(ret->value.get());
     else {
-        auto ir = std::make_unique<IRCall>("_BI_Void_init", "_BI_Void", std::vector<IRValue*>{});
-        
+        auto alloc = std::make_unique<IRAllocaStruct>("%" + std::to_string(lastId++), "_BI_Void");
+        res.push_back(std::move(alloc));
+
+        auto ir = std::make_unique<IRCall>("_BI_Void_init", "_BI_Void", std::vector<IRValue*>{res.back().get()});
         auto resIr = std::vector<std::unique_ptr<IRValue>>{};
         resIr.push_back(std::move(ir));
         
@@ -486,7 +513,7 @@ LIRGenerate parseImport(ImportNode* imp) {
 
     for (auto& [symName, sym] : impSym->scope->symbols) {
         if (sym->kind == SymbolKind::CLASS) {
-            auto structIR = std::make_unique<IRStruct>(mangleName(sym.get()), std::vector<std::unique_ptr<IRValue>>{});
+            auto structIR = std::make_unique<IRStruct>(mangleName(sym.get()), std::vector<std::unique_ptr<IRValue>>{}, sym->classTypes.size() != 0 ? mangleName(sym->classTypes[0]) : "");
             variables[mangleName(sym.get())] = structIR.get();
             res.push_back(std::move(structIR));
 

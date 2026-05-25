@@ -29,6 +29,7 @@ struct ClassDeclContext {
     std::unique_ptr<ASTNode> name;
     std::vector<std::unique_ptr<ASTNode>> members;
     VisibilityKind visibility;
+    std::unique_ptr<ASTNode> extender;
     bool isForward = true;
 };
 

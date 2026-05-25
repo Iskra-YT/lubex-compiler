@@ -2,4 +2,5 @@ module std;
 
 class Console -> {
     @mangle(_std_console_out) public static func write(text: String): Void;
+    @mangle(_std_console_outl) public static func writeLn(text: String): Void;
 };

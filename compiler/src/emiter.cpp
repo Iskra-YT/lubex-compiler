@@ -1,7 +1,7 @@
 #include "emiter.hpp"
 
 std::unordered_map<std::string, Hash128> typeIds;
-std::unordered_map<IRValue*, std::unordered_map<std::string, int>> structValues;
+std::unordered_map<std::string, std::unordered_map<std::string, int>> structValues;
 
 extern std::string mangleVisitor;
 
@@ -39,10 +39,19 @@ std::string mangleName(Symbol* sym) {
     return mangleName(sym->mangledName);
 }
 
-std::string getMethodName(std::string fn) {
-    auto pos = fn.find_last_of('_');
+std::string getMethodName(const std::string& fn) {
+    size_t pos = fn.rfind("_F");
     if (pos == std::string::npos) return fn;
-    return fn.substr(pos + 1);
+
+    pos += 2;
+    size_t lenEnd = pos;
+
+    while (lenEnd < fn.size() && isdigit(fn[lenEnd])) {
+        lenEnd++;
+    }
+
+    int len = std::stoi(fn.substr(pos, lenEnd - pos));
+    return fn.substr(lenEnd, len);
 }
 
 llvm::GlobalVariable* LLVMGenerator::updateTypeInfoWithVTable(llvm::GlobalVariable* typeInfo, llvm::Constant* vtablePtr) {
@@ -85,7 +94,7 @@ llvm::GlobalVariable* LLVMGenerator::getOrCreateTypeInfo(const std::string& name
         parent = typeInfos[parentName];
     }
 
-    llvm::Constant* vtable = llvm::ConstantPointerNull::get(llvm::Type::getInt64PtrTy(emiterContext)->getPointerTo()); // TODO: Change null into vTable ptr
+    llvm::Constant* vtable = llvm::ConstantPointerNull::get(llvm::Type::getInt64PtrTy(emiterContext)->getPointerTo());
 
     llvm::Constant* idConst = llvm::ConstantInt::get(llvm::Type::getInt128Ty(emiterContext), toAPInt(id));
     llvm::Constant* init = llvm::ConstantStruct::get(ty, {idConst, parent, vtable});
@@ -93,6 +102,64 @@ llvm::GlobalVariable* LLVMGenerator::getOrCreateTypeInfo(const std::string& name
     auto* gv = new llvm::GlobalVariable(*emiterModule, ty, true, llvm::GlobalValue::LinkageTypes::InternalLinkage, init, "_T" + name);
     typeInfos[name] = gv;
     return gv;
+}
+
+void LLVMGenerator::buildVTable(const std::string& cls) {
+    if (vTables.count(cls)) return;
+
+    std::vector<llvm::Function*> finalMethods;
+    std::unordered_map<std::string, int> indexMap;
+
+    for (const auto& parent : classHierarchy[cls]) {
+        if (parent.empty()) continue;
+
+        buildVTable(parent);
+
+        const auto& parentV = vTables[parent];
+
+        for (size_t i = 0; i < parentV.size(); i++) {
+            llvm::Function* fn = parentV[i];
+
+            std::string name = getMethodName(fn->getName().str());
+
+            if (!indexMap.count(name)) {
+                indexMap[name] = finalMethods.size();
+                finalMethods.push_back(fn);
+            }
+        }
+    }
+
+    for (auto* fn : typeMethods[cls]) {
+        std::string name = getMethodName(fn->getName().str());
+
+        if (indexMap.count(name)) {
+            finalMethods[indexMap[name]] = fn;
+        } else {
+            indexMap[name] = finalMethods.size();
+            finalMethods.push_back(fn);
+        }
+    }
+
+    for (size_t i = 0; i < finalMethods.size(); i++) {
+        std::string name = getMethodName(finalMethods[i]->getName().str());
+        vTablePos[cls][name] = i;
+    }
+
+    std::vector<llvm::Constant*> entries;
+    entries.reserve(finalMethods.size());
+
+    for (auto* fn : finalMethods) {
+        entries.push_back(llvm::ConstantExpr::getBitCast(fn, llvm::Type::getInt8PtrTy(emiterContext)));
+    }
+
+    auto* vtableType = llvm::ArrayType::get(llvm::Type::getInt8PtrTy(emiterContext), entries.size());
+
+    auto* vTable = llvm::ConstantArray::get(vtableType, entries);
+    auto* vTableGlobal = new llvm::GlobalVariable(*emiterModule, vtableType, true, llvm::GlobalValue::InternalLinkage, vTable, "_VT" + cls);
+    auto* vtablePtr = llvm::ConstantExpr::getBitCast(vTableGlobal, llvm::Type::getInt8PtrTy(emiterContext)->getPointerTo());
+
+    typeInfos[cls] = updateTypeInfoWithVTable(typeInfos[cls], vtablePtr);
+    vTables[cls] = finalMethods;
 }
 
 llvm::Value* LLVMGenerator::generate(IRValue* node) {
@@ -103,25 +170,20 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
     } else if (auto a = dynamic_cast<IRAlloca*>(node)) {
         llvm::Type* type = mapLLVMType(a->type);
 
-        llvm::Function* callee = emiterModule->getFunction("_BI_malloc");
-        if (!callee) {
-            std::cerr << "Function not found: _BI_malloc\n";
-            return nullptr;
-        }
+        llvm::Value* ptr = emiterBuilder.CreateAlloca(type);
 
-        llvm::DataLayout DL(emiterModule.get());
-        uint64_t sizeBytes = DL.getTypeAllocSize(type);
-        llvm::Value* sizeVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(emiterContext), sizeBytes);
-
-        llvm::Value* mallocCall = emiterBuilder.CreateCall(callee, {sizeVal});
-        llvm::Value* typedPtr = emiterBuilder.CreateBitCast(mallocCall, type->getPointerTo());
-
-        namedValues[a] = typedPtr;
-        return typedPtr;
+        namedValues[a] = ptr;
+        return ptr;
     } else if (auto v = dynamic_cast<IRVariableRead*>(node)) {
         for (auto& [key, val] : namedValues) {
             if (key->name == v->name) {
-                auto var = emiterBuilder.CreateLoad(mapLLVMType(v->type), val);
+                if (dynamic_cast<IRArg*>(key)) {
+                    namedValues[v] = val;
+                    return val;
+                }
+
+                llvm::Type* ty = mapLLVMType(v->type);
+                auto var = emiterBuilder.CreateLoad(ty, val);
                 namedValues[v] = var;
                 return var;
             }
@@ -146,12 +208,16 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
             return nullptr;
         }
 
+        auto oldNamedValues = namedValues;
+        namedValues.clear();
+
         size_t idx = 0;
         for (auto& arg : func->args()) {
             namedValues[f->args[idx++]] = &arg;
         }
 
         if (f->body.size() == 0) {
+            namedValues = oldNamedValues;
             return func;
         }
 
@@ -162,6 +228,7 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
             generate(instr.get());
         }
 
+        namedValues = oldNamedValues;
         namedValues[f] = func;
 
         return func;
@@ -175,10 +242,12 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
         std::vector<llvm::Value*> args;
         for (auto argNode : c->args) {
             llvm::Value* argVal = namedValues[argNode];
+        
             if (!argVal) {
                 std::cerr << "Missing arg value in call: " << c->funcName << "\n";
                 return nullptr;
             }
+        
             args.push_back(argVal);
         }
 
@@ -187,7 +256,6 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
 
         if (builtinMethodClass.count(callee)) {
             className = builtinMethodClass[callee];
-            isStatic = false; 
         } else {
             auto funcIr = dynamic_cast<IRFunction*>(functionTable[callee]);
         
@@ -200,48 +268,89 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
             isStatic = funcIr->isStatic;
         }
 
-        llvm::Value* call = nullptr;
+        llvm::FunctionType* fnType = callee->getFunctionType();
+        std::string methodName = getMethodName(c->funcName);
+        int idx = vTablePos[className][methodName];
+
+        llvm::Value* idxVal = llvm::ConstantInt::get(
+            llvm::Type::getInt32Ty(emiterContext),
+            idx
+        );
+        
+        llvm::Type* i8PtrTy = llvm::Type::getInt8PtrTy(emiterContext);
+        llvm::Value* vtablePtr = nullptr;
         if (isStatic) {
             auto* typeInfoGV = typeInfos[className];
-            llvm::Value* typeInfoPtr = emiterBuilder.CreateBitCast(typeInfoGV, structTypes["_BI_TypeInfo"]->getPointerTo());
-
-            llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(structTypes["_BI_TypeInfo"], typeInfoPtr, 2);
-            llvm::Value* vtablePtr = emiterBuilder.CreateLoad(llvm::Type::getInt8PtrTy(emiterContext)->getPointerTo(), vtablePtrPtr);
-
-            std::string methodName = getMethodName(c->funcName);
-            int idx = vTablePos[className][methodName];
-
-            llvm::Value* idxVal = llvm::ConstantInt::get(llvm::Type::getInt32Ty(emiterContext), idx);
-
-            llvm::Value* fnPtrPtr = emiterBuilder.CreateGEP(llvm::Type::getInt8PtrTy(emiterContext), vtablePtr, idxVal);
-            llvm::Value* fnPtr = emiterBuilder.CreateLoad(llvm::Type::getInt8PtrTy(emiterContext), fnPtrPtr);
-
-            llvm::FunctionType* fnType = callee->getFunctionType();
-
-            llvm::Value* typedFn = emiterBuilder.CreateBitCast(fnPtr, fnType->getPointerTo());
-            call = emiterBuilder.CreateCall(fnType, typedFn, args);
+        
+            llvm::Value* typeInfoPtr = emiterBuilder.CreateBitCast(
+                typeInfoGV,
+                structTypes["_BI_TypeInfo"]->getPointerTo()
+            );
+            
+            llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(
+                structTypes["_BI_TypeInfo"],
+                typeInfoPtr,
+                2
+            );
+            
+            vtablePtr = emiterBuilder.CreateLoad(
+                i8PtrTy->getPointerTo(),
+                vtablePtrPtr
+            );
         } else {
             llvm::Value* thisPtr = args[0];
+            auto* classTy = llvm::cast<llvm::StructType>(mapLLVMType(className, false));
 
-            llvm::Value* typeInfoPtrPtr = emiterBuilder.CreateStructGEP(mapLLVMType(className, false), thisPtr, 0);
-            llvm::Value* typeInfoPtr = emiterBuilder.CreateLoad(structTypes["_BI_TypeInfo"]->getPointerTo(), typeInfoPtrPtr);
+            llvm::Value* typedThis = emiterBuilder.CreateBitCast(
+                thisPtr,
+                classTy->getPointerTo()
+            );
 
-            llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(structTypes["_BI_TypeInfo"], typeInfoPtr, 2);
-
-            llvm::Value* vtablePtr = emiterBuilder.CreateLoad(llvm::Type::getInt8PtrTy(emiterContext)->getPointerTo(), vtablePtrPtr);
-
-            std::string methodName = getMethodName(c->funcName);
-            int idx = vTablePos[className][methodName];
-            llvm::Value* idxVal = llvm::ConstantInt::get(llvm::Type::getInt32Ty(emiterContext), idx);
-
-            llvm::Value* fnPtrPtr = emiterBuilder.CreateGEP(llvm::Type::getInt8PtrTy(emiterContext), vtablePtr, idxVal);
-            llvm::Value* fnPtr = emiterBuilder.CreateLoad(llvm::Type::getInt8PtrTy(emiterContext), fnPtrPtr);
-
-            llvm::FunctionType* fnType = callee->getFunctionType();
-            llvm::Value* typedFn = emiterBuilder.CreateBitCast(fnPtr, fnType->getPointerTo());
-            call = emiterBuilder.CreateCall(fnType, typedFn, args);
+            llvm::Value* typeInfoPtrPtr = emiterBuilder.CreateStructGEP(
+                classTy,
+                typedThis,
+                0
+            );
+            
+            llvm::Value* typeInfoPtr = emiterBuilder.CreateLoad(
+                structTypes["_BI_TypeInfo"]->getPointerTo(),
+                typeInfoPtrPtr
+            );
+            
+            llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(
+                structTypes["_BI_TypeInfo"],
+                typeInfoPtr,
+                2
+            );
+            
+            vtablePtr = emiterBuilder.CreateLoad(
+                i8PtrTy->getPointerTo(),
+                vtablePtrPtr
+            );
         }
 
+        llvm::Value* fnPtrPtr = emiterBuilder.CreateInBoundsGEP(
+            i8PtrTy,
+            vtablePtr,
+            idxVal
+        );
+        
+        llvm::Value* fnPtr = emiterBuilder.CreateLoad(
+            i8PtrTy,
+            fnPtrPtr
+        );
+        
+        llvm::Value* typedFn = emiterBuilder.CreateBitCast(
+            fnPtr,
+            fnType->getPointerTo()
+        );
+        
+        llvm::Value* call = emiterBuilder.CreateCall(
+            fnType,
+            typedFn,
+            args
+        );
+        
         namedValues[c] = call;
         return call;
     } else if (auto r = dynamic_cast<IRReturn*>(node)) {
@@ -291,18 +400,17 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
             std::cerr << "Object is not a pointer type\n";
             return nullptr;
         }
-        auto* gep = emiterBuilder.CreateStructGEP(mapLLVMType(a->object->type, false), obj, idx + 1);
+        auto* gep = emiterBuilder.CreateStructGEP(mapLLVMType(a->object->type, false), obj, structValues[a->object->type]["$" + std::to_string(a->memberName)]);
         namedValues[a] = gep;
         return gep;
     } else if (auto g = dynamic_cast<IRAllocaStruct*>(node)) {
         llvm::Type* type = mapLLVMType(g->type, false);
 
-        llvm::Function* callee = emiterModule->getFunction("_BI_malloc");        if (!callee) return nullptr;
+        llvm::Function* callee = emiterModule->getFunction("_BI_malloc");        
+        if (!callee) return nullptr;
 
         const llvm::DataLayout &dl = emiterModule->getDataLayout();
-        uint64_t size = dl.getTypeAllocSize(type);
-        uint64_t typeInfoSize = dl.getPointerSize();
-        uint64_t totalSize = size + typeInfoSize;
+        uint64_t totalSize = dl.getTypeAllocSize(type);
 
         llvm::Value* sizeVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(emiterContext), totalSize);
 
@@ -343,64 +451,36 @@ std::vector<llvm::Value*> LLVMGenerator::generate(std::vector<std::unique_ptr<IR
         } else if (auto c = dynamic_cast<IRStruct*>(instr.get())) {
             std::vector<llvm::Type*> body;
             int memberIdx = 0;
+
+            if (!c->parentName.empty() && structValues.count(c->parentName)) {
+                structValues[c->name] = structValues[c->parentName];
+                memberIdx = structTypes[c->parentName]->getNumElements();
+            } else {
+                memberIdx = structTypes["_BI_Object"]->getNumElements();
+            }
+
             for (auto& type : c->data) {
                 auto member = dynamic_cast<IRMember*>(type.get());
                 if (!member) continue;
 
-                structValues[instr.get()][member->name] = memberIdx++;
+                structValues[c->name][member->name] = memberIdx++;
                 body.push_back(mapLLVMType(member->type));
             }
 
-            llvm::StructType* namedStruct = generateStruct(c->name, body);
+            std::vector<std::string> parents;
+
+            if (!c->parentName.empty()) {
+                parents.push_back(c->parentName);
+            } else {
+                parents.push_back("_BI_Object");
+            }
+
+            llvm::StructType* namedStruct =generateStruct(c->name, body, parents);
         }
     }
 
-    for (auto& [key, methods] : typeMethods) {
-        
-        std::string parent = classHierarchy[key].empty() ? "" : classHierarchy[key][0];
-        std::vector<llvm::Function*> finalMethods;
-        
-        std::unordered_map<std::string, int> indexMap;
-        if (!parent.empty()) {
-            for (auto* fn : typeMethods[parent]) {
-                std::string name = getMethodName(fn->getName().str());
-            
-                indexMap[name] = finalMethods.size();
-                finalMethods.push_back(fn);
-            }
-        }
-
-        for (auto* fn : methods) {
-            std::string name = getMethodName(fn->getName().str());
-        
-            if (indexMap.count(name)) {
-                int idx = indexMap[name];
-                finalMethods[idx] = fn;
-                vTablePos[key][name] = idx;
-            } else {
-                vTablePos[key][name] = finalMethods.size();
-                indexMap[name] = finalMethods.size();
-                finalMethods.push_back(fn);
-            }
-        }
-    
-        std::vector<llvm::Constant*> entries;
-        entries.reserve(finalMethods.size());
-    
-        for (auto* fn : finalMethods) {
-            entries.push_back(
-                llvm::ConstantExpr::getBitCast(
-                    fn,
-                    llvm::Type::getInt8PtrTy(emiterContext)
-                )
-            );
-        }
-    
-        auto* vtableType = llvm::ArrayType::get(llvm::Type::getInt8PtrTy(emiterContext), entries.size());
-        llvm::Constant* vTable = llvm::ConstantArray::get(vtableType, entries);
-        auto* vTableGlobal = new llvm::GlobalVariable(*emiterModule, vtableType, true, llvm::GlobalValue::InternalLinkage, vTable, "_VT" + key);
-        auto* vtablePtr = llvm::ConstantExpr::getBitCast(vTableGlobal, llvm::Type::getInt8PtrTy(emiterContext)->getPointerTo());
-        typeInfos[key] = updateTypeInfoWithVTable(typeInfos[key], vtablePtr);
+    for (auto& [key, _] : typeMethods) {    
+        buildVTable(key);
     }
 
     for (auto& instr : lir) {

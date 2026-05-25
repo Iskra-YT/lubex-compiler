@@ -13,6 +13,17 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # ========================
+# Sanitizers (ASAN)
+# ========================
+# option(ENABLE_ASAN "Enable AddressSanitizer" ON)
+# 
+# if(ENABLE_ASAN AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+#     message(STATUS "AddressSanitizer ENABLED")
+#     add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g)
+#     add_link_options(-fsanitize=address)
+# endif()
+
+# ========================
 # LLVM
 # ========================
 find_package(LLVM REQUIRED CONFIG)

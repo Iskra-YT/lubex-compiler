@@ -37,6 +37,7 @@ struct Symbol {
     size_t classMemberIndex;
     bool isStatic = false;
     std::string forcedMangle = "";
+    std::vector<Symbol*> classTypes;
 
     Symbol(SymbolKind kind, IdentyfierNode* name, Symbol* type, ASTNode* node) : kind(kind), name(name), type(type), node(node) {}
     Symbol* clone() const {
@@ -47,6 +48,15 @@ struct Symbol {
         copy->forcedMangle = forcedMangle;
         copy->scope = scope;
         return copy;
+    }
+
+    Symbol* createInstance() {
+        auto sym = clone();
+
+        sym->kind = SymbolKind::VARIABLE;
+        sym->type = this;
+
+        return sym;
     }
 };
 

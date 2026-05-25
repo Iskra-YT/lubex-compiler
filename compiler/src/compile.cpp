@@ -19,6 +19,8 @@
 #include "LIR/lir.hpp"
 #include "debug.hpp"
 
+std::unordered_map<std::string, std::unordered_map<std::string, int>> numberOfParameters;
+
 extern IdentyfierNode intType;
 extern IdentyfierNode objectType;
 extern IdentyfierNode voidType;
@@ -68,6 +70,26 @@ std::string targetToTriple(const std::string& target) {
 
 bool compile(std::filesystem::path mainSource, Context& globalCtx);
 
+Symbol* createBuiltinClass(Context& globalCtx, std::unique_ptr<Context>& ctx, const std::string& name, IdentyfierNode* typeNode, const std::string& mangle) {
+    auto cls = std::make_unique<Symbol>(SymbolKind::CLASS, typeNode, nullptr, nullptr);
+    cls->forcedMangle = mangle;
+
+    cls->scope = ctx.get();
+    globalCtx.declare(std::move(cls));
+
+    return globalCtx.lookup(typeNode);
+}
+
+Symbol* addBuiltinFunction(Context& ctx, Symbol* owner, IdentyfierNode* name, const std::string& mangle, bool isStatic = true) {
+    auto fn = std::make_unique<Symbol>(SymbolKind::FUNCTION, name, owner, nullptr);
+    fn->isStatic = isStatic;
+    fn->forcedMangle = mangle;
+
+    Symbol* raw = fn.get();
+    ctx.declare(std::move(fn));
+    return raw;
+}
+
 bool compileProject() {
     try {
         config = readConfig();
@@ -87,10 +109,13 @@ bool compileProject() {
 
     // Object
     auto object = std::make_unique<Symbol>(SymbolKind::CLASS, &objectType, nullptr, nullptr);
+    object->forcedMangle = "_BI_Object";
     //Object.init
     auto func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, object.get(), nullptr);
     func->isStatic = true;
+    func->forcedMangle = "_BI_Object_init";
     objectContext->declare(std::move(func));
+    numberOfParameters["Object"]["init"] = 0;
     object->scope = objectContext.get();
     globalCtx.declare(std::move(object));
 
@@ -99,12 +124,18 @@ bool compileProject() {
     // Number.init
     func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, intClass.get(), nullptr);
     func->isStatic = true;
+     func->forcedMangle = "_BI_Number_init";
+    numberOfParameters["Number"]["init"] = 1;
     intContext->declare(std::move(func));
 
     intContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &addName, intClass.get(), nullptr));
+    numberOfParameters["Number"]["add"] = 2;
     intContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &subName, intClass.get(), nullptr));
+    numberOfParameters["Number"]["subtract"] = 2;
     intContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &mulName, intClass.get(), nullptr));
+    numberOfParameters["Number"]["multiply"] = 2;
     intContext->declare(std::make_unique<Symbol>(SymbolKind::FUNCTION, &divName, intClass.get(), nullptr));
+    numberOfParameters["Number"]["divide"] = 2;
     intClass->scope = intContext.get();
     globalCtx.declare(std::move(intClass));
 
@@ -113,6 +144,7 @@ bool compileProject() {
     // Void.init
     func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, voidClass.get(), nullptr);
     func->isStatic = true;
+    numberOfParameters["Void"]["init"] = 0;
     voidContext->declare(std::move(func));
     voidClass->scope = voidContext.get();
     globalCtx.declare(std::move(voidClass));
@@ -121,6 +153,7 @@ bool compileProject() {
     auto stringClass = std::make_unique<Symbol>(SymbolKind::CLASS, &stringType, nullptr, nullptr);
     func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, stringClass.get(), nullptr);
     func->isStatic = true;
+    numberOfParameters["Number"]["init"] = 1;
     stringContext->declare(std::move(func));
     stringClass->scope = stringContext.get();
     globalCtx.declare(std::move(stringClass));
@@ -321,6 +354,9 @@ bool compile(std::filesystem::path mainSource, Context& globalCtx) {
                 break;
             case 3:
                 targetMachine->setOptLevel(llvm::CodeGenOpt::Aggressive);
+                break;
+            default:
+                targetMachine->setOptLevel(llvm::CodeGenOpt::Default);
                 break;
         }
 

@@ -102,11 +102,12 @@ struct ClassDeclNode : ASTNode {
     std::vector<std::unique_ptr<ASTNode>> members;
     VisibilityKind visibility;
     bool isForward;
+    std::unique_ptr<ASTNode> parent;
 
     ClassDeclNode(PositionSpan span,
                   std::unique_ptr<ASTNode> name,
-                  std::vector<std::unique_ptr<ASTNode>> members, bool isForward, VisibilityKind visibility)
-        : ASTNode(span), name(std::move(name)), members(std::move(members)), isForward(isForward), visibility(visibility) {}
+                  std::vector<std::unique_ptr<ASTNode>> members, bool isForward, VisibilityKind visibility, std::unique_ptr<ASTNode> parent)
+        : ASTNode(span), name(std::move(name)), members(std::move(members)), isForward(isForward), visibility(visibility), parent(std::move(parent)) {}
 
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;

@@ -82,6 +82,13 @@ void Parser::initClassDecl() {
             c.name = parsePrimary();
             allowCallAndMember = true;
         }, false, 0},
+        {TokenType::KEYWORD_TOKEN, "extends", [&](Token&, void*) {}, true, 2},
+        {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx) {
+            allowCallAndMember = false;
+            auto& c = *(ClassDeclContext*)ctx;
+            c.extender = parsePrimary();
+            allowCallAndMember = true;
+        }, false, 2},
         {TokenType::DELIMITER_TOKEN, "->", [](Token&, void*){}, true, 1},
         {TokenType::DELIMITER_TOKEN, "{", [&](Token&, void* ctx){
             auto& c = *(ClassDeclContext*)ctx;
@@ -93,7 +100,7 @@ void Parser::initClassDecl() {
 
     classDeclInstr.finalize = [](PositionSpan span, void* ctx){
         ClassDeclContext* c = (ClassDeclContext*)ctx;
-        return std::make_unique<ClassDeclNode>(span, std::move(c->name), std::move(c->members), c->isForward, c->visibility);
+        return std::make_unique<ClassDeclNode>(span, std::move(c->name), std::move(c->members), c->isForward, c->visibility, std::move(c->extender));
     };
 }
 

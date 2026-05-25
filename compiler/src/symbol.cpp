@@ -226,6 +226,10 @@ Symbol* ClassDeclNode::evaluateSymbol(Context& ctx) {
     auto classSym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
     auto classCtx = classSym->scope;
 
+    if (ctx.phase == PassPhase::MIDPASS && parent) {
+        classSym->classTypes.push_back(parent->evaluateSymbol(ctx));
+    }
+
     classCtx->phase = ctx.phase;
     for (auto& member : members) {
         member->evaluateSymbol(*classCtx);
@@ -254,6 +258,27 @@ Symbol* ModuleDeclaration::evaluateSymbol(Context& ctx) {
     return nullptr;
 }
 
+Symbol* lookupWithInheritance(Symbol* cls, const std::string& name, Symbol* objectClass, bool isCall = false) {
+    if (!cls || !cls->scope) return nullptr;
+
+    if (auto sym = cls->scope->lookup(name)) {
+        return sym;
+    }
+
+    for (auto& parent : cls->classTypes) {
+        auto found = lookupWithInheritance(parent, name, objectClass, isCall);
+        if (found) return found;
+    }
+
+    if (cls != objectClass) {
+        return lookupWithInheritance(objectClass, name, objectClass, isCall);
+    }
+
+    return nullptr;
+}
+
+extern std::unordered_map<std::string, std::unordered_map<std::string, int>> numberOfParameters;
+
 Symbol* CallNode::evaluateSymbol(Context& ctx) {
     auto call = callee->evaluateSymbol(ctx);
     if (!call) return nullptr;
@@ -269,11 +294,20 @@ Symbol* CallNode::evaluateSymbol(Context& ctx) {
 
     auto called = call;
     if (call->kind == SymbolKind::CLASS) {
-        call = call->scope->lookup(std::string("init"), call->node ? call->node->position : PositionSpan(0, 0));
+        call = lookupWithInheritance(call, "init", ctx.lookup(&objectType), true);
+
+        if (!call) {
+            ctx.errors.push_back(Error(position, "Class has no constructor (init)"));
+            return nullptr;
+        }
+
+        return called->createInstance();
     }
 
     if (called->name->value != "Int" && called->name->value != "Void") {
-        if (static_cast<FunctionDeclaration*>(call->node)->parameters.size() > args.size()) { 
+        if (call->node && static_cast<FunctionDeclaration*>(call->node)->parameters.size() > args.size()) { 
+            ctx.errors.push_back(Error(position, "Argument count mismatch in function call"));
+        } else if (!call->node && numberOfParameters[called->name->value][call->name->value] > args.size()) {
             ctx.errors.push_back(Error(position, "Argument count mismatch in function call"));
         }
     }
@@ -298,18 +332,14 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
             return nullptr;
         }
 
-        memberSym = obj->scope->lookup(
-            static_cast<IdentyfierNode*>(member.get())
-        );
+        memberSym = lookupWithInheritance(obj, static_cast<IdentyfierNode*>(member.get())->value, ctx.lookup(&objectType));
     } else {
         if (!obj->type || obj->type->kind != SymbolKind::CLASS || !obj->type->scope) {
             ctx.errors.push_back(Error(position, "Object is not a class instance"));
             return nullptr;
         }
 
-        memberSym = obj->type->scope->lookup(
-            static_cast<IdentyfierNode*>(member.get())
-        );
+        memberSym = lookupWithInheritance(obj->type, static_cast<IdentyfierNode*>(member.get())->value, ctx.lookup(&objectType));
     }
 
     if (!memberSym) {
