@@ -224,8 +224,18 @@ Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
             inStatic = true;
         }
 
+        bool hasReturn = false;
         for (auto& stmt : body) {
-            stmt->evaluateSymbol(*fnCtx);
+            auto result = stmt->evaluateSymbol(*fnCtx);
+        
+            if (dynamic_cast<CallNode*>(dynamic_cast<StatementNode*>(stmt.get())->value.get())) {
+                hasReturn = true;
+            }
+        }
+
+        auto returnType = fnSym->type->name->value;
+        if (returnType != "Void" && !hasReturn) {
+            ctx.errors.push_back(Error(position, "Missing return statement"));
         }
     }
 

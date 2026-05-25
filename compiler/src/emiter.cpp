@@ -54,6 +54,18 @@ std::string getMethodName(const std::string& fn) {
     return fn.substr(lenEnd, len);
 }
 
+bool hasReturn(llvm::Function* fn) {
+    for (auto& block : *fn) {
+        auto* term = block.getTerminator();
+
+        if (llvm::isa<llvm::ReturnInst>(term)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 llvm::GlobalVariable* LLVMGenerator::updateTypeInfoWithVTable(llvm::GlobalVariable* typeInfo, llvm::Constant* vtablePtr) {
     auto* ty = structTypes["_BI_TypeInfo"];
 
@@ -226,6 +238,69 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
 
         for (auto& instr : f->body) {
             generate(instr.get());
+        }
+
+        if (!entry->getTerminator()) {
+            if (f->returnType == "_BI_Void") {
+                auto* typeInfoGV = typeInfos["_BI_Void"];
+
+                llvm::Type* i8PtrTy = llvm::Type::getInt8PtrTy(emiterContext);
+
+                llvm::Value* typeInfoPtr = emiterBuilder.CreateBitCast(
+                    typeInfoGV,
+                    structTypes["_BI_TypeInfo"]->getPointerTo()
+                );
+                
+                llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(
+                    structTypes["_BI_TypeInfo"],
+                    typeInfoPtr,
+                    2
+                );
+                
+                llvm::Value* vtablePtr = emiterBuilder.CreateLoad(
+                    i8PtrTy->getPointerTo(),
+                    vtablePtrPtr
+                );
+                
+                int idx = vTablePos["_BI_Void"]["init"];
+                llvm::Value* idxVal = llvm::ConstantInt::get(
+                    llvm::Type::getInt32Ty(emiterContext),
+                    idx
+                );
+                
+                llvm::Value* fnPtrPtr = emiterBuilder.CreateInBoundsGEP(
+                    i8PtrTy,
+                    vtablePtr,
+                    idxVal
+                );
+                
+                llvm::Value* fnPtr = emiterBuilder.CreateLoad(
+                    i8PtrTy,
+                    fnPtrPtr
+                );
+                
+                llvm::Function* callee = emiterModule->getFunction("_BI_Void_init");  
+                if (!callee) {
+                    std::cerr << "Missing _BI_Void_init\n";
+                    return nullptr;
+                }
+
+                llvm::FunctionType* fnType = callee->getFunctionType();
+                llvm::Value* typedFn = emiterBuilder.CreateBitCast(
+                    fnPtr,
+                    fnType->getPointerTo()
+                );
+                
+                llvm::Value* call = emiterBuilder.CreateCall(
+                    fnType,
+                    typedFn,
+                    {}
+                );
+                
+                emiterBuilder.CreateRet(call);
+            } else {
+                std::cerr << "Missing return in function: " << f->name << "\n";
+            }
         }
 
         namedValues = oldNamedValues;
