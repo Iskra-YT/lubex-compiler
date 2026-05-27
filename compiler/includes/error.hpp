@@ -7,8 +7,9 @@ class Error {
     private:
         PositionSpan span;
         std::string value;
+        std::string file;
     public:
-        Error(PositionSpan position, std::string text): span(position), value(text) {} 
+        Error(PositionSpan position, std::string text, std::string file): span(position), value(text), file(file) {} 
         std::string returnError() const;
 };
 

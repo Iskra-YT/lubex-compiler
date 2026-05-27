@@ -1,7 +1,9 @@
 #include "LIR/lir.hpp"
 #include "emiter.hpp"
+#include <filesystem>
 
 std::string mangleVisitor = "";
+extern std::filesystem::path mainSource;
 
 int lastId = 0;
 int lastClassId = 0;
@@ -30,7 +32,7 @@ LIRGenerate parseLValue(ASTNode* node) {
         auto it = variables.find(mangleName(sym));
 
         if (it == variables.end()) {
-            throw LIRException(Error(id->position, "Undefined variable"));
+            throw LIRException(Error(id->position, "Undefined variable", mainSource.filename().string()));
         }
 
         return { it->second, {} };
@@ -41,7 +43,7 @@ LIRGenerate parseLValue(ASTNode* node) {
         Symbol* memberSym = resolveCallChain(access, baseIR);
 
         if (!baseIR) {
-            throw LIRException(Error(access->position, "No base object"));
+            throw LIRException(Error(access->position, "No base object", mainSource.filename().string()));
         }
 
         std::vector<std::unique_ptr<IRValue>> res;
@@ -59,7 +61,7 @@ LIRGenerate parseLValue(ASTNode* node) {
         return { ptr, std::move(res) };
     }
 
-    throw LIRException(Error(node->position, "Invalid LValue"));
+    throw LIRException(Error(node->position, "Invalid LValue", mainSource.filename().string()));
 }
 
 inline IRArg* createArg(const std::string& type) {
@@ -169,7 +171,7 @@ LIRGenerate parseBinaryExpression(BinaryNode* bin) {
 
     // TODO: Add Object type support
     if (bin->op == "+") {
-        if (binSym->type->name->value == "Int") {
+        if (binSym->type->name->value == "Number") {
             res.push_back(std::make_unique<IRCall>("_BI_Number_add", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else if (binSym->type->name->value == "Void") {
@@ -180,7 +182,7 @@ LIRGenerate parseBinaryExpression(BinaryNode* bin) {
             return {res.back().get(), std::move(res)};
         }
     } else if (bin->op == "-") {
-        if (binSym->type->name->value == "Int") {
+        if (binSym->type->name->value == "Number") {
             res.push_back(std::make_unique<IRCall>("_BI_Number_subtract", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else if (binSym->type->name->value == "Void") {
@@ -191,7 +193,7 @@ LIRGenerate parseBinaryExpression(BinaryNode* bin) {
             return {res.back().get(), std::move(res)};
         }
     } else if (bin->op == "*") {
-        if (binSym->type->name->value == "Int") {
+        if (binSym->type->name->value == "Number") {
             res.push_back(std::make_unique<IRCall>("_BI_Number_multiply", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else if (binSym->type->name->value == "Void") {
@@ -202,7 +204,7 @@ LIRGenerate parseBinaryExpression(BinaryNode* bin) {
             return {res.back().get(), std::move(res)};
         }
     } else if (bin->op == "/") {
-        if (binSym->type->name->value == "Int") {
+        if (binSym->type->name->value == "Number") {
             res.push_back(std::make_unique<IRCall>("_BI_Number_divide", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else if (binSym->type->name->value == "Void") {
@@ -299,7 +301,7 @@ LIRGenerate parseIdentyfierNode(IdentyfierNode* id) {
 
     auto it = variables.find(mangleName(idSym));
     if (it == variables.end()) {
-        throw LIRException(Error(id->position, "Undefined variable: " + id->value + " in LIR"));
+        throw LIRException(Error(id->position, "Undefined variable: " + id->value + " in LIR", mainSource.filename().string()));
     }
 
     auto allocSym = it->second;
@@ -320,7 +322,7 @@ Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase, bool is
     if (auto id = dynamic_cast<IdentyfierNode*>(node)) {
         Symbol* sym = currentContext->lookup(id);
         if (!sym) {
-            throw LIRException(Error(id->position, "Unknown identifier: " + id->value));
+            throw LIRException(Error(id->position, "Unknown identifier: " + id->value, mainSource.filename().string()));
         }
 
         auto it = variables.find(mangleName(sym));
@@ -330,7 +332,7 @@ Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase, bool is
             Symbol* initSym = lookupWithInheritance(sym, "init", currentContext->lookup(&objectType));
             
             if (!initSym) {
-                throw LIRException(Error(id->position, "Class " + id->value + " has no init method"));
+                throw LIRException(Error(id->position, "Class " + id->value + " has no init method", mainSource.filename().string()));
             }
         
             baseIR = nullptr;
@@ -344,7 +346,7 @@ Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase, bool is
         Symbol* leftSym = resolveCallChain(access->object.get(), leftIR, false, isCall);
 
         if (!leftSym) {
-            throw LIRException(Error(node->position, "Cannot resolve call chain"));
+            throw LIRException(Error(node->position, "Cannot resolve call chain", mainSource.filename().string()));
         }
 
         auto memberId = static_cast<IdentyfierNode*>(access->member.get());
@@ -356,26 +358,26 @@ Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase, bool is
             classToSearch = leftSym;
         } else {
             if (!leftSym->type) {
-                throw LIRException(Error(node->position, "Invalid object in call chain"));
+                throw LIRException(Error(node->position, "Invalid object in call chain", mainSource.filename().string()));
             }
             classToSearch = leftSym->type;
         }
 
         if (!classToSearch || !classToSearch->scope) {
-            throw LIRException(Error(node->position, "Class/module has no scope"));
+            throw LIRException(Error(node->position, "Class/module has no scope", mainSource.filename().string()));
         }
 
         Symbol* memberSym = lookupWithInheritance(classToSearch, memberName, currentContext->lookup(&objectType));
 
         if (!memberSym) {
-            throw LIRException(Error(node->position, "Unknown member in call chain: " + memberName));
+            throw LIRException(Error(node->position, "Unknown member in call chain: " + memberName, mainSource.filename().string()));
         }
 
         baseIR = leftIR;
         return memberSym;
     } else if (auto th = dynamic_cast<ThisNode*>(node)) {
         if (currentContext->generativeSymbol->isStatic) {
-            throw LIRException(Error(node->position, "'this' in static context"));
+            throw LIRException(Error(node->position, "'this' in static context", mainSource.filename().string()));
         }
 
         auto classSym = currentContext->parent->generativeSymbol;
@@ -387,7 +389,7 @@ Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase, bool is
         return classSym;
     }
 
-    throw LIRException(Error(node->position, "Invalid node in call chain"));
+    throw LIRException(Error(node->position, "Invalid node in call chain", mainSource.filename().string()));
 }
 
 LIRGenerate parseCallNode(CallNode* call) {
@@ -401,7 +403,7 @@ LIRGenerate parseCallNode(CallNode* call) {
     if (!callSym->isStatic) {
         if (!baseObject) {
             if (currentContext->generativeSymbol->isStatic) {
-                throw LIRException(Error(call->position, "Cannot call non-static method from static context"));
+                throw LIRException(Error(call->position, "Cannot call non-static method from static context", mainSource.filename().string()));
             }
             baseObject = new IRVariableRead("%0", mangleName(currentContext->parent->generativeSymbol));
         } else {
@@ -497,7 +499,7 @@ LIRGenerate parseAttributes(AttributesNode* attr) {
 
         return parse(attr->value.get());
     } else {
-        throw LIRException(Error(attr->position, "Unknown attribute: " + static_cast<IdentyfierNode*>(attr->name.get())->value));
+        throw LIRException(Error(attr->position, "Unknown attribute: " + static_cast<IdentyfierNode*>(attr->name.get())->value, mainSource.filename().string()));
     }
 }
 
@@ -506,7 +508,7 @@ LIRGenerate parseImport(ImportNode* imp) {
     auto name = static_cast<IdentyfierNode*>(imp->value.get());
     auto impSym = currentContext->lookup(name);
     if (!impSym || !impSym->scope) {
-        throw LIRException(Error(imp->position, "Cannot import unknown module: " + name->value));
+        throw LIRException(Error(imp->position, "Cannot import unknown module: " + name->value, mainSource.filename().string()));
     }
 
     std::vector<std::unique_ptr<IRValue>> res;
@@ -534,7 +536,7 @@ LIRGenerate parseImport(ImportNode* imp) {
                     }
 
                     std::string typeName;
-                    if (methodSym->type->name->value == "Int") typeName = "_BI_Number";
+                    if (methodSym->type->name->value == "Number") typeName = "_BI_Number";
                     else if (methodSym->type->name->value == "Void") typeName = "_BI_Void";
                     else typeName = mangleName(methodSym->type);
 
@@ -566,11 +568,11 @@ LIRGenerate parseString(StringNode* str) {
 
 LIRGenerate parseThisNode(ThisNode* node) {
     if (!currentContext || !currentContext->generativeSymbol) {
-        throw LIRException(Error(node->position, "'this' used outside of context"));
+        throw LIRException(Error(node->position, "'this' used outside of context", mainSource.filename().string()));
     }
 
     if (currentContext->generativeSymbol->isStatic) {
-        throw LIRException(Error(node->position, "'this' cannot be used in static context"));
+        throw LIRException(Error(node->position, "'this' cannot be used in static context", mainSource.filename().string()));
     }
 
     auto classSym = currentContext->parent->generativeSymbol;

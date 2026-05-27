@@ -1,11 +1,14 @@
+#include <filesystem>
 #include "evaluator.hpp"
 #include "debug.hpp"
+
+extern std::filesystem::path mainSource;
 
 int Context::nextId = 0;
 
 void Context::declare(std::unique_ptr<Symbol> sym) {
     if (lookup(sym->name, false)) {
-        errors.push_back(Error(sym->name->position, "Symbol '" + sym->name->value + "' is already defined"));
+        errors.push_back(Error(sym->name->position, "Symbol '" + sym->name->value + "' is already defined", mainSource.filename().string()));
         return;
     }
     symbols[sym->name->value] = std::move(sym);
@@ -21,7 +24,7 @@ Symbol* Context::lookup(const IdentyfierNode* name, bool getError) {
     }
 
     if (getError) {
-        errors.emplace_back(name->position, "Undefined identifier '" + name->value + "'");
+        errors.emplace_back(name->position, "Undefined identifier '" + name->value + "'", mainSource.filename().string());
     }
 
     return nullptr;
@@ -37,7 +40,7 @@ Symbol* Context::lookup(const std::string name, PositionSpan span, bool getError
     }
 
     if (getError) {
-        errors.emplace_back(span, "Undefined identifier '" + name + "'");
+        errors.emplace_back(span, "Undefined identifier '" + name + "'", mainSource.filename().string());
     }
 
     return nullptr;

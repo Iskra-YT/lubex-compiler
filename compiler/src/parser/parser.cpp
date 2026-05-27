@@ -1,6 +1,9 @@
 #include "parser/parser.hpp"
 #include <exception>
+#include <filesystem>
 #include "parser/context.hpp"
+
+extern std::filesystem::path mainSource;
 
 struct ASTNode;
 
@@ -54,7 +57,7 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parseFunctionArgs() {
     std::vector<std::unique_ptr<ASTNode>> args;
 
     if (!getCurrent().match(Token("(", TokenType::DELIMITER_TOKEN))) {
-        pushError(Error(getCurrent().position, "Expected '(' at beginning of function arguments"));
+        pushError(Error(getCurrent().position, "Expected '(' at beginning of function arguments", mainSource.filename().string()));
         return args;
     }
     advance();
@@ -66,20 +69,20 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parseFunctionArgs() {
     while (!getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN))) {
         Token argNameToken = getCurrent();
         if (argNameToken.type != TokenType::IDENTYFIER_TOKEN) {
-            pushError(Error(argNameToken.position, "Expected argument name"));
+            pushError(Error(argNameToken.position, "Expected argument name", mainSource.filename().string()));
             return args;
         }
         advance();
 
         if (!getCurrent().match(Token(":", TokenType::DELIMITER_TOKEN))) {
-            pushError(Error(getCurrent().position, "Expected ':' after argument name"));
+            pushError(Error(getCurrent().position, "Expected ':' after argument name", mainSource.filename().string()));
             return args;
         }
         advance();
 
         Token typeToken = getCurrent();
         if (typeToken.type != TokenType::IDENTYFIER_TOKEN) {
-            pushError(Error(typeToken.position, "Expected type for argument"));
+            pushError(Error(typeToken.position, "Expected type for argument", mainSource.filename().string()));
             return args;
         }
         advance();
@@ -93,7 +96,7 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parseFunctionArgs() {
         if (getCurrent().match(Token(",", TokenType::DELIMITER_TOKEN))) {
             advance();
         } else if (!getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN))) {
-            pushError(Error(getCurrent().position, "Expected ',' or ')' in argument list"));
+            pushError(Error(getCurrent().position, "Expected ',' or ')' in argument list", mainSource.filename().string()));
             return args;
         }
     }
@@ -105,7 +108,7 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parseBlock() {
     std::vector<std::unique_ptr<ASTNode>> statements;
 
     if (!getCurrent().match(Token("{", TokenType::DELIMITER_TOKEN))) {
-        pushError(Error(getCurrent().position, "Expected '{' at beginning of block"));
+        pushError(Error(getCurrent().position, "Expected '{' at beginning of block", mainSource.filename().string()));
         return statements;
     }
     advance();
@@ -122,7 +125,7 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parseBlock() {
     }
 
     if (!getCurrent().match(Token("}", TokenType::DELIMITER_TOKEN))) {
-        pushError(Error(getCurrent().position, "Expected '}' at end of block"));
+        pushError(Error(getCurrent().position, "Expected '}' at end of block", mainSource.filename().string()));
     }
 
     return statements;
@@ -146,7 +149,7 @@ std::unique_ptr<ASTNode> Parser::parseInstruction(InstructionSet& instrSet, void
 
         if (step.optional == 0) {
             if (!matched) {
-                pushError(Error(tok.position, "Unexpected token: " + tok.value));
+                pushError(Error(tok.position, "Unexpected token: " + tok.value, mainSource.filename().string()));
                 return nullptr;
             }
 
@@ -181,12 +184,12 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
 
     auto node = parseExpr();
     if (!node) {
-        pushError(Error(getCurrent().position, "Invalid expression in statement"));
+        pushError(Error(getCurrent().position, "Invalid expression in statement", mainSource.filename().string()));
         return nullptr;
     }
 
     if (!getCurrent().match(Token(";", TokenType::DELIMITER_TOKEN))) {
-        pushError(Error(PositionSpan(getCurrent().position.start, getCurrent().position.end), "Expected ';' after statement"));
+        pushError(Error(PositionSpan(getCurrent().position.start, getCurrent().position.end), "Expected ';' after statement", mainSource.filename().string()));
         return nullptr;
     }
     advance();
@@ -322,7 +325,7 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
         advance();
         auto node = parseExpr();
         if (!getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN))) {
-            pushError(Error(tok.position, "Expected ')'"));
+            pushError(Error(tok.position, "Expected ')'", mainSource.filename().string()));
             return nullptr;
         }
 
@@ -342,7 +345,7 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
         );
     }
 
-    pushError(Error(tok.position, "Expected primary expression, got '" + tok.value + "'"));
+    pushError(Error(tok.position, "Expected primary expression, got '" + tok.value + "'", mainSource.filename().string()));
     return nullptr;
 }
 
@@ -375,7 +378,7 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
             }
 
             if (!getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN))) {
-                pushError(Error(tok.position, "Expected ')'"));
+                pushError(Error(tok.position, "Expected ')'", mainSource.filename().string()));
                 return nullptr;
             }
             advance();
@@ -393,7 +396,7 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
 
             Token memberTok = getCurrent();
             if (memberTok.type != TokenType::IDENTYFIER_TOKEN) {
-                pushError(Error(memberTok.position, "Expected identifier after '.'"));
+                pushError(Error(memberTok.position, "Expected identifier after '.'", mainSource.filename().string()));
                 return nullptr;
             }
             advance();

@@ -11,6 +11,8 @@ extern IdentyfierNode objectType;
 extern IdentyfierNode voidType;
 extern IdentyfierNode stringType;
 
+extern std::filesystem::path mainSource;
+
 bool inStatic = false;
 
 Symbol* ASTNode::evaluateSymbol(Context& ctx) {
@@ -41,12 +43,12 @@ Symbol* BinaryNode::evaluateSymbol(Context& ctx) {
         auto R = right->evaluateSymbol(ctx);
 
         if (L->type->name->value != R->type->name->value) {
-            ctx.errors.push_back(Error(position, "Type mismatch in binary expression"));
+            ctx.errors.push_back(Error(position, "Type mismatch in binary expression", mainSource.filename().string()));
         }
 
         auto getFunction = L->type->scope->lookup(getOperationFunction(op));
         if (!getFunction) {
-            ctx.errors.emplace_back(position, "Type does not support operator '" + op + "'");
+            ctx.errors.emplace_back(position, "Type does not support operator '" + op + "'", mainSource.filename().string());
         }
 
         return L;
@@ -64,13 +66,13 @@ Symbol* VariableDeclarationNode::evaluateSymbol(Context& ctx) {
                 auto v = value->evaluateSymbol(ctx);
                 auto sym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
                 if (v && t && sym && t->name->value != v->type->name->value) {
-                    ctx.errors.push_back(Error(position, "Type mismatch in variable declaration"));
+                    ctx.errors.push_back(Error(position, "Type mismatch in variable declaration", mainSource.filename().string()));
                     return;
                 }
 
                 ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), t, static_cast<ASTNode*>(this)));
             } else if (value) {
-                ctx.errors.push_back(Error(position, "Cannot initialize class member variables"));
+                ctx.errors.push_back(Error(position, "Cannot initialize class member variables", mainSource.filename().string()));
                 return;
             } else {
                 ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), t, static_cast<ASTNode*>(this)));
@@ -80,13 +82,13 @@ Symbol* VariableDeclarationNode::evaluateSymbol(Context& ctx) {
             if (value) {
                 auto v = value->evaluateSymbol(ctx);
                 if (!v || !v->type) {
-                    ctx.errors.push_back(Error(position, "Cannot infer type from initializer"));
+                    ctx.errors.push_back(Error(position, "Cannot infer type from initializer", mainSource.filename().string()));
                     return;
                 }
 
                 ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), v->type, static_cast<ASTNode*>(this)));
             } else {
-                ctx.errors.push_back(Error(position, "Variable declaration must have a type or an initializer"));
+                ctx.errors.push_back(Error(position, "Variable declaration must have a type or an initializer", mainSource.filename().string()));
                 return;
             }
         }
@@ -112,13 +114,13 @@ Symbol* VariableAssigment::evaluateSymbol(Context& ctx) {
 
         if (!n || !v) return nullptr;
         if (!n || n->kind != SymbolKind::VARIABLE) {
-            ctx.errors.push_back(Error(position, "Cannot assign to non-variable symbol"));
+            ctx.errors.push_back(Error(position, "Cannot assign to non-variable symbol", mainSource.filename().string()));
         } else if (n->type->name->value != v->type->name->value) {
-            ctx.errors.push_back(Error(position, "Type mismatch in variable assignment"));
+            ctx.errors.push_back(Error(position, "Type mismatch in variable assignment", mainSource.filename().string()));
         } 
         
         if (dynamic_cast<VariableDeclarationNode*>(n->node) && dynamic_cast<VariableDeclarationNode*>(n->node)->isConst) {
-            ctx.errors.push_back(Error(position, "Cannot assign to constant variable"));
+            ctx.errors.push_back(Error(position, "Cannot assign to constant variable", mainSource.filename().string()));
         }
     }
 
@@ -151,12 +153,12 @@ Symbol* lookupWithInheritance(Symbol* cls, const std::string& name, Symbol* obje
 
 Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
     if (ctx.symbolKind != SymbolKind::CLASS) {
-        ctx.errors.push_back(Error(position, "Function declarations are only allowed inside class declarations"));
+        ctx.errors.push_back(Error(position, "Function declarations are only allowed inside class declarations", mainSource.filename().string()));
         return nullptr;
     }
 
     if (body.size() == 0 && !isForward) {
-        ctx.errors.push_back(Error(position, "Function body cannot be empty"));
+        ctx.errors.push_back(Error(position, "Function body cannot be empty", mainSource.filename().string()));
         return nullptr;
     }
 
@@ -201,15 +203,15 @@ Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
                 auto parentDecl = static_cast<FunctionDeclaration*>(parentFn->node);
 
                 if (parentDecl->parameters.size() != parameters.size()) {
-                    ctx.errors.push_back(Error(position, "Override signature mismatch"));
+                    ctx.errors.push_back(Error(position, "Override signature mismatch", mainSource.filename().string()));
                 }
 
                 if (parentFn->type->name->value != fnSym->type->name->value) {
-                    ctx.errors.push_back(Error(position, "Override return type mismatch"));
+                    ctx.errors.push_back(Error(position, "Override return type mismatch", mainSource.filename().string()));
                 }
 
                 if (!isOverride) {
-                    ctx.errors.push_back(Error(position, "Overriding function must be marked with 'override'"));
+                    ctx.errors.push_back(Error(position, "Overriding function must be marked with 'override'", mainSource.filename().string()));
                 }
             }
         }
@@ -228,14 +230,14 @@ Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
         for (auto& stmt : body) {
             auto result = stmt->evaluateSymbol(*fnCtx);
         
-            if (dynamic_cast<CallNode*>(dynamic_cast<StatementNode*>(stmt.get())->value.get())) {
+            if (dynamic_cast<ReturnNode*>(dynamic_cast<StatementNode*>(stmt.get())->value.get())) {
                 hasReturn = true;
             }
         }
 
         auto returnType = fnSym->type->name->value;
         if (returnType != "Void" && !hasReturn) {
-            ctx.errors.push_back(Error(position, "Missing return statement"));
+            ctx.errors.push_back(Error(position, "Missing return statement", mainSource.filename().string()));
         }
     }
 
@@ -323,7 +325,7 @@ Symbol* CallNode::evaluateSymbol(Context& ctx) {
     }
 
     if (call->kind != SymbolKind::FUNCTION && call->kind != SymbolKind::CLASS) {
-        ctx.errors.push_back(Error(position, "Called object is not a function"));
+        ctx.errors.push_back(Error(position, "Called object is not a function", mainSource.filename().string()));
         return nullptr;
     }
 
@@ -332,7 +334,7 @@ Symbol* CallNode::evaluateSymbol(Context& ctx) {
         call = lookupWithInheritance(call, "init", ctx.lookup(&objectType), true);
 
         if (!call) {
-            ctx.errors.push_back(Error(position, "Class has no constructor (init)"));
+            ctx.errors.push_back(Error(position, "Class has no constructor (init)", mainSource.filename().string()));
             return nullptr;
         }
 
@@ -341,9 +343,9 @@ Symbol* CallNode::evaluateSymbol(Context& ctx) {
 
     if (called->name->value != "Int" && called->name->value != "Void") {
         if (call->node && static_cast<FunctionDeclaration*>(call->node)->parameters.size() > args.size()) { 
-            ctx.errors.push_back(Error(position, "Argument count mismatch in function call"));
+            ctx.errors.push_back(Error(position, "Argument count mismatch in function call", mainSource.filename().string()));
         } else if (!call->node && numberOfParameters[called->name->value][call->name->value] > args.size()) {
-            ctx.errors.push_back(Error(position, "Argument count mismatch in function call"));
+            ctx.errors.push_back(Error(position, "Argument count mismatch in function call", mainSource.filename().string()));
         }
     }
     
@@ -363,14 +365,14 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
         isStaticAccess = true;
 
         if (!obj->scope) {
-            ctx.errors.push_back(Error(position, "Class or module has no scope"));
+            ctx.errors.push_back(Error(position, "Class or module has no scope", mainSource.filename().string()));
             return nullptr;
         }
 
         memberSym = lookupWithInheritance(obj, static_cast<IdentyfierNode*>(member.get())->value, ctx.lookup(&objectType));
     } else {
         if (!obj->type || obj->type->kind != SymbolKind::CLASS || !obj->type->scope) {
-            ctx.errors.push_back(Error(position, "Object is not a class instance"));
+            ctx.errors.push_back(Error(position, "Object is not a class instance", mainSource.filename().string()));
             return nullptr;
         }
 
@@ -378,12 +380,12 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
     }
 
     if (!memberSym) {
-        ctx.errors.push_back(Error(position, "No such class member"));
+        ctx.errors.push_back(Error(position, "No such class member", mainSource.filename().string()));
         return nullptr;
     }
 
     if (memberSym->name->value == "init") {
-        ctx.errors.push_back(Error(position, "Direct call to init() is not allowed"));
+        ctx.errors.push_back(Error(position, "Direct call to init() is not allowed", mainSource.filename().string()));
         return nullptr;
     }
 
@@ -392,12 +394,12 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
 
         if (isStaticAccess) {
             if (!funcDecl->isStatic) {
-                ctx.errors.push_back(Error(position, "Cannot access non-static member without instance"));
+                ctx.errors.push_back(Error(position, "Cannot access non-static member without instance", mainSource.filename().string()));
                 return nullptr;
             }
         } else {
             if (funcDecl->isStatic) {
-                ctx.errors.push_back(Error(position, "Cannot access static member through instance"));
+                ctx.errors.push_back(Error(position, "Cannot access static member through instance", mainSource.filename().string()));
                 return nullptr;
             }
         }
@@ -405,7 +407,7 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
         if (funcDecl->visibility == VisibilityKind::PRIVATE) {
             if (!ctx.generativeSymbol ||
                 obj->type->name->value != ctx.generativeSymbol->name->value) {
-                ctx.errors.push_back(Error(position, "Cannot access private member from outside the class"));
+                ctx.errors.push_back(Error(position, "Cannot access private member from outside the class", mainSource.filename().string()));
                 return nullptr;
             }
         }
@@ -418,13 +420,13 @@ Symbol* ReturnNode::evaluateSymbol(Context& ctx) {
     if (value) {
         auto valueSym = value->evaluateSymbol(ctx);
         if (valueSym->type->name->value != ctx.generativeSymbol->type->name->value) {
-            ctx.errors.push_back(Error(position, "Type mismatch in return statement"));
+            ctx.errors.push_back(Error(position, "Type mismatch in return statement", mainSource.filename().string()));
         }
 
         return valueSym;
     } else {
         if (ctx.generativeSymbol->type->name->value != "Void") {
-            ctx.errors.push_back(Error(position, "Type mismatch in return statement"));
+            ctx.errors.push_back(Error(position, "Type mismatch in return statement", mainSource.filename().string()));
         }
 
         auto voidSym = ctx.lookup(&voidType);
@@ -444,6 +446,7 @@ extern ProjectConfig config;
 extern bool parsingModule;
 
 Symbol* ImportNode::evaluateSymbol(Context& ctx){
+    auto currentMs = mainSource;
     if (ctx.phase != PassPhase::DECLARATION) return nullptr;
     parsingModule = true;
 
@@ -461,10 +464,11 @@ Symbol* ImportNode::evaluateSymbol(Context& ctx){
     moduleCtx->symbolKind = SymbolKind::NOT;
 
     if (!compile(moduleName, *moduleCtx)) {
-        ctx.errors.emplace_back(position, "Cannot import module " + name->value);
+        ctx.errors.emplace_back(position, "Cannot import module " + name->value, currentMs.filename().string());
     }
 
     parsingModule = false;
+    mainSource = currentMs;
     return nullptr;
 }
 
@@ -476,13 +480,13 @@ Symbol* StringNode::evaluateSymbol(Context& ctx) {
 
 Symbol* ThisNode::evaluateSymbol(Context& ctx) {
     if (ctx.symbolKind != SymbolKind::FUNCTION) {
-        ctx.errors.push_back(Error(position, "Cannot use 'this' outside of a function"));
+        ctx.errors.push_back(Error(position, "Cannot use 'this' outside of a function", mainSource.filename().string()));
         return nullptr;
     }
 
 
     if (inStatic) {
-        ctx.errors.push_back(Error(position, "Cannot use 'this' in static context"));
+        ctx.errors.push_back(Error(position, "Cannot use 'this' in static context", mainSource.filename().string()));
         return nullptr;
     }
 

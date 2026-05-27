@@ -68,7 +68,9 @@ std::string targetToTriple(const std::string& target) {
     return arch_map[arch_part] + '-' + os_map[os_part];
 }
 
-bool compile(std::filesystem::path mainSource, Context& globalCtx);
+std::filesystem::path mainSource;
+
+bool compile(std::filesystem::path ms, Context& globalCtx);
 
 Symbol* createBuiltinClass(Context& globalCtx, std::unique_ptr<Context>& ctx, const std::string& name, IdentyfierNode* typeNode, const std::string& mangle) {
     auto cls = std::make_unique<Symbol>(SymbolKind::CLASS, typeNode, nullptr, nullptr);
@@ -178,7 +180,8 @@ void printModuleASTPtrs() {
     DEBUG_OUTPUT << "}\n";
 }
 
-bool compile(std::filesystem::path mainSource, Context& globalCtx) {
+bool compile(std::filesystem::path ms, Context& globalCtx) {
+    mainSource = ms;
     std::ifstream mainSourceData(mainSource, std::ios::binary);
     if (!mainSourceData) {
         std::cerr << std::string("Error: Cannot open ") + std::string(mainSource) + std::string("\n");
@@ -195,7 +198,7 @@ bool compile(std::filesystem::path mainSource, Context& globalCtx) {
     std::vector<Error> errors;
 
     if (size == 0) {
-        std::cerr << Error(PositionSpan(1, 1), "Source file is empty").returnError() << "\n";
+        std::cerr << Error(PositionSpan(1, 1), "Source file is empty", mainSource.filename().string()).returnError() << "\n";
         return false;
     }
 
@@ -203,7 +206,7 @@ bool compile(std::filesystem::path mainSource, Context& globalCtx) {
     std::vector<Token> tokens = lexer.lex();
     for (auto token : tokens) {
         if (token.type == TokenType::ERR_TOKEN) {
-            errors.push_back(Error(token.position, "Unexpected token: " + token.value));
+            errors.push_back(Error(token.position, "Unexpected token: " + token.value, mainSource.filename().string()));
         }
     }
 
@@ -229,7 +232,7 @@ bool compile(std::filesystem::path mainSource, Context& globalCtx) {
     }
 
     if (!dynamic_cast<ModuleDeclaration*>(dynamic_cast<StatementNode*>(nodes[0].get())->value.get())) {
-        std::cerr << Error(PositionSpan(1, 1), "First declaration must be a module declaration").returnError() << "\n";
+        std::cerr << Error(PositionSpan(1, 1), "First declaration must be a module declaration", mainSource.filename().string()).returnError() << "\n";
         return false;
     }
 
