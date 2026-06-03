@@ -3,6 +3,8 @@
 std::unordered_map<std::string, Hash128> typeIds;
 std::unordered_map<std::string, std::unordered_map<std::string, int>> structValues;
 
+bool generatingRTTI = false;
+
 extern std::string mangleVisitor;
 
 std::string mangleName(const std::string &name) {

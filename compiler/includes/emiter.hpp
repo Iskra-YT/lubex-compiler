@@ -159,6 +159,7 @@ class LLVMGenerator {
 
             generateBuildInStruct("_BI_Object", {"_BI_TypeInfo"});
             generateBuildInFunction("_BI_Object_init", "_BI_Object", {"_BI_Object"}, "_BI_Object");  
+            generateBuildInFunction("_BI_Object_toString", "_BI_Object", {"_BI_Object"}, "_BI_String");  
 
             generateBuildInStruct("_BI_Number", {"double"});
             generateBuildInFunction("_BI_Number_init", "_BI_Number", {"_BI_Number", "double"}, "_BI_Number");

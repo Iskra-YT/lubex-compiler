@@ -7,5 +7,6 @@
 #include "lbxmem.h"
 
 _BI_Void* _std_console_out(_BI_String* fmt);
+_BI_Void* _std_console_outl(_BI_String* text);
 
 #endif // LUBEX_STD_CONSOLE_H

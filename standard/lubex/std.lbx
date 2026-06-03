@@ -1,5 +1,9 @@
 module std;
 
+class Math -> {
+    @mangle(_std_math_pow) public static func power(base: Number, exponent: Number): Number;
+};
+
 class Console -> {
     @mangle(_std_console_out) public static func write(text: String): Void;
     @mangle(_std_console_outl) public static func writeLn(text: String): Void;

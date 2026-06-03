@@ -31,6 +31,7 @@ IdentyfierNode addName(PositionSpan(0, 0), "add");
 IdentyfierNode subName(PositionSpan(0, 0), "subtract");
 IdentyfierNode mulName(PositionSpan(0, 0), "multiply");
 IdentyfierNode divName(PositionSpan(0, 0), "divide");
+IdentyfierNode toStringName(PositionSpan(0, 0), "toString");
 
 ProjectConfig config;
 bool parsingModule = false;
@@ -118,6 +119,12 @@ bool compileProject() {
     func->forcedMangle = "_BI_Object_init";
     objectContext->declare(std::move(func));
     numberOfParameters["Object"]["init"] = 0;
+    // Object.toString
+    func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &toStringName, object.get(), nullptr);
+    func->isStatic = false;
+    func->forcedMangle = "_BI_Object_toString";
+    objectContext->declare(std::move(func));
+    numberOfParameters["Object"]["toString"] = 1;
     object->scope = objectContext.get();
     globalCtx.declare(std::move(object));
 

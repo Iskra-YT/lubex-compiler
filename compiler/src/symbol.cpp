@@ -236,7 +236,7 @@ Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
         }
 
         auto returnType = fnSym->type->name->value;
-        if (returnType != "Void" && !hasReturn) {
+        if (returnType != "Void" && !hasReturn && !isForward) {
             ctx.errors.push_back(Error(position, "Missing return statement", mainSource.filename().string()));
         }
     }
@@ -393,18 +393,18 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
         auto funcDecl = static_cast<FunctionDeclaration*>(memberSym->node);
 
         if (isStaticAccess) {
-            if (!funcDecl->isStatic) {
+            if (!memberSym->isStatic) {
                 ctx.errors.push_back(Error(position, "Cannot access non-static member without instance", mainSource.filename().string()));
                 return nullptr;
             }
         } else {
-            if (funcDecl->isStatic) {
+            if (memberSym->isStatic) {
                 ctx.errors.push_back(Error(position, "Cannot access static member through instance", mainSource.filename().string()));
                 return nullptr;
             }
         }
 
-        if (funcDecl->visibility == VisibilityKind::PRIVATE) {
+        if (funcDecl && funcDecl->visibility == VisibilityKind::PRIVATE) {
             if (!ctx.generativeSymbol ||
                 obj->type->name->value != ctx.generativeSymbol->name->value) {
                 ctx.errors.push_back(Error(position, "Cannot access private member from outside the class", mainSource.filename().string()));
