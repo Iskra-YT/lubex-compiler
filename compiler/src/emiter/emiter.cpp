@@ -1,9 +1,8 @@
-#include "emiter.hpp"
+#include "emiter/emiter.hpp"
 
 std::unordered_map<std::string, Hash128> typeIds;
 std::unordered_map<std::string, std::unordered_map<std::string, int>> structValues;
-
-bool generatingRTTI = false;
+std::unordered_map<std::string, RTTIRecord> globalTypeInfos;
 
 extern std::string mangleVisitor;
 
@@ -96,24 +95,14 @@ llvm::GlobalVariable* LLVMGenerator::updateTypeInfoWithVTable(llvm::GlobalVariab
 llvm::GlobalVariable* LLVMGenerator::getOrCreateTypeInfo(const std::string& name, const std::string& parentName) {
     if (typeInfos.count(name)) return typeInfos[name];
 
-    auto* ty = structTypes["_BI_TypeInfo"];
-
     Hash128 id;
     if (typeIds.count(name)) id = typeIds[name];
     else id = hash128(name);
 
-    llvm::Constant* parent = llvm::ConstantPointerNull::get(ty->getPointerTo());
+    globalTypeInfos[name] = {name, parentName, id};
 
-    if (!parentName.empty() && typeInfos.count(parentName)) {
-        parent = typeInfos[parentName];
-    }
+    auto* gv = new llvm::GlobalVariable(*emiterModule, structTypes["_BI_TypeInfo"], true, llvm::GlobalValue::ExternalLinkage, nullptr, "_T" + name);
 
-    llvm::Constant* vtable = llvm::ConstantPointerNull::get(llvm::Type::getInt64PtrTy(emiterContext)->getPointerTo());
-
-    llvm::Constant* idConst = llvm::ConstantInt::get(llvm::Type::getInt128Ty(emiterContext), toAPInt(id));
-    llvm::Constant* init = llvm::ConstantStruct::get(ty, {idConst, parent, vtable});
-
-    auto* gv = new llvm::GlobalVariable(*emiterModule, ty, true, llvm::GlobalValue::LinkageTypes::InternalLinkage, init, "_T" + name);
     typeInfos[name] = gv;
     return gv;
 }
@@ -130,14 +119,11 @@ void LLVMGenerator::buildVTable(const std::string& cls) {
         buildVTable(parent);
 
         const auto& parentV = vTables[parent];
-
-        for (size_t i = 0; i < parentV.size(); i++) {
-            llvm::Function* fn = parentV[i];
-
+        for (auto* fn : parentV) {
             std::string name = getMethodName(fn->getName().str());
 
             if (!indexMap.count(name)) {
-                indexMap[name] = finalMethods.size();
+                indexMap[name] = static_cast<int>(finalMethods.size());
                 finalMethods.push_back(fn);
             }
         }
@@ -149,30 +135,28 @@ void LLVMGenerator::buildVTable(const std::string& cls) {
         if (indexMap.count(name)) {
             finalMethods[indexMap[name]] = fn;
         } else {
-            indexMap[name] = finalMethods.size();
+            indexMap[name] = static_cast<int>(finalMethods.size());
             finalMethods.push_back(fn);
         }
     }
 
     for (size_t i = 0; i < finalMethods.size(); i++) {
         std::string name = getMethodName(finalMethods[i]->getName().str());
-        vTablePos[cls][name] = i;
+        vTablePos[cls][name] = static_cast<int>(i);
     }
 
-    std::vector<llvm::Constant*> entries;
-    entries.reserve(finalMethods.size());
+    auto& info = globalTypeInfos[cls];
+
+    info.vtableName = "_VT" + cls;
+    info.vtableMethods.clear();
 
     for (auto* fn : finalMethods) {
-        entries.push_back(llvm::ConstantExpr::getBitCast(fn, llvm::Type::getInt8PtrTy(emiterContext)));
+        info.vtableMethods.push_back(fn->getName().str());
     }
 
-    auto* vtableType = llvm::ArrayType::get(llvm::Type::getInt8PtrTy(emiterContext), entries.size());
+    auto* vtableType = llvm::ArrayType::get(llvm::Type::getInt8PtrTy(emiterContext), finalMethods.size());
+    auto* vTableGlobal = new llvm::GlobalVariable(*emiterModule, vtableType, true, llvm::GlobalValue::ExternalLinkage, nullptr, "_VT" + cls);
 
-    auto* vTable = llvm::ConstantArray::get(vtableType, entries);
-    auto* vTableGlobal = new llvm::GlobalVariable(*emiterModule, vtableType, true, llvm::GlobalValue::InternalLinkage, vTable, "_VT" + cls);
-    auto* vtablePtr = llvm::ConstantExpr::getBitCast(vTableGlobal, llvm::Type::getInt8PtrTy(emiterContext)->getPointerTo());
-
-    typeInfos[cls] = updateTypeInfoWithVTable(typeInfos[cls], vtablePtr);
     vTables[cls] = finalMethods;
 }
 
@@ -565,4 +549,79 @@ std::vector<llvm::Value*> LLVMGenerator::generate(std::vector<std::unique_ptr<IR
     }
 
     return res;
+}
+
+std::unique_ptr<llvm::Module> generateRTTIModule(llvm::LLVMContext& ctx, const std::unordered_map<std::string, RTTIRecord>& globalTypeInfos, const std::string& moduleName) {
+    auto module = std::make_unique<llvm::Module>(moduleName, ctx);
+    auto* typeInfoTy = llvm::StructType::create(ctx, {llvm::Type::getInt128Ty(ctx), llvm::PointerType::getUnqual(ctx), llvm::Type::getInt8PtrTy(ctx)->getPointerTo()}, "_BI_TypeInfo");
+
+    std::unordered_map<std::string, llvm::GlobalVariable*> typeInfos;
+    std::unordered_set<std::string> declaredFunctions;
+
+    for (auto& [_, info] : globalTypeInfos) {
+        for (auto& fnName : info.vtableMethods) {
+            if (declaredFunctions.contains(fnName)) continue;
+            declaredFunctions.insert(fnName);
+
+            auto* fnTy = llvm::FunctionType::get(llvm::Type::getInt8PtrTy(ctx), true);
+            llvm::Function::Create(
+                fnTy,
+                llvm::GlobalValue::ExternalLinkage,
+                fnName,
+                module.get()
+            );
+        }
+    }
+
+    for (auto& [name, _] : globalTypeInfos) {
+        auto* gv = new llvm::GlobalVariable(*module, typeInfoTy, true, llvm::GlobalValue::ExternalLinkage, nullptr, "_T" + name);
+        typeInfos[name] = gv;
+    }
+
+    std::unordered_map<std::string, llvm::GlobalVariable*> vtables;
+    for (auto& [name, info] : globalTypeInfos) {
+        std::vector<llvm::Constant*> entries;
+
+        for (auto& fnName : info.vtableMethods) {
+            auto* fn = module->getFunction(fnName);
+            entries.push_back(llvm::ConstantExpr::getBitCast(fn, llvm::Type::getInt8PtrTy(ctx)));
+        }
+
+        auto* arrTy = llvm::ArrayType::get(llvm::Type::getInt8PtrTy(ctx), entries.size());
+        auto* arr = llvm::ConstantArray::get(arrTy, entries);
+
+        auto* gv = new llvm::GlobalVariable(*module, arrTy, true, llvm::GlobalValue::ExternalLinkage, arr, info.vtableName);
+        vtables[name] = gv;
+    }
+
+    for (auto& [name, info] : globalTypeInfos) {
+
+        llvm::Constant* parent = llvm::ConstantPointerNull::get(typeInfoTy->getPointerTo());
+
+        if (!info.parent.empty()) {
+            parent = typeInfos[info.parent];
+        }
+
+        llvm::Constant* idConst = llvm::ConstantInt::get(
+            llvm::Type::getInt128Ty(ctx),
+            toAPInt(info.id)
+        );
+
+        llvm::Constant* vtablePtr = llvm::ConstantExpr::getBitCast(
+            vtables[name],
+            llvm::Type::getInt8PtrTy(ctx)->getPointerTo()
+        );
+
+        auto* init = llvm::ConstantStruct::get(typeInfoTy,
+            {
+                idConst,
+                parent,
+                vtablePtr
+            }
+        );
+
+        typeInfos[name]->setInitializer(init);
+    }
+
+    return module;
 }

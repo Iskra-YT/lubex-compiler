@@ -27,4 +27,4 @@ Use String for working with text, such as:
 
 | Version | Action | Description |
 | ------- | ------ | ----------- |
-| lubex-r202604a01 | Create | Create `String` type as sequence of characters |
+| lubex-r202605a01 | Create | Create `String` type as sequence of characters |

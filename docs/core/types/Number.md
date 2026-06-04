@@ -33,4 +33,4 @@ Use `Number` for general-purpose floating-point arithmetic number.
 | Version | Action | Description |
 | ------- | ------ | ----------- |
 | lubex-r202603a01 | Create | Create `Int` type as floating-point number |
-| lubex-r202604a01 | Modify | Rename `Int` type to `Number` to better reflect its floating-point nature |
+| lubex-r202605a01 | Modify | Rename `Int` type to `Number` to better reflect its floating-point nature |

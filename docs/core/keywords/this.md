@@ -44,7 +44,7 @@ In static methods, the `this` keyword cannot be used since there is no instance 
 
 | Version | Action | Description |
 | ------- | ------ | ----------- |
-| lubex-r202604a01 | Create | Create `this` keyword for referring to the current instance in class methods |
+| lubex-r202605a01 | Create | Create `this` keyword for referring to the current instance in class methods |
 
 ## See also
 

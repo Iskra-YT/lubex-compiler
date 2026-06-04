@@ -10,7 +10,8 @@
 #include <ios>
 #include <unordered_set>
 #include "config.hpp"
-#include "emiter.hpp"
+#include "emiter/emiter.hpp"
+#include "emiter/object.hpp"
 #include "error.hpp"
 #include "lexer.hpp"
 #include "optimizer.hpp"
@@ -169,6 +170,14 @@ bool compileProject() {
 
     if (!compile(mainSource, *globalCtx.addChild()))
         return false;
+
+    for (auto& target : config.targets) {
+        llvm::LLVMContext rttiCtx;
+        std::filesystem::path buildDir = std::filesystem::current_path() / config.buildDir / target.machine;
+
+        auto rttiModule = generateRTTIModule(rttiCtx, globalTypeInfos, "__rtti");
+        emitObjectFile(*rttiModule, targetToTriple(target.machine), buildDir / "rtti.o", config);
+    }
     
     return true;
 }
@@ -341,52 +350,15 @@ bool compile(std::filesystem::path ms, Context& globalCtx) {
 
         llvm.emiterModule->setTargetTriple(targetTriple);
 
-        std::string error;
-        auto llvmTarget = llvm::TargetRegistry::lookupTarget(targetTriple, error);
-        if (!llvmTarget) {
-            llvm::errs() << "Target lookup failed for triple " << targetTriple << ": " << error << "\n";
-            return false;
-        }
-
-        llvm::TargetOptions opt;
-        auto RM = llvm::Optional<llvm::Reloc::Model>();
-        auto targetMachine = llvmTarget->createTargetMachine(targetTriple, "generic", "", opt, RM);
-
-        switch (config.optimalization) {
-            case 0:
-                targetMachine->setOptLevel(llvm::CodeGenOpt::None);
-                break;
-            case 1:
-                targetMachine->setOptLevel(llvm::CodeGenOpt::Less);
-                break;
-            case 2:
-                targetMachine->setOptLevel(llvm::CodeGenOpt::Default);
-                break;
-            case 3:
-                targetMachine->setOptLevel(llvm::CodeGenOpt::Aggressive);
-                break;
-            default:
-                targetMachine->setOptLevel(llvm::CodeGenOpt::Default);
-                break;
-        }
-
-        std::error_code EC;
         std::filesystem::path buildDir = std::filesystem::current_path() / config.buildDir / target.machine;
         std::filesystem::create_directories(buildDir);
 
         std::filesystem::path outputFile = buildDir / (moduleName + ".o");
-        llvm::raw_fd_ostream dest(outputFile.string(), EC, llvm::sys::fs::OF_None);
 
-        llvm::legacy::PassManager pass;
-
-        if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, llvm::CGFT_ObjectFile)) {
-            llvm::errs() << "TargetMachine can't emit a file of this type";
+        if (!emitObjectFile(*llvm.emiterModule, targetTriple, outputFile, config)) {
+            std::cerr << "Failed to emit object file for " << target.machine << "\n";
             return false;
         }
-
-        
-        pass.run(*llvm.emiterModule.get());
-        dest.flush();
     }
 
     return true;

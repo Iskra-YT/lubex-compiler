@@ -12,6 +12,17 @@
 
 extern std::unordered_map<std::string, Hash128> typeIds;
 
+struct RTTIRecord {
+    std::string name;
+    std::string parent;
+    Hash128 id;
+
+    std::string vtableName;
+    std::vector<std::string> vtableMethods;
+};
+
+extern std::unordered_map<std::string, RTTIRecord> globalTypeInfos;
+
 class LLVMGenerator {
     public:
         llvm::LLVMContext emiterContext;
@@ -182,5 +193,7 @@ class LLVMGenerator {
 
 std::string mangleName(Symbol* sym);
 std::string mangleName(const std::string &name);
+
+std::unique_ptr<llvm::Module> generateRTTIModule(llvm::LLVMContext& ctx, const std::unordered_map<std::string, RTTIRecord>& globalTypeInfos, const std::string& moduleName);
 
 #endif //EMITER_LUBEX_HPP

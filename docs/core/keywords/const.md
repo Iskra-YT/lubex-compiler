@@ -42,7 +42,7 @@ class Math -> {
 | Version | Action | Description |
 | ------- | ------ | ----------- |
 | lubex-r202603a01 | Create | Create `const` keyword for declaring constant variables |
-| lubex-r202604a01 | Modify | Update `const` keyword to support type inference |
+| lubex-r202605a01 | Modify | Update `const` keyword to support type inference |
 
 ## See Also
 

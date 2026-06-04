@@ -1,5 +1,5 @@
 #include "LIR/lir.hpp"
-#include "emiter.hpp"
+#include "emiter/emiter.hpp"
 #include <filesystem>
 
 std::string mangleVisitor = "";

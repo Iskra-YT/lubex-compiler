@@ -44,5 +44,5 @@ Hello, World!
 | Version | Action | Description |
 | ------- | ------ | ----------- |
 | lubex-r202603a01 | Create | Create function for printing ASCII value into standard output |
-| lubex-r202604a01 | Modify | Change `Int` type format parameter into `String` type format parameter | 
-| lubex-r202604a01 | Modify | Change function name from `out` into `write` |
+| lubex-r202605a01 | Modify | Change `Int` type format parameter into `String` type format parameter | 
+| lubex-r202605a01 | Modify | Change function name from `out` into `write` |

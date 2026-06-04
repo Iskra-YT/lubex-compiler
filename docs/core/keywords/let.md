@@ -45,7 +45,7 @@ class SimpleProgram -> {
 | Version | Action | Description |
 | ------- | ------ | ----------- |
 | lubex-r202603a01 | Create | Create `let` keyword for declaring mutable variables |
-| lubex-r202604a01 | Modify | Update `let` keyword to support type inference |
+| lubex-r202605a01 | Modify | Update `let` keyword to support type inference |
 
 ## See Also
 
