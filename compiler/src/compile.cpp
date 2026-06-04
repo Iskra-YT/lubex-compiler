@@ -177,6 +177,10 @@ bool compileProject() {
 
         auto rttiModule = generateRTTIModule(rttiCtx, globalTypeInfos, "__rtti");
         emitObjectFile(*rttiModule, targetToTriple(target.machine), buildDir / "rtti.o", config);
+
+#ifdef DEBUG
+        rttiModule->print(llvm::errs(), nullptr);
+#endif // DEBUG
     }
     
     return true;
