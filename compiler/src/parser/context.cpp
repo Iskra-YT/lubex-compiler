@@ -58,7 +58,6 @@ void Parser::initFuncDecl() {
             auto& c = *(FuncDeclContext*)ctx;
             c.returnType = parseFactor();
         }, false, 0},
-        {TokenType::DELIMITER_TOKEN, "->", [](Token&, void*){}, true, 1},
         {TokenType::DELIMITER_TOKEN, "{", [&](Token&, void* ctx){
             auto& c = *(FuncDeclContext*)ctx;
             c.body = parseBlock();
@@ -89,7 +88,6 @@ void Parser::initClassDecl() {
             c.extender = parsePrimary();
             allowCallAndMember = true;
         }, false, 2},
-        {TokenType::DELIMITER_TOKEN, "->", [](Token&, void*){}, true, 1},
         {TokenType::DELIMITER_TOKEN, "{", [&](Token&, void* ctx){
             auto& c = *(ClassDeclContext*)ctx;
             c.members = parseBlock();

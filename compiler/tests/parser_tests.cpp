@@ -240,7 +240,6 @@ PARSER_TEST(FunctionDeclaration) {
             Token(")", TokenType::DELIMITER_TOKEN),
             Token(":", TokenType::DELIMITER_TOKEN),
             Token("Int", TokenType::IDENTYFIER_TOKEN),
-            Token("->", TokenType::DELIMITER_TOKEN),
             Token("{", TokenType::DELIMITER_TOKEN),
             Token("}", TokenType::DELIMITER_TOKEN),
             Token(";", TokenType::DELIMITER_TOKEN),
@@ -401,7 +400,6 @@ PARSER_TEST(ClassDeclaration) {
         std::vector<Token> tokens = {
             Token("class", TokenType::KEYWORD_TOKEN),
             Token("Program", TokenType::IDENTYFIER_TOKEN),
-            Token("->", TokenType::DELIMITER_TOKEN),
             Token("{", TokenType::DELIMITER_TOKEN),
             Token("}", TokenType::DELIMITER_TOKEN),
             Token(";", TokenType::DELIMITER_TOKEN),

@@ -68,13 +68,6 @@ std::vector<Token> Lexer::lex() {
             continue;
         } 
 
-        else if (currentToken == '-' && !input.empty() && input.front() == '>') {
-            advance(); 
-            advance();
-            tokens.push_back({{startPos, currentPosition}, "->", TokenType::DELIMITER_TOKEN});
-            continue;
-        } 
-
         else if (currentToken == '+' || currentToken == '-' || currentToken == '*' || currentToken == '/') {
             if (currentToken == '/' && !input.empty() && input.front() == '/') {
                 auto pos = currentPosition;
