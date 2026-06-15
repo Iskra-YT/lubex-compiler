@@ -5,7 +5,7 @@
 ## Syntax
 
 ```lubex
-func functionName(parameters): ReturnType -> {
+func functionName(parameters): ReturnType {
     // function body
 };
 ```
@@ -19,8 +19,8 @@ The `func` keyword is followed by the function name, a list of parameters (if an
 ```lubex
 module main;
 
-class Math -> {
-    public static func add(a: Int, b: Int): Int -> {
+class Math {
+    public static func add(a: Number, b: Number): Number {
         return a + b;
     };
 };
@@ -42,9 +42,11 @@ Functions can be only definited inside a class. They can be called using the cla
 | Version | Action | Description |
 | ------- | ------ | ----------- |
 | lubex-r202603a01 | Create | Create `func` keyword for defining functions |
+| lubex-r202606a01 | Modify | Remove `->` from syntax and update `Int` to `Number` |
 
 ## See also
 
 - [Public Keyword](./public.md)
 - [Static Keyword](./static.md)
 - [Return Keyword](./return.md)
+- [Override Keyword](./override.md)

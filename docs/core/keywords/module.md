@@ -17,9 +17,9 @@ The `module` keyword is followed by the module name and a semicolon. The module 
 ```lubex
 module main;
 
-class Point -> {
-    let x: Int;
-    let y: Int;
+class Point {
+    let x: Number;
+    let y: Number;
 };
 
 ```

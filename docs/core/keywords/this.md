@@ -18,11 +18,11 @@ The `this` keyword is a reference to the current object instance. It is commonly
 ```lubex
 module main;
 
-class Point -> {
-    let x: Int;
-    let y: Int;
+class Point {
+    let x: Number;
+    let y: Number;
 
-    public func move(dx: Int, dy: Int): Void -> {
+    public func move(dx: Number, dy: Number): Void {
         this.x = this.x + dx;
         this.y = this.y + dy;
     };
@@ -45,6 +45,7 @@ In static methods, the `this` keyword cannot be used since there is no instance 
 | Version | Action | Description |
 | ------- | ------ | ----------- |
 | lubex-r202605a01 | Create | Create `this` keyword for referring to the current instance in class methods |
+| lubex-r202606a01 | Modify | Remove `->` from syntax and update `Int` to `Number` |
 
 ## See also
 

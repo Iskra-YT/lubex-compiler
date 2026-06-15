@@ -19,8 +19,8 @@ It can only be used inside a function body.
 ```lubex
 module main;
 
-class Math -> {
-    public static func add(a: Int, b: Int): Int -> {
+class Math {
+    public static func add(a: Number, b: Number): Number {
         return a + b;
     };
 };
@@ -44,6 +44,7 @@ class Math -> {
 | Version | Action | Description |
 | ------- | ------ | ----------- |
 | lubex-r202603a01 | Create | Create `return` keyword for exiting functions and returning values |
+| lubex-r202606a01 | Modify | Remove `->` from syntax and update `Int` to `Number` |
 
 ## See also
 

@@ -17,12 +17,12 @@ The `let` keyword is used to declare a variable in Lubex. It allows you to creat
 ```lubex
 module main;
 
-class SimpleProgram -> {
-    public static func main(): Number -> {
+class SimpleProgram {
+    public static func main(): Number {
         let message: String = "Hello, World!";
-        std.Console.out(message);
+        std.Console.write(message);
         message = "Welcome to Lubex!";
-        std.Console.out(message);
+        std.Console.write(message);
         return 0;
     };
 };
@@ -46,6 +46,7 @@ class SimpleProgram -> {
 | ------- | ------ | ----------- |
 | lubex-r202603a01 | Create | Create `let` keyword for declaring mutable variables |
 | lubex-r202605a01 | Modify | Update `let` keyword to support type inference |
+| lubex-r202606a01 | Modify | Update example to use `std.Console.write` |
 
 ## See Also
 

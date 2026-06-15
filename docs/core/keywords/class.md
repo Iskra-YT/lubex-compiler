@@ -5,7 +5,7 @@
 ## Syntax
 
 ```lubex
-class ClassName -> {
+class ClassName {
     // class body
 };
 ```
@@ -19,11 +19,11 @@ The `class` keyword is followed by the class name and a block of code enclosed i
 ```lubex
 module main;
 
-class Point -> {
-    let x: Int;
-    let y: Int;
+class Point {
+    let x: Number;
+    let y: Number;
 
-    public func move(dx: Int, dy: Int): Void -> {
+    public func move(dx: Number, dy: Number): Void {
         this.x = this.x + dx;
         this.y = this.y + dy;
     };
@@ -46,9 +46,11 @@ class Point -> {
 | Version | Action | Description |
 | ------- | ------ | ----------- |
 | lubex-r202603a01 | Create | Create `class` keyword for defining classes |
+| lubex-r202606a01 | Modify | Remove `->` from syntax |
 
 ## See also
 
 - [Func Keyword](./func.md)
 - [Public Keyword](./public.md)
 - [This Keyword](./this.md)
+- [Extends Keyword](./extends.md)

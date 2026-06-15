@@ -8,6 +8,7 @@ It is designed to be intuitive, efficient, and integrated with the Lubex languag
 | Module | Description | Supporded From |
 | ------ | ----------- | -------------- | 
 | [`Console`](Console/) | Console Input/Output | lubex-r202603a01 |
+| [`Math`](Math/) | Mathematical functions | lubex-r202606a01 |
 
 ## Status
 

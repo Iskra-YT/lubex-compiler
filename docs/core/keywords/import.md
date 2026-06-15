@@ -19,9 +19,9 @@ module main;
 
 import std;
 
-class HelloWorldProgram -> {
-    public static func main(): Int -> {
-        std.Console.out("Hello, World!");
+class HelloWorldProgram {
+    public static func main(): Number {
+        std.Console.write("Hello, World!");
         return 0;
     };
 };
@@ -42,6 +42,7 @@ class HelloWorldProgram -> {
 | Version | Action | Description |
 | ------- | ------ | ----------- |
 | lubex-r202603a01 | Create | Create `import` keyword for including external modules |
+| lubex-r202606a01 | Modify | Update example to use `std.Console.write` and `Number` |
 
 ## See also
 

@@ -17,8 +17,8 @@ The `const` keyword is used to declare a constant variable in Lubex. A constant 
 ```lubex
 module main;
 
-class Math -> {
-    public static func areaOfCircle(radius: Number): Number -> {
+class Math {
+    public static func areaOfCircle(radius: Number): Number {
         const PI: Number = 3.14159;
         return PI * radius * radius;
     };

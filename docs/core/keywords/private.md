@@ -5,7 +5,7 @@
 ## Syntax
 
 ```lubex
-private func functionName(parameters): ReturnType -> {
+private func functionName(parameters): ReturnType {
     // function body
 };
 ```
@@ -19,8 +19,8 @@ The `private` keyword is placed before the member declaration (field or method) 
 ```lubex
 module main;
 
-class Example -> {
-    private func secretMethod(): Void -> {
+class Example {
+    private func secretMethod(): Void {
         // secret implementation
     };
 };
@@ -41,9 +41,11 @@ Private members cannot be accessed using the dot notation from outside the class
 | Version | Action | Description |
 | ------- | ------ | ----------- |
 | lubex-r202603a01 | Create | Create `private` keyword for defining private members |
+| lubex-r202606a01 | Modify | Remove `->` from syntax |
 
 ## See also
 
 - [Public Keyword](./public.md)
 - [Func Keyword](./func.md)
 - [Static Keyword](./static.md)
+- [Internal Keyword](./internal.md)

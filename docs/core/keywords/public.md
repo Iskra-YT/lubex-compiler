@@ -5,7 +5,7 @@
 ## Syntax
 
 ```lubex
-public func functionName(parameters): ReturnType -> {
+public func functionName(parameters): ReturnType {
     // function body
 };
 ```
@@ -19,11 +19,11 @@ The `public` keyword is placed before the member declaration (field or method) t
 ```lubex
 module main;
 
-class Point -> {
-    let x: Int;
-    let y: Int;
+class Point {
+    let x: Number;
+    let y: Number;
 
-    public func move(dx: Int, dy: Int): Void -> {
+    public func move(dx: Number, dy: Number): Void {
         this.x = this.x + dx;
         this.y = this.y + dy;
     };
@@ -45,9 +45,11 @@ Public members can be accessed using the dot notation on an instance of the clas
 | Version | Action | Description |
 | ------- | ------ | ----------- |
 | lubex-r202603a01 | Create | Create `public` keyword for defining public members |
+| lubex-r202606a01 | Modify | Remove `->` from syntax |
 
 ## See also
 
 - [Private Keyword](./private.md)
 - [Func Keyword](./func.md)
 - [Static Keyword](./static.md)
+- [Internal Keyword](./internal.md)

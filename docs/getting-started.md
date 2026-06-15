@@ -60,9 +60,9 @@ module main;
 
 import std;
 
-class HelloProgram -> {
-    public static func entry(): Number -> {
-        std.Console.out("Hello, World!\n");
+class HelloProgram {
+    public static func entry(): Number {
+        std.Console.write("Hello, World!\n");
         return 0;
     };
 };

@@ -1,11 +1,11 @@
-# std.Console.write
+# std.Console.writeLn
 
-**Outputs value to the standard console.**
+**Outputs value to the standard console with a trailing newline.**
 
 ## Syntax
 
 ```lubex
-std.Console.write(text: String): Void
+std.Console.writeLn(text: String): Void
 ```
 
 ## Parameters
@@ -25,7 +25,7 @@ import std;
 
 class Hello {
     public static func entry(): Number {
-        std.Console.write("Hello, World!\n");
+        std.Console.writeLn("Hello, World!");
         return 0;
     };
 };
@@ -37,12 +37,14 @@ Hello, World!
 ```
 
 ## Notes
-- The function **does not** automatically append a newline.
+- The function automatically appends a newline character (`\n`) after the output.
 
 ## Changelog
 
 | Version | Action | Description |
 | ------- | ------ | ----------- |
-| lubex-r202603a01 | Create | Create function for printing ASCII value into standard output |
-| lubex-r202605a01 | Modify | Change `Int` type format parameter into `String` type format parameter | 
-| lubex-r202605a01 | Modify | Change function name from `out` into `write` |
+| lubex-r202606a01 | Create | Create `writeLn` function for printing with newline |
+
+## See also
+
+- [std.Console.write](./write.md)

@@ -10,11 +10,11 @@ The size and range of `Number` is 64 bits and corresponds to a **64-bit IEEE 754
 ## Syntax
 ```lubex
 let x: Number = 42;
-let y: Number = 12;
+let y: Number = 12.5;
 ```
 
 ## Usage
-Use `Number` for general-purpose floating-point arithmetic number.
+Use `Number` for general-purpose floating-point arithmetic.
 
 ## Operations
 
