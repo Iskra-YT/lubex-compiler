@@ -8,7 +8,6 @@
 
 extern std::filesystem::path mainSource;
 
-// Helper to run the pipeline
 std::vector<std::unique_ptr<IRValue>> runLIRPipeline(const std::string& source, Context& globalCtx) {
     mainSource = "test.lbx";
     std::vector<char> buffer(source.begin(), source.end());
@@ -51,11 +50,11 @@ std::vector<std::unique_ptr<IRValue>> runLIRPipeline(const std::string& source, 
     return generateLIR(nodes, mainCtx);
 }
 
-// Built-in types nodes (declared in ast.cpp)
 extern IdentyfierNode intType;
 extern IdentyfierNode objectType;
 extern IdentyfierNode voidType;
 extern IdentyfierNode stringType;
+extern IdentyfierNode nullType;
 
 extern IdentyfierNode initName;
 extern IdentyfierNode toStringName;
@@ -110,6 +109,12 @@ void setupGlobalContext(Context& globalCtx) {
     stringContext->declare(std::move(func));
     stringClass->scope = stringContext;
     globalCtx.declare(std::move(stringClass));
+
+    // Null
+    auto nullContext = globalCtx.addChild();
+    auto nullClass = std::make_unique<Symbol>(SymbolKind::CLASS, &nullType, nullptr, nullptr);
+    nullClass->scope = nullContext;
+    globalCtx.declare(std::move(nullClass));
 }
 
 LIR_TEST(BasicNumber) {
@@ -166,6 +171,73 @@ LIR_TEST(BinaryExpression) {
     }
 
     EXPECT_TRUE(foundAddCall);
+}
+
+LIR_TEST(StringLiteral) {
+    Context globalCtx(nullptr);
+    setupGlobalContext(globalCtx);
+    
+    std::string source = "module test; let s: String = \"hello\";";
+    auto lir = runLIRPipeline(source, *globalCtx.addChild());
+
+    ASSERT_FALSE(lir.empty());
+
+    bool foundStringVal = false;
+    bool foundAllocaStruct = false;
+
+    for (const auto& instr : lir) {
+        if (auto str = dynamic_cast<IRString*>(instr.get())) {
+            if (str->value == "hello") foundStringVal = true;
+        }
+        if (auto alloca = dynamic_cast<IRAllocaStruct*>(instr.get())) {
+            if (alloca->type == "_BI_String") foundAllocaStruct = true;
+        }
+    }
+
+    EXPECT_TRUE(foundStringVal);
+    EXPECT_TRUE(foundAllocaStruct);
+}
+
+LIR_TEST(FunctionCall) {
+    Context globalCtx(nullptr);
+    setupGlobalContext(globalCtx);
+    
+    std::string source = "module test; class Program { static func entry(): Number { return 5 + 10; }; };";
+    auto lir = runLIRPipeline(source, *globalCtx.addChild());
+
+    ASSERT_FALSE(lir.empty());
+
+    bool foundAddCall = false;
+    for (const auto& instr : lir) {
+        if (auto func = dynamic_cast<IRFunction*>(instr.get())) {
+            for (const auto& bodyInstr : func->body) {
+                if (auto call = dynamic_cast<IRCall*>(bodyInstr.get())) {
+                    if (call->funcName.find("_BI_Number_add") != std::string::npos) foundAddCall = true;
+                }
+            }
+        }
+    }
+
+    EXPECT_TRUE(foundAddCall);
+}
+
+LIR_TEST(NullCoalescing) {
+    Context globalCtx(nullptr);
+    setupGlobalContext(globalCtx);
+    
+    std::string source = "module test; let x: Number? = null; let y: Number = x ?: 0;";
+    auto lir = runLIRPipeline(source, *globalCtx.addChild());
+
+    ASSERT_FALSE(lir.empty());
+
+    bool foundCoalesce = false;
+    for (const auto& instr : lir) {
+        if (dynamic_cast<IRNullCoalescing*>(instr.get())) {
+            foundCoalesce = true;
+        }
+    }
+
+    EXPECT_TRUE(foundCoalesce);
 }
 
 LIR_TEST(FunctionDeclaration) {

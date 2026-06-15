@@ -35,7 +35,7 @@ class Math {
 
 ## Notes
 
-Functions can be only definited inside a class. They can be called using the class name and the function name, or through an instance of the class.
+Functions can only be defined inside a class. They can be called using the class name and the function name, or through an instance of the class.
 
 ## Changelog
 

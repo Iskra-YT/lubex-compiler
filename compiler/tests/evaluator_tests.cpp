@@ -71,3 +71,148 @@ EVALUATOR_TEST(DuplicateDeclarationError) {
     ASSERT_EQ(ctx.getErrors().size(), 1);
     ASSERT_TRUE(ctx.getErrors()[0].returnError().find("already defined") != std::string::npos);
 }
+
+EVALUATOR_TEST(ClassDeclarationViaEvaluator) {
+    Context ctx(nullptr);
+    ctx.phase = PassPhase::DECLARATION;
+
+    auto numberIdent = IdentyfierNode(PositionSpan(0, 0), "Number");
+    auto objectIdent = IdentyfierNode(PositionSpan(0, 0), "Object");
+    ctx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &numberIdent, nullptr, static_cast<ASTNode*>(&numberIdent)));
+    ctx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &objectIdent, nullptr, static_cast<ASTNode*>(&objectIdent)));
+
+    auto className = std::make_unique<IdentyfierNode>(PositionSpan(0,0), "MyClass");
+    auto classDecl = std::make_unique<ClassDeclNode>(
+        PositionSpan(0,0),
+        std::move(className),
+        std::vector<std::unique_ptr<ASTNode>>(),
+        false,
+        VisibilityKind::PUBLIC,
+        nullptr
+    );
+
+    classDecl->evaluateSymbol(ctx);
+    ASSERT_EQ(ctx.getErrors().size(), 0);
+
+    IdentyfierNode lookupName(PositionSpan(0,0), "MyClass");
+    auto found = ctx.lookup(&lookupName);
+    ASSERT_NE(found, nullptr);
+    ASSERT_EQ(found->kind, SymbolKind::CLASS);
+    ASSERT_NE(found->scope, nullptr);
+}
+
+EVALUATOR_TEST(NullableTypeResolution) {
+    Context ctx(nullptr);
+    ctx.phase = PassPhase::TYPE_CHECK;
+
+    auto numberIdent = IdentyfierNode(PositionSpan(0, 0), "Number");
+    ctx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &numberIdent, nullptr, static_cast<ASTNode*>(&numberIdent)));
+
+    auto baseType = std::make_unique<IdentyfierNode>(PositionSpan(0,0), "Number");
+    auto nullableType = std::make_unique<NullableTypeNode>(PositionSpan(0,0), std::move(baseType));
+
+    auto sym = nullableType->evaluateSymbol(ctx);
+    ASSERT_NE(sym, nullptr);
+    ASSERT_TRUE(sym->isNullable);
+    ASSERT_EQ(sym->name->value, "Number");
+}
+
+EVALUATOR_TEST(NullCoalescingTypeCheck) {
+    Context ctx(nullptr);
+    ctx.phase = PassPhase::TYPE_CHECK;
+
+    auto numberIdent = IdentyfierNode(PositionSpan(0, 0), "Number");
+    ctx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &numberIdent, nullptr, static_cast<ASTNode*>(&numberIdent)));
+
+    auto leftIdent = std::make_unique<IdentyfierNode>(PositionSpan(0,0), "x");
+    auto rightIdent = std::make_unique<IdentyfierNode>(PositionSpan(0,0), "y");
+
+    auto coalescing = std::make_unique<NullCoalescingNode>(
+        PositionSpan(0,0),
+        std::move(leftIdent),
+        std::move(rightIdent)
+    );
+
+    // Without declaring x and y, this should produce errors
+    auto result = coalescing->evaluateSymbol(ctx);
+    // The left evaluateSymbol will fail because 'x' is undefined
+    // But the method should handle nullptr gracefully
+    ASSERT_EQ(result, nullptr);
+}
+
+EVALUATOR_TEST(NullCheckOnNullable) {
+    Context ctx(nullptr);
+    ctx.phase = PassPhase::TYPE_CHECK;
+
+    auto numberIdent = IdentyfierNode(PositionSpan(0, 0), "Number");
+    ctx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &numberIdent, nullptr, static_cast<ASTNode*>(&numberIdent)));
+
+    auto* numberSym = ctx.lookup(&numberIdent);
+
+    // Create a nullable Number type
+    auto nullType = std::make_unique<Symbol>(SymbolKind::CLASS, &numberIdent, numberSym, nullptr);
+    nullType->isNullable = true;
+    Symbol* nullTypePtr = nullType.get();
+
+    // Declare a variable of nullable Number type
+    auto varName = new IdentyfierNode(PositionSpan(0,0), "x");
+    ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, varName, nullTypePtr, nullptr));
+    nullType.release();
+
+    // Now test ?? on the nullable variable
+    auto ident = std::make_unique<IdentyfierNode>(PositionSpan(0,0), "x");
+    auto nullCheck = std::make_unique<NullCheckNode>(PositionSpan(0,0), std::move(ident));
+
+    auto result = nullCheck->evaluateSymbol(ctx);
+    ASSERT_NE(result, nullptr);
+    ASSERT_EQ(result->name->value, "Number");
+}
+
+EVALUATOR_TEST(NullCheckOnNonNullable) {
+    Context ctx(nullptr);
+    ctx.phase = PassPhase::TYPE_CHECK;
+
+    auto numberIdent = IdentyfierNode(PositionSpan(0, 0), "Number");
+    ctx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &numberIdent, nullptr, static_cast<ASTNode*>(&numberIdent)));
+
+    auto* numberSym = ctx.lookup(&numberIdent);
+
+    // Declare a non-nullable Number variable
+    auto varName = new IdentyfierNode(PositionSpan(0,0), "x");
+    ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, varName, numberSym, nullptr));
+
+    auto ident = std::make_unique<IdentyfierNode>(PositionSpan(0,0), "x");
+    auto nullCheck = std::make_unique<NullCheckNode>(PositionSpan(0,0), std::move(ident));
+
+    auto result = nullCheck->evaluateSymbol(ctx);
+    // Should produce error since x is not nullable
+    ASSERT_GT(ctx.getErrors().size(), 0);
+    ASSERT_EQ(result, nullptr);
+}
+
+EVALUATOR_TEST(InheritedScopeLookup) {
+    Context ctx(nullptr);
+    ctx.phase = PassPhase::DECLARATION;
+
+    auto numberIdent = IdentyfierNode(PositionSpan(0, 0), "Number");
+    ctx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &numberIdent, nullptr, static_cast<ASTNode*>(&numberIdent)));
+
+    // Parent context - child of root
+    auto parentCtx = ctx.addChild();
+    auto parentName = new IdentyfierNode(PositionSpan(0,0), "parentVal");
+    parentCtx->declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, parentName, nullptr, nullptr));
+
+    // Child context - child of parentCtx
+    auto childCtx = parentCtx->addChild();
+    auto childName = new IdentyfierNode(PositionSpan(0,0), "childVal");
+    childCtx->declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, childName, nullptr, nullptr));
+
+    // Lookup from child - should find both (parentVal via parent chain)
+    IdentyfierNode lookParent(PositionSpan(0,0), "parentVal");
+    IdentyfierNode lookChild(PositionSpan(0,0), "childVal");
+    IdentyfierNode lookMissing(PositionSpan(0,0), "missingVal");
+
+    ASSERT_NE(childCtx->lookup(&lookParent), nullptr);
+    ASSERT_NE(childCtx->lookup(&lookChild), nullptr);
+    ASSERT_EQ(childCtx->lookup(&lookMissing), nullptr);
+}

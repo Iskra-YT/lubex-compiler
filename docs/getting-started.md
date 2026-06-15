@@ -46,15 +46,15 @@ Create a project via command:
 ./build/lubex init helloProgram
 ```
 
-After running this command there should append folder `helloProgram` with catalog structure:
-- `src/`
-- `project.json`
+After running this command a folder `helloProgram` will be created with the following structure:
+- `src/` - Source code directory
+- `project.json` - Project configuration file
 
 
 > [!WARNING]
-> Presented code will only apear on lubex-r202604a01 and newer versions
+> Presented code will only appear on lubex-r202604a01 and newer versions
 
-At `src/` folder there is a file named `main.lbx`, that contains following code:
+At `src/` folder there is a file named `main.lbx`, that contains the following code:
 ```lubex
 module main;
 

@@ -164,3 +164,187 @@ LEXER_TEST(StringLiterals) {
     ASSERT_EQ(tokens[2].value, "");
     ASSERT_EQ(tokens[3].type, TokenType::EOF_TOKEN);
 }
+
+LEXER_TEST(FloatLiterals) {
+    std::string input = "3.14 .5 1. 0.0";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 11);
+
+    ASSERT_EQ(tokens[0].type, TokenType::NUMBER_TOKEN);
+    ASSERT_EQ(tokens[0].value, "3");
+    ASSERT_EQ(tokens[1].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[1].value, ".");
+    ASSERT_EQ(tokens[2].type, TokenType::NUMBER_TOKEN);
+    ASSERT_EQ(tokens[2].value, "14");
+
+    ASSERT_EQ(tokens[3].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[3].value, ".");
+    ASSERT_EQ(tokens[4].type, TokenType::NUMBER_TOKEN);
+    ASSERT_EQ(tokens[4].value, "5");
+
+    ASSERT_EQ(tokens[5].type, TokenType::NUMBER_TOKEN);
+    ASSERT_EQ(tokens[5].value, "1");
+    ASSERT_EQ(tokens[6].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[6].value, ".");
+
+    ASSERT_EQ(tokens[7].type, TokenType::NUMBER_TOKEN);
+    ASSERT_EQ(tokens[7].value, "0");
+    ASSERT_EQ(tokens[8].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[8].value, ".");
+    ASSERT_EQ(tokens[9].type, TokenType::NUMBER_TOKEN);
+    ASSERT_EQ(tokens[9].value, "0");
+}
+
+LEXER_TEST(AllKeywords) {
+    std::string input = "let func class module static const return private public internal import this extends override null";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 16);
+
+    ASSERT_EQ(tokens[0].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[0].value, "let");
+    ASSERT_EQ(tokens[1].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[1].value, "func");
+    ASSERT_EQ(tokens[2].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[2].value, "class");
+    ASSERT_EQ(tokens[3].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[3].value, "module");
+    ASSERT_EQ(tokens[4].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[4].value, "static");
+    ASSERT_EQ(tokens[5].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[5].value, "const");
+    ASSERT_EQ(tokens[6].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[6].value, "return");
+    ASSERT_EQ(tokens[7].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[7].value, "private");
+    ASSERT_EQ(tokens[8].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[8].value, "public");
+    ASSERT_EQ(tokens[9].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[9].value, "internal");
+    ASSERT_EQ(tokens[10].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[10].value, "import");
+    ASSERT_EQ(tokens[11].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[11].value, "this");
+    ASSERT_EQ(tokens[12].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[12].value, "extends");
+    ASSERT_EQ(tokens[13].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[13].value, "override");
+    ASSERT_EQ(tokens[14].type, TokenType::KEYWORD_TOKEN);
+    ASSERT_EQ(tokens[14].value, "null");
+    ASSERT_EQ(tokens[15].type, TokenType::EOF_TOKEN);
+}
+
+LEXER_TEST(NullSafetyOperators) {
+    std::string input = "? ?? ?.";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 4);
+
+    ASSERT_EQ(tokens[0].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[0].value, "?");
+
+    ASSERT_EQ(tokens[1].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[1].value, "??");
+
+    ASSERT_EQ(tokens[2].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[2].value, "?.");
+
+    ASSERT_EQ(tokens[3].type, TokenType::EOF_TOKEN);
+}
+
+LEXER_TEST(Comments) {
+    std::string input = "1 // single line comment\n2 /* multi\nline */ 3";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 4);
+
+    ASSERT_EQ(tokens[0].type, TokenType::NUMBER_TOKEN);
+    ASSERT_EQ(tokens[0].value, "1");
+    ASSERT_EQ(tokens[1].type, TokenType::NUMBER_TOKEN);
+    ASSERT_EQ(tokens[1].value, "2");
+    ASSERT_EQ(tokens[2].type, TokenType::NUMBER_TOKEN);
+    ASSERT_EQ(tokens[2].value, "3");
+    ASSERT_EQ(tokens[3].type, TokenType::EOF_TOKEN);
+}
+
+LEXER_TEST(EscapeSequences) {
+    std::string input = "\"hello\\nworld\" \"tab\\there\" \"quote\\\"here\" \"backslash\\\\end\"";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 5);
+    ASSERT_EQ(tokens[0].type, TokenType::STRING_TOKEN);
+    ASSERT_EQ(tokens[0].value, "hello\nworld");
+    ASSERT_EQ(tokens[1].type, TokenType::STRING_TOKEN);
+    ASSERT_EQ(tokens[1].value, "tab\there");
+    ASSERT_EQ(tokens[2].type, TokenType::STRING_TOKEN);
+    ASSERT_EQ(tokens[2].value, "quote\"here");
+    ASSERT_EQ(tokens[3].type, TokenType::STRING_TOKEN);
+    ASSERT_EQ(tokens[3].value, "backslash\\end");
+    ASSERT_EQ(tokens[4].type, TokenType::EOF_TOKEN);
+}
+
+LEXER_TEST(UnterminatedString) {
+    std::string input = "\"hello";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 2);
+    ASSERT_EQ(tokens[0].type, TokenType::ERR_TOKEN);
+    ASSERT_EQ(tokens[0].value, "hello");
+    ASSERT_EQ(tokens[1].type, TokenType::EOF_TOKEN);
+}
+
+LEXER_TEST(EmptyInput) {
+    std::string input = "";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 1);
+    ASSERT_EQ(tokens[0].type, TokenType::EOF_TOKEN);
+}
+
+LEXER_TEST(MixedSource) {
+    std::string input = "module main;\nimport std;\n\nclass Program {\n    public static func entry(): Number {\n        return 0;\n    };\n};";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_GT(tokens.size(), 10);
+    ASSERT_EQ(tokens.back().type, TokenType::EOF_TOKEN);
+
+    bool hasModule = false, hasClass = false, hasFunc = false;
+    size_t keywordCount = 0;
+    for (const auto& t : tokens) {
+        if (t.type == TokenType::KEYWORD_TOKEN) {
+            keywordCount++;
+            if (t.value == "module") hasModule = true;
+            if (t.value == "class") hasClass = true;
+            if (t.value == "func") hasFunc = true;
+        }
+    }
+    EXPECT_TRUE(hasModule);
+    EXPECT_TRUE(hasClass);
+    EXPECT_TRUE(hasFunc);
+    EXPECT_GE(keywordCount, 3);
+}

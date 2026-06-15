@@ -566,6 +566,329 @@ PARSER_TEST(MemberAccess) {
     ASSERT_EQ(val->value, 42.0);
     }
 
+PARSER_TEST(NullableType) {
+    std::vector<Token> tokens = {
+        Token("let", TokenType::KEYWORD_TOKEN),
+        Token("x", TokenType::IDENTYFIER_TOKEN),
+        Token(":", TokenType::DELIMITER_TOKEN),
+        Token("Number", TokenType::IDENTYFIER_TOKEN),
+        Token("?", TokenType::DELIMITER_TOKEN),
+        Token("=", TokenType::ASSIGNMENT_TOKEN),
+        Token("null", TokenType::KEYWORD_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto varDecl = dynamic_cast<VariableDeclarationNode*>(stmt->value.get());
+    ASSERT_NE(varDecl, nullptr);
+    ASSERT_EQ(varDecl->isConst, false);
+
+    auto nullableType = dynamic_cast<NullableTypeNode*>(varDecl->type.get());
+    ASSERT_NE(nullableType, nullptr);
+
+    auto baseType = dynamic_cast<IdentyfierNode*>(nullableType->baseType.get());
+    ASSERT_NE(baseType, nullptr);
+    ASSERT_EQ(baseType->value, "Number");
+
+    auto value = dynamic_cast<NullNode*>(varDecl->value.get());
+    ASSERT_NE(value, nullptr);
+}
+
+PARSER_TEST(NullCheck) {
+    std::vector<Token> tokens = {
+        Token("x", TokenType::IDENTYFIER_TOKEN),
+        Token("??", TokenType::DELIMITER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto nullCheck = dynamic_cast<NullCheckNode*>(stmt->value.get());
+    ASSERT_NE(nullCheck, nullptr);
+
+    auto val = dynamic_cast<IdentyfierNode*>(nullCheck->value.get());
+    ASSERT_NE(val, nullptr);
+    ASSERT_EQ(val->value, "x");
+}
+
+PARSER_TEST(NullCoalescing) {
+    std::vector<Token> tokens = {
+        Token("x", TokenType::IDENTYFIER_TOKEN),
+        Token("?", TokenType::DELIMITER_TOKEN),
+        Token(":", TokenType::DELIMITER_TOKEN),
+        Token("y", TokenType::IDENTYFIER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto coalesce = dynamic_cast<NullCoalescingNode*>(stmt->value.get());
+    ASSERT_NE(coalesce, nullptr);
+
+    auto left = dynamic_cast<IdentyfierNode*>(coalesce->left.get());
+    auto right = dynamic_cast<IdentyfierNode*>(coalesce->right.get());
+    ASSERT_NE(left, nullptr);
+    ASSERT_NE(right, nullptr);
+    ASSERT_EQ(left->value, "x");
+    ASSERT_EQ(right->value, "y");
+}
+
+PARSER_TEST(SafeNavigation) {
+    std::vector<Token> tokens = {
+        Token("x", TokenType::IDENTYFIER_TOKEN),
+        Token("?.", TokenType::DELIMITER_TOKEN),
+        Token("y", TokenType::IDENTYFIER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto safeNav = dynamic_cast<SafeNavigationNode*>(stmt->value.get());
+    ASSERT_NE(safeNav, nullptr);
+
+    auto object = dynamic_cast<IdentyfierNode*>(safeNav->object.get());
+    auto member = dynamic_cast<IdentyfierNode*>(safeNav->member.get());
+    ASSERT_NE(object, nullptr);
+    ASSERT_NE(member, nullptr);
+    ASSERT_EQ(object->value, "x");
+    ASSERT_EQ(member->value, "y");
+}
+
+PARSER_TEST(ImportStatement) {
+    std::vector<Token> tokens = {
+        Token("import", TokenType::KEYWORD_TOKEN),
+        Token("std", TokenType::IDENTYFIER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto importNode = dynamic_cast<ImportNode*>(stmt->value.get());
+    ASSERT_NE(importNode, nullptr);
+
+    auto moduleName = dynamic_cast<IdentyfierNode*>(importNode->value.get());
+    ASSERT_NE(moduleName, nullptr);
+    ASSERT_EQ(moduleName->value, "std");
+}
+
+PARSER_TEST(Attributes) {
+    std::vector<Token> tokens = {
+        Token("@", TokenType::DELIMITER_TOKEN),
+        Token("mangle", TokenType::IDENTYFIER_TOKEN),
+        Token("(", TokenType::DELIMITER_TOKEN),
+        Token("testName", TokenType::IDENTYFIER_TOKEN),
+        Token(")", TokenType::DELIMITER_TOKEN),
+        Token("class", TokenType::KEYWORD_TOKEN),
+        Token("Foo", TokenType::IDENTYFIER_TOKEN),
+        Token("{", TokenType::DELIMITER_TOKEN),
+        Token("}", TokenType::DELIMITER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto attrNode = dynamic_cast<AttributesNode*>(stmt->value.get());
+    ASSERT_NE(attrNode, nullptr);
+
+    auto attrName = dynamic_cast<IdentyfierNode*>(attrNode->name.get());
+    ASSERT_NE(attrName, nullptr);
+    ASSERT_EQ(attrName->value, "mangle");
+
+    ASSERT_EQ(attrNode->params.size(), 1);
+
+    auto classDecl = dynamic_cast<ClassDeclNode*>(attrNode->value.get());
+    ASSERT_NE(classDecl, nullptr);
+
+    auto className = dynamic_cast<IdentyfierNode*>(classDecl->name.get());
+    ASSERT_NE(className, nullptr);
+    ASSERT_EQ(className->value, "Foo");
+}
+
+PARSER_TEST(ClassWithMembers) {
+    std::vector<Token> tokens = {
+        Token("class", TokenType::KEYWORD_TOKEN),
+        Token("Foo", TokenType::IDENTYFIER_TOKEN),
+        Token("{", TokenType::DELIMITER_TOKEN),
+        Token("let", TokenType::KEYWORD_TOKEN),
+        Token("x", TokenType::IDENTYFIER_TOKEN),
+        Token(":", TokenType::DELIMITER_TOKEN),
+        Token("Number", TokenType::IDENTYFIER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("}", TokenType::DELIMITER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto classNode = dynamic_cast<ClassDeclNode*>(stmt->value.get());
+    ASSERT_NE(classNode, nullptr);
+
+    auto name = dynamic_cast<IdentyfierNode*>(classNode->name.get());
+    ASSERT_NE(name, nullptr);
+    ASSERT_EQ(name->value, "Foo");
+
+    ASSERT_EQ(classNode->members.size(), 1);
+    ASSERT_EQ(classNode->isForward, false);
+}
+
+PARSER_TEST(Inheritance) {
+    std::vector<Token> tokens = {
+        Token("class", TokenType::KEYWORD_TOKEN),
+        Token("B", TokenType::IDENTYFIER_TOKEN),
+        Token("extends", TokenType::KEYWORD_TOKEN),
+        Token("A", TokenType::IDENTYFIER_TOKEN),
+        Token("{", TokenType::DELIMITER_TOKEN),
+        Token("}", TokenType::DELIMITER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto classNode = dynamic_cast<ClassDeclNode*>(stmt->value.get());
+    ASSERT_NE(classNode, nullptr);
+
+    auto name = dynamic_cast<IdentyfierNode*>(classNode->name.get());
+    ASSERT_NE(name, nullptr);
+    ASSERT_EQ(name->value, "B");
+
+    auto parent = dynamic_cast<IdentyfierNode*>(classNode->parent.get());
+    ASSERT_NE(parent, nullptr);
+    ASSERT_EQ(parent->value, "A");
+
+    ASSERT_EQ(classNode->isForward, false);
+}
+
+PARSER_TEST(ThisExpression) {
+    std::vector<Token> tokens = {
+        Token("this", TokenType::KEYWORD_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto thisNode = dynamic_cast<ThisNode*>(stmt->value.get());
+    ASSERT_NE(thisNode, nullptr);
+}
+
+PARSER_TEST(StringLiteral) {
+    std::vector<Token> tokens = {
+        Token("hello", TokenType::STRING_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_TRUE(errors.empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto strNode = dynamic_cast<StringNode*>(stmt->value.get());
+    ASSERT_NE(strNode, nullptr);
+    ASSERT_EQ(strNode->value, "hello");
+}
+
+PARSER_TEST(ParserErrorHandling) {
+    std::vector<Token> tokens = {
+        Token("class", TokenType::KEYWORD_TOKEN),
+        Token("Foo", TokenType::IDENTYFIER_TOKEN),
+        Token("{", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    auto errors = parser.getErrors();
+    ASSERT_FALSE(errors.empty());
+}
+
     PARSER_TEST(ComplexBinaryExpressionPrecedence) {
     // 1 + 2 * 3 + 4
     std::vector<Token> tokens = {
@@ -585,7 +908,6 @@ PARSER_TEST(MemberAccess) {
 
     ASSERT_TRUE(parser.getErrors().empty());
 
-    // Expected structure: ((1 + (2 * 3)) + 4)
     auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
     auto root = dynamic_cast<BinaryNode*>(stmt->value.get());
     ASSERT_NE(root, nullptr);

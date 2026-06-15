@@ -1,7 +1,7 @@
 #include "lbxobject.h"
 
-_BI_Object* _BI_Object_init(_BI_Object* this) {
-    return this;
+_BI_Object* _BI_Object_init(_BI_Object* obj) {
+    return obj;
 }
 
 extern _BI_TypeInfo _T_BI_String;
