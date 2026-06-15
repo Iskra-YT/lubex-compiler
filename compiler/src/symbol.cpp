@@ -63,6 +63,14 @@ inline std::string getOperationFunction(std::string op) {
     else if (op == "-") return "subtract";
     else if (op == "*") return "multiply";
     else if (op == "/") return "divide";
+    else if (op == "==") return "equals";
+    else if (op == "!=") return "notEquals";
+    else if (op == "<") return "lessThan";
+    else if (op == ">") return "greaterThan";
+    else if (op == "<=") return "lessOrEqual";
+    else if (op == ">=") return "greaterOrEqual";
+    else if (op == "!") return "logicalNot";
+    else if (op == "~") return "bitwiseNot";
     return "unknown";
 }
 
@@ -80,11 +88,32 @@ Symbol* BinaryNode::evaluateSymbol(Context& ctx) {
             ctx.errors.emplace_back(position, "Type does not support operator '" + op + "'", mainSource.filename().string());
         }
 
+        if (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=") {
+            return ctx.lookup(&intType);
+        }
+
         return L;
     }
     return nullptr;
 }
 
+Symbol* UnaryNode::evaluateSymbol(Context& ctx) {
+    if (ctx.phase == PassPhase::TYPE_CHECK) {
+        auto V = value->evaluateSymbol(ctx);
+
+        if (V->type->name->value != "Number") {
+            ctx.errors.push_back(Error(position, "Unary operator '" + op + "' requires Number operand", mainSource.filename().string()));
+        }
+
+        auto getFunction = V->type->scope->lookup(getOperationFunction(op));
+        if (!getFunction) {
+            ctx.errors.emplace_back(position, "Type does not support operator '" + op + "'", mainSource.filename().string());
+        }
+
+        return ctx.lookup(&intType);
+    }
+    return nullptr;
+}
 
 Symbol* VariableDeclarationNode::evaluateSymbol(Context& ctx) {
     auto declareVariable = [&]() {

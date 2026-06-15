@@ -173,3 +173,181 @@ OPTIMIZER_TEST(AlgebraicSimplification) {
 
     ASSERT_EQ(returnNum->value, 20.0);
 }
+
+OPTIMIZER_TEST(SimpleEquals) {
+    auto left = std::make_unique<NumberNode>(PositionSpan(0, 0), 3);
+    auto right = std::make_unique<NumberNode>(PositionSpan(0, 0), 3);
+    auto expr = std::make_unique<BinaryNode>(PositionSpan(0, 0), "==", std::move(left), std::move(right));
+
+    auto stmt = std::make_unique<StatementNode>(PositionSpan(0, 0), std::move(expr));
+    std::vector<std::unique_ptr<ASTNode>> nodes;
+    nodes.push_back(std::move(stmt));
+
+    getOptimization(&nodes);
+
+    ASSERT_EQ(nodes.size(), 1);
+    auto resultStmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(resultStmt, nullptr);
+
+    auto resultNum = dynamic_cast<NumberNode*>(resultStmt->value.get());
+    ASSERT_NE(resultNum, nullptr);
+    ASSERT_EQ(resultNum->value, 1.0);
+}
+
+OPTIMIZER_TEST(SimpleNotEquals) {
+    auto left = std::make_unique<NumberNode>(PositionSpan(0, 0), 3);
+    auto right = std::make_unique<NumberNode>(PositionSpan(0, 0), 4);
+    auto expr = std::make_unique<BinaryNode>(PositionSpan(0, 0), "!=", std::move(left), std::move(right));
+
+    auto stmt = std::make_unique<StatementNode>(PositionSpan(0, 0), std::move(expr));
+    std::vector<std::unique_ptr<ASTNode>> nodes;
+    nodes.push_back(std::move(stmt));
+
+    getOptimization(&nodes);
+
+    ASSERT_EQ(nodes.size(), 1);
+    auto resultStmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(resultStmt, nullptr);
+
+    auto resultNum = dynamic_cast<NumberNode*>(resultStmt->value.get());
+    ASSERT_NE(resultNum, nullptr);
+    ASSERT_EQ(resultNum->value, 1.0);
+}
+
+OPTIMIZER_TEST(SimpleLessThan) {
+    auto left = std::make_unique<NumberNode>(PositionSpan(0, 0), 2);
+    auto right = std::make_unique<NumberNode>(PositionSpan(0, 0), 5);
+    auto expr = std::make_unique<BinaryNode>(PositionSpan(0, 0), "<", std::move(left), std::move(right));
+
+    auto stmt = std::make_unique<StatementNode>(PositionSpan(0, 0), std::move(expr));
+    std::vector<std::unique_ptr<ASTNode>> nodes;
+    nodes.push_back(std::move(stmt));
+
+    getOptimization(&nodes);
+
+    ASSERT_EQ(nodes.size(), 1);
+    auto resultStmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(resultStmt, nullptr);
+
+    auto resultNum = dynamic_cast<NumberNode*>(resultStmt->value.get());
+    ASSERT_NE(resultNum, nullptr);
+    ASSERT_EQ(resultNum->value, 1.0);
+}
+
+OPTIMIZER_TEST(SimpleGreaterThan) {
+    auto left = std::make_unique<NumberNode>(PositionSpan(0, 0), 5);
+    auto right = std::make_unique<NumberNode>(PositionSpan(0, 0), 2);
+    auto expr = std::make_unique<BinaryNode>(PositionSpan(0, 0), ">", std::move(left), std::move(right));
+
+    auto stmt = std::make_unique<StatementNode>(PositionSpan(0, 0), std::move(expr));
+    std::vector<std::unique_ptr<ASTNode>> nodes;
+    nodes.push_back(std::move(stmt));
+
+    getOptimization(&nodes);
+
+    ASSERT_EQ(nodes.size(), 1);
+    auto resultStmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(resultStmt, nullptr);
+
+    auto resultNum = dynamic_cast<NumberNode*>(resultStmt->value.get());
+    ASSERT_NE(resultNum, nullptr);
+    ASSERT_EQ(resultNum->value, 1.0);
+}
+
+OPTIMIZER_TEST(SimpleLessOrEqual) {
+    auto left = std::make_unique<NumberNode>(PositionSpan(0, 0), 5);
+    auto right = std::make_unique<NumberNode>(PositionSpan(0, 0), 5);
+    auto expr = std::make_unique<BinaryNode>(PositionSpan(0, 0), "<=", std::move(left), std::move(right));
+
+    auto stmt = std::make_unique<StatementNode>(PositionSpan(0, 0), std::move(expr));
+    std::vector<std::unique_ptr<ASTNode>> nodes;
+    nodes.push_back(std::move(stmt));
+
+    getOptimization(&nodes);
+
+    ASSERT_EQ(nodes.size(), 1);
+    auto resultStmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(resultStmt, nullptr);
+
+    auto resultNum = dynamic_cast<NumberNode*>(resultStmt->value.get());
+    ASSERT_NE(resultNum, nullptr);
+    ASSERT_EQ(resultNum->value, 1.0);
+}
+
+OPTIMIZER_TEST(SimpleGreaterOrEqual) {
+    auto left = std::make_unique<NumberNode>(PositionSpan(0, 0), 5);
+    auto right = std::make_unique<NumberNode>(PositionSpan(0, 0), 3);
+    auto expr = std::make_unique<BinaryNode>(PositionSpan(0, 0), ">=", std::move(left), std::move(right));
+
+    auto stmt = std::make_unique<StatementNode>(PositionSpan(0, 0), std::move(expr));
+    std::vector<std::unique_ptr<ASTNode>> nodes;
+    nodes.push_back(std::move(stmt));
+
+    getOptimization(&nodes);
+
+    ASSERT_EQ(nodes.size(), 1);
+    auto resultStmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(resultStmt, nullptr);
+
+    auto resultNum = dynamic_cast<NumberNode*>(resultStmt->value.get());
+    ASSERT_NE(resultNum, nullptr);
+    ASSERT_EQ(resultNum->value, 1.0);
+}
+
+OPTIMIZER_TEST(SimpleLogicalNot) {
+    auto val = std::make_unique<NumberNode>(PositionSpan(0, 0), 0);
+    auto expr = std::make_unique<UnaryNode>(PositionSpan(0, 0), "!", std::move(val));
+
+    auto stmt = std::make_unique<StatementNode>(PositionSpan(0, 0), std::move(expr));
+    std::vector<std::unique_ptr<ASTNode>> nodes;
+    nodes.push_back(std::move(stmt));
+
+    getOptimization(&nodes);
+
+    ASSERT_EQ(nodes.size(), 1);
+    auto resultStmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(resultStmt, nullptr);
+
+    auto resultNum = dynamic_cast<NumberNode*>(resultStmt->value.get());
+    ASSERT_NE(resultNum, nullptr);
+    ASSERT_EQ(resultNum->value, 1.0);
+}
+
+OPTIMIZER_TEST(SimpleBitwiseNot) {
+    auto val = std::make_unique<NumberNode>(PositionSpan(0, 0), 0);
+    auto expr = std::make_unique<UnaryNode>(PositionSpan(0, 0), "~", std::move(val));
+
+    auto stmt = std::make_unique<StatementNode>(PositionSpan(0, 0), std::move(expr));
+    std::vector<std::unique_ptr<ASTNode>> nodes;
+    nodes.push_back(std::move(stmt));
+
+    getOptimization(&nodes);
+
+    ASSERT_EQ(nodes.size(), 1);
+    auto resultStmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(resultStmt, nullptr);
+
+    auto resultNum = dynamic_cast<NumberNode*>(resultStmt->value.get());
+    ASSERT_NE(resultNum, nullptr);
+    ASSERT_EQ(resultNum->value, -1.0);
+}
+
+OPTIMIZER_TEST(ComparisonNotOptimizedWithVariable) {
+    auto left = std::make_unique<IdentyfierNode>(PositionSpan(0, 0), "x");
+    auto right = std::make_unique<NumberNode>(PositionSpan(0, 0), 5);
+    auto expr = std::make_unique<BinaryNode>(PositionSpan(0, 0), "==", std::move(left), std::move(right));
+
+    auto stmt = std::make_unique<StatementNode>(PositionSpan(0, 0), std::move(expr));
+    std::vector<std::unique_ptr<ASTNode>> nodes;
+    nodes.push_back(std::move(stmt));
+
+    getOptimization(&nodes);
+
+    ASSERT_EQ(nodes.size(), 1);
+    auto resultStmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(resultStmt, nullptr);
+
+    auto resultBin = dynamic_cast<BinaryNode*>(resultStmt->value.get());
+    ASSERT_NE(resultBin, nullptr);
+    ASSERT_EQ(resultBin->op, "==");
+}

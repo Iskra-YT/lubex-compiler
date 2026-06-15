@@ -921,3 +921,170 @@ PARSER_TEST(ParserErrorHandling) {
     ASSERT_NE(right4, nullptr);
     ASSERT_EQ(right4->value, 4.0);
     }
+
+PARSER_TEST(ComparisonExpression) {
+    std::vector<Token> tokens = {
+        Token("1", TokenType::NUMBER_TOKEN),
+        Token("<", TokenType::COMPARISON_TOKEN),
+        Token("2", TokenType::NUMBER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    ASSERT_TRUE(parser.getErrors().empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto expr = dynamic_cast<BinaryNode*>(stmt->value.get());
+    ASSERT_NE(expr, nullptr);
+    ASSERT_EQ(expr->op, "<");
+
+    auto left = dynamic_cast<NumberNode*>(expr->left.get());
+    auto right = dynamic_cast<NumberNode*>(expr->right.get());
+    ASSERT_NE(left, nullptr);
+    ASSERT_NE(right, nullptr);
+    ASSERT_EQ(left->value, 1.0);
+    ASSERT_EQ(right->value, 2.0);
+}
+
+PARSER_TEST(ComparisonChained) {
+    std::vector<Token> tokens = {
+        Token("1", TokenType::NUMBER_TOKEN),
+        Token("<", TokenType::COMPARISON_TOKEN),
+        Token("2", TokenType::NUMBER_TOKEN),
+        Token("==", TokenType::COMPARISON_TOKEN),
+        Token("3", TokenType::NUMBER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    ASSERT_TRUE(parser.getErrors().empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    auto root = dynamic_cast<BinaryNode*>(stmt->value.get());
+    ASSERT_NE(root, nullptr);
+    ASSERT_EQ(root->op, "==");
+
+    auto leftLess = dynamic_cast<BinaryNode*>(root->left.get());
+    ASSERT_NE(leftLess, nullptr);
+    ASSERT_EQ(leftLess->op, "<");
+}
+
+PARSER_TEST(UnaryNotExpression) {
+    std::vector<Token> tokens = {
+        Token("!", TokenType::DELIMITER_TOKEN),
+        Token("1", TokenType::NUMBER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    ASSERT_TRUE(parser.getErrors().empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    auto expr = dynamic_cast<UnaryNode*>(stmt->value.get());
+    ASSERT_NE(expr, nullptr);
+    ASSERT_EQ(expr->op, "!");
+
+    auto val = dynamic_cast<NumberNode*>(expr->value.get());
+    ASSERT_NE(val, nullptr);
+    ASSERT_EQ(val->value, 1.0);
+}
+
+PARSER_TEST(UnaryBitwiseNotExpression) {
+    std::vector<Token> tokens = {
+        Token("~", TokenType::DELIMITER_TOKEN),
+        Token("42", TokenType::NUMBER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    ASSERT_TRUE(parser.getErrors().empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    auto expr = dynamic_cast<UnaryNode*>(stmt->value.get());
+    ASSERT_NE(expr, nullptr);
+    ASSERT_EQ(expr->op, "~");
+
+    auto val = dynamic_cast<NumberNode*>(expr->value.get());
+    ASSERT_NE(val, nullptr);
+    ASSERT_EQ(val->value, 42.0);
+}
+
+PARSER_TEST(ComparisonVsArithmeticPrecedence) {
+    std::vector<Token> tokens = {
+        Token("1", TokenType::NUMBER_TOKEN),
+        Token("+", TokenType::ARITHMETIC_TOKEN),
+        Token("2", TokenType::NUMBER_TOKEN),
+        Token("<", TokenType::COMPARISON_TOKEN),
+        Token("3", TokenType::NUMBER_TOKEN),
+        Token("*", TokenType::ARITHMETIC_TOKEN),
+        Token("4", TokenType::NUMBER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    ASSERT_TRUE(parser.getErrors().empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    auto root = dynamic_cast<BinaryNode*>(stmt->value.get());
+    ASSERT_NE(root, nullptr);
+    ASSERT_EQ(root->op, "<");
+
+    auto leftAdd = dynamic_cast<BinaryNode*>(root->left.get());
+    ASSERT_NE(leftAdd, nullptr);
+    ASSERT_EQ(leftAdd->op, "+");
+
+    auto rightMul = dynamic_cast<BinaryNode*>(root->right.get());
+    ASSERT_NE(rightMul, nullptr);
+    ASSERT_EQ(rightMul->op, "*");
+}
+
+PARSER_TEST(DoubleUnary) {
+    std::vector<Token> tokens = {
+        Token("!", TokenType::DELIMITER_TOKEN),
+        Token("!", TokenType::DELIMITER_TOKEN),
+        Token("1", TokenType::NUMBER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    ASSERT_TRUE(parser.getErrors().empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    auto outer = dynamic_cast<UnaryNode*>(stmt->value.get());
+    ASSERT_NE(outer, nullptr);
+    ASSERT_EQ(outer->op, "!");
+
+    auto inner = dynamic_cast<UnaryNode*>(outer->value.get());
+    ASSERT_NE(inner, nullptr);
+    ASSERT_EQ(inner->op, "!");
+
+    auto val = dynamic_cast<NumberNode*>(inner->value.get());
+    ASSERT_NE(val, nullptr);
+    ASSERT_EQ(val->value, 1.0);
+}

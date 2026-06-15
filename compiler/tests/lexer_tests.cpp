@@ -348,3 +348,69 @@ LEXER_TEST(MixedSource) {
     EXPECT_TRUE(hasFunc);
     EXPECT_GE(keywordCount, 3);
 }
+
+LEXER_TEST(ComparisonOperators) {
+    std::string input = "== != < > <= >=";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 7);
+
+    ASSERT_EQ(tokens[0].type, TokenType::COMPARISON_TOKEN);
+    ASSERT_EQ(tokens[0].value, "==");
+
+    ASSERT_EQ(tokens[1].type, TokenType::COMPARISON_TOKEN);
+    ASSERT_EQ(tokens[1].value, "!=");
+
+    ASSERT_EQ(tokens[2].type, TokenType::COMPARISON_TOKEN);
+    ASSERT_EQ(tokens[2].value, "<");
+
+    ASSERT_EQ(tokens[3].type, TokenType::COMPARISON_TOKEN);
+    ASSERT_EQ(tokens[3].value, ">");
+
+    ASSERT_EQ(tokens[4].type, TokenType::COMPARISON_TOKEN);
+    ASSERT_EQ(tokens[4].value, "<=");
+
+    ASSERT_EQ(tokens[5].type, TokenType::COMPARISON_TOKEN);
+    ASSERT_EQ(tokens[5].value, ">=");
+
+    ASSERT_EQ(tokens[6].type, TokenType::EOF_TOKEN);
+}
+
+LEXER_TEST(UnaryOperators) {
+    std::string input = "! ~";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 3);
+
+    ASSERT_EQ(tokens[0].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[0].value, "!");
+
+    ASSERT_EQ(tokens[1].type, TokenType::DELIMITER_TOKEN);
+    ASSERT_EQ(tokens[1].value, "~");
+
+    ASSERT_EQ(tokens[2].type, TokenType::EOF_TOKEN);
+}
+
+LEXER_TEST(AssignmentVsEquality) {
+    std::string input = "= ==";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 3);
+
+    ASSERT_EQ(tokens[0].type, TokenType::ASSIGNMENT_TOKEN);
+    ASSERT_EQ(tokens[0].value, "=");
+
+    ASSERT_EQ(tokens[1].type, TokenType::COMPARISON_TOKEN);
+    ASSERT_EQ(tokens[1].value, "==");
+
+    ASSERT_EQ(tokens[2].type, TokenType::EOF_TOKEN);
+}

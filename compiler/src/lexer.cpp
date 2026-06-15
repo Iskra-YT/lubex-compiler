@@ -117,7 +117,51 @@ std::vector<Token> Lexer::lex() {
         }
 
         else if (currentToken == '=') {
-            tokens.push_back({{startPos, currentPosition}, std::string(1, currentToken), TokenType::ASSIGNMENT_TOKEN});
+            advance();
+            if (currentToken == '=') {
+                tokens.push_back({{startPos, currentPosition}, "==", TokenType::COMPARISON_TOKEN});
+                advance();
+            } else {
+                tokens.push_back({{startPos, currentPosition}, "=", TokenType::ASSIGNMENT_TOKEN});
+            }
+            continue;
+        }
+
+        else if (currentToken == '!') {
+            advance();
+            if (currentToken == '=') {
+                tokens.push_back({{startPos, currentPosition}, "!=", TokenType::COMPARISON_TOKEN});
+                advance();
+            } else {
+                tokens.push_back({{startPos, currentPosition}, "!", TokenType::DELIMITER_TOKEN});
+            }
+            continue;
+        }
+
+        else if (currentToken == '<') {
+            advance();
+            if (currentToken == '=') {
+                tokens.push_back({{startPos, currentPosition}, "<=", TokenType::COMPARISON_TOKEN});
+                advance();
+            } else {
+                tokens.push_back({{startPos, currentPosition}, "<", TokenType::COMPARISON_TOKEN});
+            }
+            continue;
+        }
+
+        else if (currentToken == '>') {
+            advance();
+            if (currentToken == '=') {
+                tokens.push_back({{startPos, currentPosition}, ">=", TokenType::COMPARISON_TOKEN});
+                advance();
+            } else {
+                tokens.push_back({{startPos, currentPosition}, ">", TokenType::COMPARISON_TOKEN});
+            }
+            continue;
+        }
+
+        else if (currentToken == '~') {
+            tokens.push_back({{startPos, currentPosition}, "~", TokenType::DELIMITER_TOKEN});
             advance();
             continue;
         }

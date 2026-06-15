@@ -224,6 +224,15 @@ struct NullCheckNode : ASTNode {
     void debug() override;
 };
 
+struct UnaryNode : ASTNode {
+    std::string op;
+    std::unique_ptr<ASTNode> value;
+    UnaryNode(PositionSpan span, std::string o, std::unique_ptr<ASTNode> v)
+        : ASTNode(span), op(std::move(o)), value(std::move(v)) {}
+    Symbol* evaluateSymbol(Context& ctx) override;
+    void debug() override;
+};
+
 struct SafeNavigationNode : ASTNode {
     std::unique_ptr<ASTNode> object;
     std::unique_ptr<ASTNode> member;

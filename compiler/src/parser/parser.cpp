@@ -276,6 +276,23 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
         }
     }
 
+    while (true) {
+        Token tok = getCurrent();
+        if (tok.match(Token("==", TokenType::COMPARISON_TOKEN)) ||
+            tok.match(Token("!=", TokenType::COMPARISON_TOKEN)) ||
+            tok.match(Token("<", TokenType::COMPARISON_TOKEN)) ||
+            tok.match(Token(">", TokenType::COMPARISON_TOKEN)) ||
+            tok.match(Token("<=", TokenType::COMPARISON_TOKEN)) ||
+            tok.match(Token(">=", TokenType::COMPARISON_TOKEN))) {
+            std::string op = tok.value;
+            advance();
+            auto right = parseTerm();
+            node = std::make_unique<BinaryNode>(PositionSpan(tok.position.start, getCurrent().position.end), op, std::move(node), std::move(right));
+        } else {
+            break;
+        }
+    }
+
     if (getCurrent().match(Token("?", TokenType::DELIMITER_TOKEN))) {
         advance();
         if (getCurrent().match(Token(":", TokenType::DELIMITER_TOKEN))) {
@@ -377,6 +394,16 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
 }
 
 std::unique_ptr<ASTNode> Parser::parseFactor() {
+    Token tok = getCurrent();
+
+    if (tok.match(Token("!", TokenType::DELIMITER_TOKEN)) || tok.match(Token("~", TokenType::DELIMITER_TOKEN))) {
+        std::string op = tok.value;
+        advance();
+        auto value = parseFactor();
+        if (!value) return nullptr;
+        return std::make_unique<UnaryNode>(PositionSpan(tok.position.start, value->position.end), op, std::move(value));
+    }
+
     auto node = parsePrimary();
     if (!node) return nullptr;
 
@@ -384,7 +411,7 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
         return node;
 
     while (true) {
-        Token tok = getCurrent();
+        tok = getCurrent();
 
         if (tok.match(Token("(", TokenType::DELIMITER_TOKEN))) {
             advance();

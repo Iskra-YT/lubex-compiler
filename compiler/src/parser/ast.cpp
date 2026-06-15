@@ -150,3 +150,8 @@ void SafeNavigationNode::debug() {
     DEBUG_OUTPUT << "?.";
     member->debug();
 }
+
+void UnaryNode::debug() {
+    DEBUG_OUTPUT << op;
+    value->debug();
+}

@@ -31,6 +31,18 @@ static void optimizeBinary(BinaryNode* expr, std::unique_ptr<ASTNode>& node) {
     else if (expr->op == "/") {
         if (r != 0.0) result = l / r;
         else canFold = false;
+    } else if (expr->op == "==") {
+        result = (l == r) ? 1.0 : 0.0;
+    } else if (expr->op == "!=") {
+        result = (l != r) ? 1.0 : 0.0;
+    } else if (expr->op == "<") {
+        result = (l < r) ? 1.0 : 0.0;
+    } else if (expr->op == ">") {
+        result = (l > r) ? 1.0 : 0.0;
+    } else if (expr->op == "<=") {
+        result = (l <= r) ? 1.0 : 0.0;
+    } else if (expr->op == ">=") {
+        result = (l >= r) ? 1.0 : 0.0;
     } else {
         canFold = false;
     }
@@ -40,11 +52,37 @@ static void optimizeBinary(BinaryNode* expr, std::unique_ptr<ASTNode>& node) {
     replaceBinaryWithNumber(node, result);
 }
 
+static void optimizeUnary(UnaryNode* expr, std::unique_ptr<ASTNode>& node) {
+    if (expr->value) optimizeNode(expr->value);
+
+    NumberNode* valNum = asNumber(expr->value.get());
+    if (!valNum) return;
+
+    double v = valNum->value;
+    double result = 0.0;
+    bool canFold = true;
+
+    if (expr->op == "!") {
+        result = (v == 0.0) ? 1.0 : 0.0;
+    } else if (expr->op == "~") {
+        result = static_cast<double>(~static_cast<int64_t>(v));
+    } else {
+        canFold = false;
+    }
+
+    if (!canFold) return;
+
+    auto pos = expr->position;
+    node = std::make_unique<NumberNode>(pos, result);
+}
+
 void optimizeNode(std::unique_ptr<ASTNode>& node) {
     if (!node) return;
 
     if (auto expr = dynamic_cast<BinaryNode*>(node.get())) {
         optimizeBinary(expr, node);
+    } else if (auto un = dynamic_cast<UnaryNode*>(node.get())) {
+        optimizeUnary(un, node);
     } else if (auto stmt = dynamic_cast<StatementNode*>(node.get())) {
         optimizeNode(stmt->value);
     } else if (auto cls = dynamic_cast<ClassDeclNode*>(node.get())) {

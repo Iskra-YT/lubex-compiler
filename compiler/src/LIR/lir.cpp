@@ -218,6 +218,73 @@ LIRGenerate parseBinaryExpression(BinaryNode* bin) {
             res.push_back(std::make_unique<IRCall>(mangleName(binSym->type) + "_F6divide", mangleName(binSym->type), std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         }
+    } else if (bin->op == "==") {
+        if (binSym->type->name->value == "Number") {
+            res.push_back(std::make_unique<IRCall>("_BI_Number_equals", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        } else {
+            res.push_back(std::make_unique<IRCall>("_BI_Number_equals", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        }
+    } else if (bin->op == "!=") {
+        if (binSym->type->name->value == "Number") {
+            res.push_back(std::make_unique<IRCall>("_BI_Number_notEquals", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        } else {
+            res.push_back(std::make_unique<IRCall>("_BI_Number_notEquals", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        }
+    } else if (bin->op == "<") {
+        if (binSym->type->name->value == "Number") {
+            res.push_back(std::make_unique<IRCall>("_BI_Number_lessThan", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        } else {
+            res.push_back(std::make_unique<IRCall>("_BI_Number_lessThan", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        }
+    } else if (bin->op == ">") {
+        if (binSym->type->name->value == "Number") {
+            res.push_back(std::make_unique<IRCall>("_BI_Number_greaterThan", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        } else {
+            res.push_back(std::make_unique<IRCall>("_BI_Number_greaterThan", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        }
+    } else if (bin->op == "<=") {
+        if (binSym->type->name->value == "Number") {
+            res.push_back(std::make_unique<IRCall>("_BI_Number_lessOrEqual", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        } else {
+            res.push_back(std::make_unique<IRCall>("_BI_Number_lessOrEqual", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        }
+    } else if (bin->op == ">=") {
+        if (binSym->type->name->value == "Number") {
+            res.push_back(std::make_unique<IRCall>("_BI_Number_greaterOrEqual", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        } else {
+            res.push_back(std::make_unique<IRCall>("_BI_Number_greaterOrEqual", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            return {res.back().get(), std::move(res)};
+        }
+    }
+
+    return {};
+}
+
+LIRGenerate parseUnaryExpression(UnaryNode* un) {
+    std::vector<std::unique_ptr<IRValue>> res;
+    auto V = parse(un->value.get());
+
+    for (auto& instr : V.code) {
+        res.push_back(std::move(instr));
+    }
+
+    if (un->op == "!") {
+        res.push_back(std::make_unique<IRCall>("_BI_Number_logicalNot", "_BI_Number", std::vector<IRValue*>{V.mainValue}));
+        return {res.back().get(), std::move(res)};
+    } else if (un->op == "~") {
+        res.push_back(std::make_unique<IRCall>("_BI_Number_bitwiseNot", "_BI_Number", std::vector<IRValue*>{V.mainValue}));
+        return {res.back().get(), std::move(res)};
     }
 
     return {};
@@ -683,6 +750,8 @@ LIRGenerate parse(ASTNode* node) {
         return parseVariableAssigment(assign);
     } else if (auto bin = dynamic_cast<BinaryNode*>(node)) {
         return parseBinaryExpression(bin);
+    } else if (auto un = dynamic_cast<UnaryNode*>(node)) {
+        return parseUnaryExpression(un);
     } else if (auto func = dynamic_cast<FunctionDeclaration*>(node)) {
         return parseFunction(func);
     } else if (auto cls = dynamic_cast<ClassDeclNode*>(node)) {
