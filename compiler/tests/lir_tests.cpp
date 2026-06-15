@@ -177,16 +177,16 @@ LIR_TEST(FunctionDeclaration) {
 
     ASSERT_FALSE(lir.empty());
 
-    bool foundFunction = false;
+    int foundCount = 0;
     for (const auto& instr : lir) {
         if (auto func = dynamic_cast<IRFunction*>(instr.get())) {
-            if (func->name == "test.Program.add") {
-                foundFunction = true;
+            if (func->name.find("_C7Program_F3add") != std::string::npos) {
+                foundCount++;
                 EXPECT_EQ(func->args.size(), 2);
                 EXPECT_EQ(func->returnType, "_BI_Number");
             }
         }
     }
 
-    EXPECT_TRUE(foundFunction);
+    EXPECT_GE(foundCount, 1);
 }

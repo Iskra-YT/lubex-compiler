@@ -33,17 +33,29 @@ llvm::Value* LLVMGenerator::generateFunction(IRFunction* f) {
 
     if (!entry->getTerminator()) {
         if (f->returnType == "_BI_Void") {
-            auto* typeInfoGV = typeInfos["_BI_Void"];
+            auto it = typeInfos.find("_BI_Void");
+            if (it == typeInfos.end() || !it->second) {
+                std::cerr << "Missing TypeInfo for _BI_Void\n";
+                return nullptr;
+            }
+            llvm::Value* typeInfoGV = it->second;
+
+            auto typeInfoIt = structTypes.find("_BI_TypeInfo");
+            if (typeInfoIt == structTypes.end()) {
+                std::cerr << "Missing _BI_TypeInfo struct type\n";
+                return nullptr;
+            }
+            llvm::StructType* typeInfoTy = typeInfoIt->second;
 
             llvm::Type* i8PtrTy = llvm::Type::getInt8PtrTy(emiterContext);
 
             llvm::Value* typeInfoPtr = emiterBuilder.CreateBitCast(
                 typeInfoGV,
-                structTypes["_BI_TypeInfo"]->getPointerTo()
+                typeInfoTy->getPointerTo()
             );
             
             llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(
-                structTypes["_BI_TypeInfo"],
+                typeInfoTy,
                 typeInfoPtr,
                 2
             );
@@ -53,7 +65,17 @@ llvm::Value* LLVMGenerator::generateFunction(IRFunction* f) {
                 vtablePtrPtr
             );
             
-            int idx = vTablePos["_BI_Void"]["init"];
+            auto voidVtIt = vTablePos.find("_BI_Void");
+            if (voidVtIt == vTablePos.end()) {
+                std::cerr << "Missing vtable for _BI_Void\n";
+                return nullptr;
+            }
+            auto initIt = voidVtIt->second.find("init");
+            if (initIt == voidVtIt->second.end()) {
+                std::cerr << "Missing init in _BI_Void vtable\n";
+                return nullptr;
+            }
+            int idx = initIt->second;
             llvm::Value* idxVal = llvm::ConstantInt::get(
                 llvm::Type::getInt32Ty(emiterContext),
                 idx
@@ -109,14 +131,13 @@ llvm::Value* LLVMGenerator::generateCall(IRCall* c) {
 
     std::vector<llvm::Value*> args;
     for (auto argNode : c->args) {
-        llvm::Value* argVal = namedValues[argNode];
-    
-        if (!argVal) {
+        auto nvIt = namedValues.find(argNode);
+        if (nvIt == namedValues.end() || !nvIt->second) {
             std::cerr << "Missing arg value in call: " << c->funcName << "\n";
             return nullptr;
         }
     
-        args.push_back(argVal);
+        args.push_back(nvIt->second);
     }
 
     std::string className;
@@ -125,10 +146,15 @@ llvm::Value* LLVMGenerator::generateCall(IRCall* c) {
     if (builtinMethodClass.count(callee)) {
         className = builtinMethodClass[callee];
     } else {
-        auto funcIr = dynamic_cast<IRFunction*>(functionTable[callee]);
+        auto ftIt = functionTable.find(callee);
+        if (ftIt == functionTable.end()) {
+            std::cerr << "Missing IR for function: " << c->funcName << "\n";
+            return nullptr;
+        }
+        auto funcIr = dynamic_cast<IRFunction*>(ftIt->second);
     
         if (!funcIr) {
-            std::cerr << "Missing IR for function\n";
+            std::cerr << "Missing IR for function: " << c->funcName << "\n";
             return nullptr;
         }
     
@@ -138,7 +164,17 @@ llvm::Value* LLVMGenerator::generateCall(IRCall* c) {
 
     llvm::FunctionType* fnType = callee->getFunctionType();
     std::string methodName = getMethodName(c->funcName);
-    int idx = vTablePos[className][methodName];
+    auto clsVtIt = vTablePos.find(className);
+    if (clsVtIt == vTablePos.end()) {
+        std::cerr << "Missing vtable for class: " << className << "\n";
+        return nullptr;
+    }
+    auto mthIt = clsVtIt->second.find(methodName);
+    if (mthIt == clsVtIt->second.end()) {
+        std::cerr << "Missing method in vtable: " << className << "." << methodName << "\n";
+        return nullptr;
+    }
+    int idx = mthIt->second;
 
     llvm::Value* idxVal = llvm::ConstantInt::get(
         llvm::Type::getInt32Ty(emiterContext),
@@ -146,17 +182,30 @@ llvm::Value* LLVMGenerator::generateCall(IRCall* c) {
     );
     
     llvm::Type* i8PtrTy = llvm::Type::getInt8PtrTy(emiterContext);
+
+    auto typeInfoIt = structTypes.find("_BI_TypeInfo");
+    if (typeInfoIt == structTypes.end()) {
+        std::cerr << "Missing _BI_TypeInfo struct type\n";
+        return nullptr;
+    }
+    llvm::StructType* typeInfoTy = typeInfoIt->second;
+
     llvm::Value* vtablePtr = nullptr;
     if (isStatic) {
-        auto* typeInfoGV = typeInfos[className];
+        auto tiIt = typeInfos.find(className);
+        if (tiIt == typeInfos.end() || !tiIt->second) {
+            std::cerr << "Missing TypeInfo for static class: " << className << "\n";
+            return nullptr;
+        }
+        llvm::Value* typeInfoGV = tiIt->second;
     
         llvm::Value* typeInfoPtr = emiterBuilder.CreateBitCast(
             typeInfoGV,
-            structTypes["_BI_TypeInfo"]->getPointerTo()
+            typeInfoTy->getPointerTo()
         );
         
         llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(
-            structTypes["_BI_TypeInfo"],
+            typeInfoTy,
             typeInfoPtr,
             2
         );
@@ -166,6 +215,10 @@ llvm::Value* LLVMGenerator::generateCall(IRCall* c) {
             vtablePtrPtr
         );
     } else {
+        if (args.empty()) {
+            std::cerr << "Missing this pointer for instance method call\n";
+            return nullptr;
+        }
         llvm::Value* thisPtr = args[0];
         auto* classTy = llvm::cast<llvm::StructType>(mapLLVMType(className, false));
 
@@ -181,12 +234,12 @@ llvm::Value* LLVMGenerator::generateCall(IRCall* c) {
         );
         
         llvm::Value* typeInfoPtr = emiterBuilder.CreateLoad(
-            structTypes["_BI_TypeInfo"]->getPointerTo(),
+            typeInfoTy->getPointerTo(),
             typeInfoPtrPtr
         );
         
         llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(
-            structTypes["_BI_TypeInfo"],
+            typeInfoTy,
             typeInfoPtr,
             2
         );

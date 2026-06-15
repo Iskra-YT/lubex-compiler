@@ -22,7 +22,7 @@ void* _BI_malloc(long size) {
     HEAP_BLOCK* block = __R_mainHeap;
 
     while (block) {
-        for (int i = 0; i < 63; i++) {
+        for (int i = 0; i < 8; i++) {
             uint64_t chunk = block->bitmap[i];
 
             if (~chunk == 0) continue;
@@ -32,13 +32,19 @@ void* _BI_malloc(long size) {
             while (free_bits) {
                 int bit = __builtin_ctzll(free_bits);
                 int start = i * 64 + bit;
+
+                if (start + blocks_needed > 503) {
+                    free_bits &= free_bits - 1;
+                    continue;
+                }
+
                 int ok = 1;
                 for (int j = 0; j < blocks_needed; j++) {
                     int idx = start + j;
                     int ci = idx / 64;
                     int bi = idx % 64;
 
-                    if (ci >= 63 || (block->bitmap[ci] & (1ULL << bi))) {
+                    if (ci >= 8 || (block->bitmap[ci] & (1ULL << bi))) {
                         ok = 0;
                         break;
                     }

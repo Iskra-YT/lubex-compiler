@@ -34,6 +34,7 @@ _BI_String* _BI_Object_toString(_BI_Object* self) {
     *p = '\0';
 
     _BI_String* str = _BI_malloc(sizeof(_BI_String));
+    if (!str) return NULL;
     str->type = &_T_BI_String;
     str = _BI_String_init(str, buffer);
     return str;

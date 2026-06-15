@@ -95,7 +95,17 @@ llvm::Value* LLVMGenerator::generateAccess(IRAccess* a) {
         std::cerr << "Object is not a pointer type\n";
         return nullptr;
     }
-    auto* gep = emiterBuilder.CreateStructGEP(mapLLVMType(a->object->type, false), obj, structValues[a->object->type]["$" + std::to_string(a->memberName)]);
+    auto svIt = structValues.find(a->object->type);
+    if (svIt == structValues.end()) {
+        std::cerr << "Missing struct values for type: " << a->object->type << "\n";
+        return nullptr;
+    }
+    auto memberIt = svIt->second.find("$" + std::to_string(a->memberName));
+    if (memberIt == svIt->second.end()) {
+        std::cerr << "Missing member index for type: " << a->object->type << ", member: " << a->memberName << "\n";
+        return nullptr;
+    }
+    auto* gep = emiterBuilder.CreateStructGEP(mapLLVMType(a->object->type, false), obj, memberIt->second);
     namedValues[a] = gep;
     return gep;
 }
@@ -115,13 +125,19 @@ llvm::Value* LLVMGenerator::generateAllocaStruct(IRAllocaStruct* g) {
     llvm::Value* objPtr = emiterBuilder.CreateBitCast(allocated, type->getPointerTo());
 
 
-    llvm::Value* typeInfo = typeInfos[g->type];
-    if (!typeInfo) {
+    auto tiIt = typeInfos.find(g->type);
+    if (tiIt == typeInfos.end() || !tiIt->second) {
         std::cerr << "Missing TypeInfo for: " << g->type << "\n";
         return nullptr;
     }
+    llvm::Value* typeInfo = tiIt->second;
 
-    llvm::Value* typeInfoPtr = emiterBuilder.CreateBitCast(typeInfo, structTypes["_BI_TypeInfo"]->getPointerTo());
+    auto typeInfoStructIt = structTypes.find("_BI_TypeInfo");
+    if (typeInfoStructIt == structTypes.end()) {
+        std::cerr << "Missing _BI_TypeInfo struct type\n";
+        return nullptr;
+    }
+    llvm::Value* typeInfoPtr = emiterBuilder.CreateBitCast(typeInfo, typeInfoStructIt->second->getPointerTo());
     llvm::Value* gep = emiterBuilder.CreateStructGEP(type, objPtr, 0);
     emiterBuilder.CreateStore(typeInfoPtr, gep);
 

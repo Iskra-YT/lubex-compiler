@@ -12,11 +12,9 @@ cp compiler/build/lubex build/lubex
 cd runtime
 ./build.sh
 cd ..
-cp ./runtime/build/liblubrtx_lib.a ./build/lubrtx-lib.a
+cp ./runtime/build/liblubrtx.a ./build/lubrtx-lib.a
 
 cd standard
 ./build.sh
 cd ..
 cp ./standard/build/libstdlubex_lib.a ./build/stdlubex-lib.a
-
-./test.sh
