@@ -28,15 +28,15 @@ jobs:
       - name: Check include guards in headers
         run: |
           errors=0
+
           while IFS= read -r header; do
-            basename=$(basename "$header" | tr '[:lower:]' '[:upper:]' | tr '.' '_')
-            if ! grep -q "${basename}_HPP\|${basename}_H" "$header"; then
+            if ! grep -q "#ifndef" "$header" || ! grep -q "#define" "$header"; then
               echo "Missing include guard in: $header"
               errors=$((errors + 1))
             fi
           done < <(find compiler/ runtime/ standard/ \
             \( -path "*/build/*" -o -path "*/extern/*" \) -prune -o \
-            -name '*.hpp' -o -name '*.h' -print)
+            \( -name '*.hpp' -o -name '*.h' \) -print)
 
           if [ "$errors" -gt 0 ]; then
             echo "Found $errors headers without proper include guards."
