@@ -147,3 +147,20 @@ LEXER_TEST(Keywords) {
 
     ASSERT_EQ(tokens[5].type, TokenType::EOF_TOKEN);
 }
+
+LEXER_TEST(StringLiterals) {
+    std::string input = "\"hello\" \"world with spaces\" \"\"";
+    std::vector<char> in(input.begin(), input.end());
+
+    Lexer lexer(in);
+    std::vector<Token> tokens = lexer.lex();
+
+    ASSERT_EQ(tokens.size(), 4);
+    ASSERT_EQ(tokens[0].type, TokenType::STRING_TOKEN);
+    ASSERT_EQ(tokens[0].value, "hello");
+    ASSERT_EQ(tokens[1].type, TokenType::STRING_TOKEN);
+    ASSERT_EQ(tokens[1].value, "world with spaces");
+    ASSERT_EQ(tokens[2].type, TokenType::STRING_TOKEN);
+    ASSERT_EQ(tokens[2].value, "");
+    ASSERT_EQ(tokens[3].type, TokenType::EOF_TOKEN);
+}

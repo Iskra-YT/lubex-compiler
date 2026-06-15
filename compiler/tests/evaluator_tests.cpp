@@ -1,9 +1,6 @@
 #include "evaluator_tests.hpp"
 #include "evaluator.hpp"
 
-#include "evaluator_tests.hpp"
-#include "evaluator.hpp"
-
 EVALUATOR_TEST(VariableDeclaration) {
     Context ctx(nullptr);
     ctx.phase = PassPhase::DECLARATION;
@@ -41,4 +38,36 @@ EVALUATOR_TEST(UndefinedIdentifier) {
 
     ASSERT_EQ(ctx.getErrors().size(), 1);
     ASSERT_TRUE(ctx.getErrors()[0].returnError().find("y") != std::string::npos);
+}
+
+EVALUATOR_TEST(NestedContextLookup) {
+    Context global(nullptr);
+    auto sym1 = std::make_unique<Symbol>(SymbolKind::VARIABLE, new IdentyfierNode(PositionSpan(0,0), "a"), nullptr, nullptr);
+    global.declare(std::move(sym1));
+
+    Context* child = global.addChild();
+    auto sym2 = std::make_unique<Symbol>(SymbolKind::VARIABLE, new IdentyfierNode(PositionSpan(0,0), "b"), nullptr, nullptr);
+    child->declare(std::move(sym2));
+
+    IdentyfierNode idA(PositionSpan(0,0), "a");
+    IdentyfierNode idB(PositionSpan(0,0), "b");
+    IdentyfierNode idC(PositionSpan(0,0), "c");
+
+    ASSERT_NE(child->lookup(&idA), nullptr);
+    ASSERT_NE(child->lookup(&idB), nullptr);
+    ASSERT_EQ(child->lookup(&idC), nullptr);
+}
+
+EVALUATOR_TEST(DuplicateDeclarationError) {
+    Context ctx(nullptr);
+    auto id1 = new IdentyfierNode(PositionSpan(0,0), "x");
+    auto sym1 = std::make_unique<Symbol>(SymbolKind::VARIABLE, id1, nullptr, nullptr);
+    ctx.declare(std::move(sym1));
+
+    auto id2 = new IdentyfierNode(PositionSpan(0,0), "x");
+    auto sym2 = std::make_unique<Symbol>(SymbolKind::VARIABLE, id2, nullptr, nullptr);
+    ctx.declare(std::move(sym2));
+
+    ASSERT_EQ(ctx.getErrors().size(), 1);
+    ASSERT_TRUE(ctx.getErrors()[0].returnError().find("already defined") != std::string::npos);
 }

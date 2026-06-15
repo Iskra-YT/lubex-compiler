@@ -539,4 +539,63 @@ PARSER_TEST(MemberAccess) {
 
     ASSERT_EQ(object->value, "abc");
     ASSERT_EQ(member->value, "cba");
-}
+    }
+
+    PARSER_TEST(ReturnStatement) {
+    std::vector<Token> tokens = {
+        Token("return", TokenType::KEYWORD_TOKEN),
+        Token("42", TokenType::NUMBER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    ASSERT_TRUE(parser.getErrors().empty());
+    ASSERT_EQ(nodes.size(), 1);
+
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    ASSERT_NE(stmt, nullptr);
+
+    auto ret = dynamic_cast<ReturnNode*>(stmt->value.get());
+    ASSERT_NE(ret, nullptr);
+
+    auto val = dynamic_cast<NumberNode*>(ret->value.get());
+    ASSERT_NE(val, nullptr);
+    ASSERT_EQ(val->value, 42.0);
+    }
+
+    PARSER_TEST(ComplexBinaryExpressionPrecedence) {
+    // 1 + 2 * 3 + 4
+    std::vector<Token> tokens = {
+        Token("1", TokenType::NUMBER_TOKEN),
+        Token("+", TokenType::ARITHMETIC_TOKEN),
+        Token("2", TokenType::NUMBER_TOKEN),
+        Token("*", TokenType::ARITHMETIC_TOKEN),
+        Token("3", TokenType::NUMBER_TOKEN),
+        Token("+", TokenType::ARITHMETIC_TOKEN),
+        Token("4", TokenType::NUMBER_TOKEN),
+        Token(";", TokenType::DELIMITER_TOKEN),
+        Token("", TokenType::EOF_TOKEN)
+    };
+
+    Parser parser(tokens);
+    auto nodes = parser.parse();
+
+    ASSERT_TRUE(parser.getErrors().empty());
+
+    // Expected structure: ((1 + (2 * 3)) + 4)
+    auto stmt = dynamic_cast<StatementNode*>(nodes[0].get());
+    auto root = dynamic_cast<BinaryNode*>(stmt->value.get());
+    ASSERT_NE(root, nullptr);
+    ASSERT_EQ(root->op, "+");
+
+    auto left = dynamic_cast<BinaryNode*>(root->left.get());
+    ASSERT_NE(left, nullptr);
+    ASSERT_EQ(left->op, "+");
+
+    auto right4 = dynamic_cast<NumberNode*>(root->right.get());
+    ASSERT_NE(right4, nullptr);
+    ASSERT_EQ(right4->value, 4.0);
+    }

@@ -1,7 +1,7 @@
 #ifndef LUBRTX_LIB_LBXTYPE_H
 #define LUBRTX_LIB_LBXTYPE_H
 
-typedef struct {
+typedef struct _BI_TypeInfo {
     unsigned __int128 typeId;
     struct _BI_TypeInfo* parent;
     unsigned long** vTable;

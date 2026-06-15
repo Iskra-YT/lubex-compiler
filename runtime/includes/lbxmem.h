@@ -1,7 +1,9 @@
 #ifndef LUBRTX_LIB_LBXMEM_H
 #define LUBRTX_LIB_LBXMEM_H
 
-#define NULL (void*)0
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
 
 #include <stdint.h>
 
