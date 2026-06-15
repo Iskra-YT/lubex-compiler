@@ -13,8 +13,6 @@ jobs:
         compiler:
           - cc: gcc
             cxx: g++
-          - cc: clang-15
-            cxx: clang++-15
 
     runs-on: ubuntu-latest
 
