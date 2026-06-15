@@ -8,18 +8,15 @@
 
 #include "lexer.hpp"
 
-enum class VisibilityKind {
-    PRIVATE,
-    INTERNAL,
-    PUBLIC
-};
+enum class VisibilityKind { PRIVATE, INTERNAL, PUBLIC };
 
 struct Symbol;
 struct Context;
 
 struct ASTNode {
     PositionSpan position;
-    ASTNode(PositionSpan pos) : position(pos) {}
+    ASTNode(PositionSpan pos) : position(pos) {
+    }
 
     virtual ~ASTNode() = default;
     virtual Symbol* evaluateSymbol(Context& ctx);
@@ -28,7 +25,8 @@ struct ASTNode {
 
 struct StatementNode : ASTNode {
     std::unique_ptr<ASTNode> value;
-    explicit StatementNode(PositionSpan span, std::unique_ptr<ASTNode> val): ASTNode(span),  value(std::move(val)) {}
+    explicit StatementNode(PositionSpan span, std::unique_ptr<ASTNode> val) : ASTNode(span), value(std::move(val)) {
+    }
 
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
@@ -36,7 +34,8 @@ struct StatementNode : ASTNode {
 
 struct NumberNode : ASTNode {
     double value;
-    explicit NumberNode(PositionSpan span, double val): ASTNode(span),  value(val) {}
+    explicit NumberNode(PositionSpan span, double val) : ASTNode(span), value(val) {
+    }
 
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
@@ -48,7 +47,13 @@ struct VariableDeclarationNode : ASTNode {
     std::unique_ptr<ASTNode> type;
     bool isConst;
 
-    VariableDeclarationNode(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> value, std::unique_ptr<ASTNode> type, bool isConst): ASTNode(span), name(std::move(name)), value(std::move(value)), type(std::move(type)), isConst(isConst) {}
+    VariableDeclarationNode(PositionSpan span,
+                            std::unique_ptr<ASTNode> name,
+                            std::unique_ptr<ASTNode> value,
+                            std::unique_ptr<ASTNode> type,
+                            bool isConst) :
+        ASTNode(span), name(std::move(name)), value(std::move(value)), type(std::move(type)), isConst(isConst) {
+    }
 
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
@@ -56,7 +61,8 @@ struct VariableDeclarationNode : ASTNode {
 
 struct IdentyfierNode : ASTNode {
     std::string value;
-    explicit IdentyfierNode(PositionSpan span, std::string val): ASTNode(span),  value(val) {}
+    explicit IdentyfierNode(PositionSpan span, std::string val) : ASTNode(span), value(val) {
+    }
 
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
@@ -66,8 +72,10 @@ struct VariableAssigment : ASTNode {
     std::unique_ptr<ASTNode> name;
     std::unique_ptr<ASTNode> value;
 
-    VariableAssigment(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> value) : ASTNode(span), name(std::move(name)), value(std::move(value)) {}
-    
+    VariableAssigment(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> value) :
+        ASTNode(span), name(std::move(name)), value(std::move(value)) {
+    }
+
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };
@@ -76,8 +84,10 @@ struct ArgDeclaration : ASTNode {
     std::unique_ptr<ASTNode> name;
     std::unique_ptr<ASTNode> type;
 
-    ArgDeclaration(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> type) : ASTNode(span), name(std::move(name)), type(std::move(type)) {}
-    
+    ArgDeclaration(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> type) :
+        ASTNode(span), name(std::move(name)), type(std::move(type)) {
+    }
+
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };
@@ -92,7 +102,25 @@ struct FunctionDeclaration : ASTNode {
     bool isStatic;
     bool isOverride;
 
-    FunctionDeclaration(PositionSpan span, std::unique_ptr<ASTNode> name, std::unique_ptr<ASTNode> type, std::vector<std::unique_ptr<ASTNode>> parameters, std::vector<std::unique_ptr<ASTNode>> body, bool isForward, bool isStatic, VisibilityKind visibility, bool isOverride) : ASTNode(span), name(std::move(name)), type(std::move(type)), body(std::move(body)), parameters(std::move(parameters)), isForward(isForward), isStatic(isStatic), visibility(visibility), isOverride(isOverride) {}
+    FunctionDeclaration(PositionSpan span,
+                        std::unique_ptr<ASTNode> name,
+                        std::unique_ptr<ASTNode> type,
+                        std::vector<std::unique_ptr<ASTNode>> parameters,
+                        std::vector<std::unique_ptr<ASTNode>> body,
+                        bool isForward,
+                        bool isStatic,
+                        VisibilityKind visibility,
+                        bool isOverride) :
+        ASTNode(span),
+        name(std::move(name)),
+        type(std::move(type)),
+        body(std::move(body)),
+        parameters(std::move(parameters)),
+        isForward(isForward),
+        isStatic(isStatic),
+        visibility(visibility),
+        isOverride(isOverride) {
+    }
 
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
@@ -107,8 +135,17 @@ struct ClassDeclNode : ASTNode {
 
     ClassDeclNode(PositionSpan span,
                   std::unique_ptr<ASTNode> name,
-                  std::vector<std::unique_ptr<ASTNode>> members, bool isForward, VisibilityKind visibility, std::unique_ptr<ASTNode> parent)
-        : ASTNode(span), name(std::move(name)), members(std::move(members)), isForward(isForward), visibility(visibility), parent(std::move(parent)) {}
+                  std::vector<std::unique_ptr<ASTNode>> members,
+                  bool isForward,
+                  VisibilityKind visibility,
+                  std::unique_ptr<ASTNode> parent) :
+        ASTNode(span),
+        name(std::move(name)),
+        members(std::move(members)),
+        isForward(isForward),
+        visibility(visibility),
+        parent(std::move(parent)) {
+    }
 
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
@@ -117,8 +154,9 @@ struct ClassDeclNode : ASTNode {
 struct ModuleDeclaration : ASTNode {
     std::unique_ptr<ASTNode> name;
 
-    ModuleDeclaration(PositionSpan span, std::unique_ptr<ASTNode> name): ASTNode(span), name(std::move(name)) {}
-    
+    ModuleDeclaration(PositionSpan span, std::unique_ptr<ASTNode> name) : ASTNode(span), name(std::move(name)) {
+    }
+
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };
@@ -128,8 +166,9 @@ struct BinaryNode : ASTNode {
     std::unique_ptr<ASTNode> left;
     std::unique_ptr<ASTNode> right;
 
-    BinaryNode(PositionSpan span, std::string o, std::unique_ptr<ASTNode> l, std::unique_ptr<ASTNode> r)
-        : ASTNode(span), op(std::move(o)), left(std::move(l)), right(std::move(r)) {}
+    BinaryNode(PositionSpan span, std::string o, std::unique_ptr<ASTNode> l, std::unique_ptr<ASTNode> r) :
+        ASTNode(span), op(std::move(o)), left(std::move(l)), right(std::move(r)) {
+    }
 
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
@@ -139,8 +178,10 @@ struct CallNode : ASTNode {
     std::unique_ptr<ASTNode> callee;
     std::vector<std::unique_ptr<ASTNode>> args;
 
-    CallNode(PositionSpan span, std::unique_ptr<ASTNode> c, std::vector<std::unique_ptr<ASTNode>> a) : ASTNode(span), callee(std::move(c)), args(std::move(a)) {}
-    
+    CallNode(PositionSpan span, std::unique_ptr<ASTNode> c, std::vector<std::unique_ptr<ASTNode>> a) :
+        ASTNode(span), callee(std::move(c)), args(std::move(a)) {
+    }
+
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };
@@ -149,7 +190,9 @@ struct MemberAccessNode : ASTNode {
     std::unique_ptr<ASTNode> object;
     std::unique_ptr<ASTNode> member;
 
-    MemberAccessNode(PositionSpan span, std::unique_ptr<ASTNode> o, std::unique_ptr<ASTNode> m) : ASTNode(span), object(std::move(o)), member(std::move(m)) {}
+    MemberAccessNode(PositionSpan span, std::unique_ptr<ASTNode> o, std::unique_ptr<ASTNode> m) :
+        ASTNode(span), object(std::move(o)), member(std::move(m)) {
+    }
 
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
@@ -158,7 +201,8 @@ struct MemberAccessNode : ASTNode {
 struct ReturnNode : ASTNode {
     std::unique_ptr<ASTNode> value;
 
-    ReturnNode(PositionSpan span, std::unique_ptr<ASTNode> value) : ASTNode(span), value(std::move(value)) {}
+    ReturnNode(PositionSpan span, std::unique_ptr<ASTNode> value) : ASTNode(span), value(std::move(value)) {
+    }
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };
@@ -168,7 +212,12 @@ struct AttributesNode : ASTNode {
     std::vector<std::unique_ptr<ASTNode>> params;
     std::unique_ptr<ASTNode> value;
 
-    AttributesNode(PositionSpan span, std::unique_ptr<ASTNode> name, std::vector<std::unique_ptr<ASTNode>> params, std::unique_ptr<ASTNode> value) : ASTNode(span), name(std::move(name)), params(std::move(params)), value(std::move(value)) {}
+    AttributesNode(PositionSpan span,
+                   std::unique_ptr<ASTNode> name,
+                   std::vector<std::unique_ptr<ASTNode>> params,
+                   std::unique_ptr<ASTNode> value) :
+        ASTNode(span), name(std::move(name)), params(std::move(params)), value(std::move(value)) {
+    }
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };
@@ -176,35 +225,40 @@ struct AttributesNode : ASTNode {
 struct ImportNode : ASTNode {
     std::unique_ptr<ASTNode> value;
 
-    ImportNode(PositionSpan span, std::unique_ptr<ASTNode> value) : ASTNode(span), value(std::move(value)) {}
+    ImportNode(PositionSpan span, std::unique_ptr<ASTNode> value) : ASTNode(span), value(std::move(value)) {
+    }
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };
 
 struct StringNode : ASTNode {
     std::string value;
-    explicit StringNode(PositionSpan span, std::string val): ASTNode(span),  value(val) {}
+    explicit StringNode(PositionSpan span, std::string val) : ASTNode(span), value(val) {
+    }
 
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };
 
 struct ThisNode : ASTNode {
-    ThisNode(PositionSpan span) : ASTNode(span) {}
+    ThisNode(PositionSpan span) : ASTNode(span) {
+    }
 
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };
 
 struct NullNode : ASTNode {
-    NullNode(PositionSpan span) : ASTNode(span) {}
+    NullNode(PositionSpan span) : ASTNode(span) {
+    }
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };
 
 struct NullableTypeNode : ASTNode {
     std::unique_ptr<ASTNode> baseType;
-    NullableTypeNode(PositionSpan span, std::unique_ptr<ASTNode> bt) : ASTNode(span), baseType(std::move(bt)) {}
+    NullableTypeNode(PositionSpan span, std::unique_ptr<ASTNode> bt) : ASTNode(span), baseType(std::move(bt)) {
+    }
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };
@@ -212,14 +266,17 @@ struct NullableTypeNode : ASTNode {
 struct NullCoalescingNode : ASTNode {
     std::unique_ptr<ASTNode> left;
     std::unique_ptr<ASTNode> right;
-    NullCoalescingNode(PositionSpan span, std::unique_ptr<ASTNode> l, std::unique_ptr<ASTNode> r) : ASTNode(span), left(std::move(l)), right(std::move(r)) {}
+    NullCoalescingNode(PositionSpan span, std::unique_ptr<ASTNode> l, std::unique_ptr<ASTNode> r) :
+        ASTNode(span), left(std::move(l)), right(std::move(r)) {
+    }
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };
 
 struct NullCheckNode : ASTNode {
     std::unique_ptr<ASTNode> value;
-    NullCheckNode(PositionSpan span, std::unique_ptr<ASTNode> v) : ASTNode(span), value(std::move(v)) {}
+    NullCheckNode(PositionSpan span, std::unique_ptr<ASTNode> v) : ASTNode(span), value(std::move(v)) {
+    }
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };
@@ -227,8 +284,9 @@ struct NullCheckNode : ASTNode {
 struct UnaryNode : ASTNode {
     std::string op;
     std::unique_ptr<ASTNode> value;
-    UnaryNode(PositionSpan span, std::string o, std::unique_ptr<ASTNode> v)
-        : ASTNode(span), op(std::move(o)), value(std::move(v)) {}
+    UnaryNode(PositionSpan span, std::string o, std::unique_ptr<ASTNode> v) :
+        ASTNode(span), op(std::move(o)), value(std::move(v)) {
+    }
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };
@@ -236,7 +294,9 @@ struct UnaryNode : ASTNode {
 struct SafeNavigationNode : ASTNode {
     std::unique_ptr<ASTNode> object;
     std::unique_ptr<ASTNode> member;
-    SafeNavigationNode(PositionSpan span, std::unique_ptr<ASTNode> o, std::unique_ptr<ASTNode> m) : ASTNode(span), object(std::move(o)), member(std::move(m)) {}
+    SafeNavigationNode(PositionSpan span, std::unique_ptr<ASTNode> o, std::unique_ptr<ASTNode> m) :
+        ASTNode(span), object(std::move(o)), member(std::move(m)) {
+    }
     Symbol* evaluateSymbol(Context& ctx) override;
     void debug() override;
 };

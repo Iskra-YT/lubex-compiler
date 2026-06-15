@@ -25,7 +25,7 @@ inline Hash128 hash128(const std::string& str) {
     Hash128 out;
 
     for (int i = 0; i < 8; i++) {
-        out.bytes[i]     = (h1 >> (i * 8)) & 0xFF;
+        out.bytes[i] = (h1 >> (i * 8)) & 0xFF;
         out.bytes[i + 8] = (h2 >> (i * 8)) & 0xFF;
     }
 

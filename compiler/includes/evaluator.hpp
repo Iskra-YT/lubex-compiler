@@ -12,20 +12,9 @@
 
 struct IdentyfierNode;
 
-enum class SymbolKind {
-    NOT,
-    VARIABLE,
-    FUNCTION,
-    CLASS,
-    MODULE,
-    ERROR
-};
+enum class SymbolKind { NOT, VARIABLE, FUNCTION, CLASS, MODULE, ERROR };
 
-enum class PassPhase {
-    DECLARATION,
-    MIDPASS,
-    TYPE_CHECK
-};
+enum class PassPhase { DECLARATION, MIDPASS, TYPE_CHECK };
 
 struct Symbol {
     SymbolKind kind;
@@ -40,7 +29,9 @@ struct Symbol {
     std::vector<Symbol*> classTypes;
     bool isNullable = false;
 
-    Symbol(SymbolKind kind, IdentyfierNode* name, Symbol* type, ASTNode* node) : kind(kind), name(name), type(type), node(node) {}
+    Symbol(SymbolKind kind, IdentyfierNode* name, Symbol* type, ASTNode* node) :
+        kind(kind), name(name), type(type), node(node) {
+    }
     Symbol* clone() const {
         Symbol* copy = new Symbol(kind, name, type, node);
         copy->mangledName = mangledName;
@@ -71,15 +62,17 @@ struct Context {
     std::unordered_map<std::string, std::unique_ptr<Symbol>> symbols;
     std::vector<std::unique_ptr<Context>> children;
     std::vector<Error> errors;
-    
+
     PassPhase phase;
     Symbol* generativeSymbol = nullptr;
     Context(Context* parent_) : parent(parent_), debugId(nextId++) {
-        DEBUG_OUTPUT << "[Context CREATED] id=" << debugId << " parent=" << (parent ? std::to_string(parent->debugId) : "nullptr") << "\n";
+        DEBUG_OUTPUT << "[Context CREATED] id=" << debugId
+                     << " parent=" << (parent ? std::to_string(parent->debugId) : "nullptr") << "\n";
     }
 
     ~Context() {
-        DEBUG_OUTPUT << "[Context DESTROYED] id=" << debugId << " parent=" << (parent ? std::to_string(parent->debugId) : "nullptr") << "\n";
+        DEBUG_OUTPUT << "[Context DESTROYED] id=" << debugId
+                     << " parent=" << (parent ? std::to_string(parent->debugId) : "nullptr") << "\n";
     }
 
     Context(const Context&) = delete;

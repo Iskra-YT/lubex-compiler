@@ -15,9 +15,10 @@ jobs:
 
       - name: Check C++ formatting
         run: |
-          find compiler/ runtime/ standard/ -path "*/build/*" -prune -o \
-            \( -name '*.cpp' -o -name '*.hpp' -o -name '*.c' -o -name '*.h' \) -print \
-            | xargs -r clang-format-15 --dry-run --Werror
+          find compiler/ runtime/ standard/ \
+            \( -path "*/build/*" -o -path "*/extern/*" \) -prune -o \
+            \( -name '*.cpp' -o -name '*.hpp' -o -name '*.c' -o -name '*.h' \) \
+            -print | xargs -r clang-format-15 --dry-run --Werror
 
   include-guard-check:
     runs-on: ubuntu-latest
@@ -33,9 +34,13 @@ jobs:
               echo "Missing include guard in: $header"
               errors=$((errors + 1))
             fi
-          done < <(find compiler/ runtime/ standard/ -name '*.hpp' -o -name '*.h')
+          done < <(find compiler/ runtime/ standard/ \
+            \( -path "*/build/*" -o -path "*/extern/*" \) -prune -o \
+            -name '*.hpp' -o -name '*.h' -print)
+
           if [ "$errors" -gt 0 ]; then
             echo "Found $errors headers without proper include guards."
             exit 1
           fi
+
           echo "All headers have proper include guards."

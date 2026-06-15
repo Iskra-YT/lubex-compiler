@@ -200,7 +200,8 @@ LEXER_TEST(FloatLiterals) {
 }
 
 LEXER_TEST(AllKeywords) {
-    std::string input = "let func class module static const return private public internal import this extends override null";
+    std::string input =
+        "let func class module static const return private public internal import this extends override null";
     std::vector<char> in(input.begin(), input.end());
 
     Lexer lexer(in);
@@ -324,7 +325,8 @@ LEXER_TEST(EmptyInput) {
 }
 
 LEXER_TEST(MixedSource) {
-    std::string input = "module main;\nimport std;\n\nclass Program {\n    public static func entry(): Number {\n        return 0;\n    };\n};";
+    std::string input = "module main;\nimport std;\n\nclass Program {\n    public static func entry(): Number {\n      "
+                        "  return 0;\n    };\n};";
     std::vector<char> in(input.begin(), input.end());
 
     Lexer lexer(in);

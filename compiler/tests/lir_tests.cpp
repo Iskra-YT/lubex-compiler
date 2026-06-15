@@ -13,10 +13,10 @@ std::vector<std::unique_ptr<IRValue>> runLIRPipeline(const std::string& source, 
     std::vector<char> buffer(source.begin(), source.end());
     Lexer lexer(buffer);
     std::vector<Token> tokens = lexer.lex();
-    
+
     Parser parser(tokens);
     auto nodes = parser.parse();
-    
+
     if (!parser.getErrors().empty()) {
         throw std::runtime_error("Parser error: " + parser.getErrors()[0].returnError());
     }
@@ -30,17 +30,14 @@ std::vector<std::unique_ptr<IRValue>> runLIRPipeline(const std::string& source, 
         }
     }
 
-    for (auto phase : {
-        PassPhase::DECLARATION,
-        PassPhase::MIDPASS,
-        PassPhase::TYPE_CHECK
-    }) {
+    for (auto phase : {PassPhase::DECLARATION, PassPhase::MIDPASS, PassPhase::TYPE_CHECK}) {
         globalCtx.phase = phase;
         for (auto& node : nodes) {
             node->evaluateSymbol(globalCtx);
         }
         if (!globalCtx.getErrors().empty()) {
-            throw std::runtime_error("Evaluator error in phase " + std::to_string((int)phase) + ": " + globalCtx.getErrors()[0].returnError());
+            throw std::runtime_error("Evaluator error in phase " + std::to_string((int)phase) + ": " +
+                                     globalCtx.getErrors()[0].returnError());
         }
     }
 
@@ -120,12 +117,12 @@ void setupGlobalContext(Context& globalCtx) {
 LIR_TEST(BasicNumber) {
     Context globalCtx(nullptr);
     setupGlobalContext(globalCtx);
-    
+
     std::string source = "module test; let a: Number = 5;";
     auto lir = runLIRPipeline(source, *globalCtx.addChild());
 
     ASSERT_FALSE(lir.empty());
-    
+
     bool foundAllocaA = false;
     bool foundNumber5 = false;
     bool foundStore = false;
@@ -150,7 +147,7 @@ LIR_TEST(BasicNumber) {
 LIR_TEST(BinaryExpression) {
     Context globalCtx(nullptr);
     setupGlobalContext(globalCtx);
-    
+
     std::string source = "module test; let a: Number = 5 + 10;";
     auto lir = runLIRPipeline(source, *globalCtx.addChild());
 
@@ -169,7 +166,7 @@ LIR_TEST(BinaryExpression) {
 LIR_TEST(StringLiteral) {
     Context globalCtx(nullptr);
     setupGlobalContext(globalCtx);
-    
+
     std::string source = "module test; let s: String = \"hello\";";
     auto lir = runLIRPipeline(source, *globalCtx.addChild());
 
@@ -194,7 +191,7 @@ LIR_TEST(StringLiteral) {
 LIR_TEST(FunctionCall) {
     Context globalCtx(nullptr);
     setupGlobalContext(globalCtx);
-    
+
     std::string source = "module test; class Program { static func entry(): Number { return 5 + 10; }; };";
     auto lir = runLIRPipeline(source, *globalCtx.addChild());
 
@@ -217,7 +214,7 @@ LIR_TEST(FunctionCall) {
 LIR_TEST(NullCoalescing) {
     Context globalCtx(nullptr);
     setupGlobalContext(globalCtx);
-    
+
     std::string source = "module test; let x: Number? = null; let y: Number = x ?: 0;";
     auto lir = runLIRPipeline(source, *globalCtx.addChild());
 
@@ -236,8 +233,9 @@ LIR_TEST(NullCoalescing) {
 LIR_TEST(FunctionDeclaration) {
     Context globalCtx(nullptr);
     setupGlobalContext(globalCtx);
-    
-    std::string source = "module test; class Program { static func add(a: Number, b: Number): Number { return a + b; }; };";
+
+    std::string source =
+        "module test; class Program { static func add(a: Number, b: Number): Number { return a + b; }; };";
     auto lir = runLIRPipeline(source, *globalCtx.addChild());
 
     ASSERT_FALSE(lir.empty());

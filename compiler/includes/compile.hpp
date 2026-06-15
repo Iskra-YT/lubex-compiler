@@ -3,4 +3,4 @@
 
 bool compileProject();
 
-#endif //COMPILE_LUBEX_HPP
+#endif // COMPILE_LUBEX_HPP

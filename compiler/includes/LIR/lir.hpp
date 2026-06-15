@@ -16,8 +16,9 @@ typedef std::string IRName;
 
 class LIRException : public std::exception {
     public:
-        Error error;
-        LIRException(Error err): error(err) {}
+    Error error;
+    LIRException(Error err) : error(err) {
+    }
 };
 
 struct IRValue {
@@ -25,11 +26,13 @@ struct IRValue {
     IRType type;
     virtual ~IRValue() = default;
     virtual void debug() const = 0;
-    IRValue(const IRName& n, IRType t) : name(n), type(t) {}
+    IRValue(const IRName& n, IRType t) : name(n), type(t) {
+    }
 };
 
 struct IRMember : IRValue {
-    IRMember(const IRName& name, IRType type, size_t idx): IRValue{name, type}, index(idx) {}
+    IRMember(const IRName& name, IRType type, size_t idx) : IRValue{name, type}, index(idx) {
+    }
     size_t index;
 
     void debug() const override {
@@ -38,15 +41,16 @@ struct IRMember : IRValue {
 };
 
 struct IRArg : IRValue {
-    IRArg(const IRName& name, IRType type): IRValue{name, type} {}
+    IRArg(const IRName& name, IRType type) : IRValue{name, type} {
+    }
     void debug() const override {
         DEBUG_OUTPUT << name << ": " << type << "\n";
     }
 };
 
 struct IRAlloca : IRValue {
-    IRAlloca(const IRName& name, IRType type)
-        : IRValue{name, type} {}
+    IRAlloca(const IRName& name, IRType type) : IRValue{name, type} {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << name << ": " << type << " = alloca\n";
@@ -54,7 +58,8 @@ struct IRAlloca : IRValue {
 };
 
 struct IRAllocaStruct : IRValue {
-    IRAllocaStruct(const IRName& name, IRType type): IRValue{name, type} {}
+    IRAllocaStruct(const IRName& name, IRType type) : IRValue{name, type} {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << name << ": " << type << " = alloca struct\n";
@@ -65,8 +70,8 @@ struct IRStore : IRValue {
     IRValue* value;
     IRValue* ptr;
 
-    IRStore(IRValue* ptr, IRValue* value)
-        : IRValue{"%" + std::to_string(lastId++), "%tmp"}, value(value), ptr(ptr) {}
+    IRStore(IRValue* ptr, IRValue* value) : IRValue{"%" + std::to_string(lastId++), "%tmp"}, value(value), ptr(ptr) {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << "store " << value->name << " -> " << ptr->name << "\n";
@@ -77,8 +82,9 @@ struct IRCall : IRValue {
     std::string funcName;
     std::vector<IRValue*> args;
 
-    IRCall(const IRName& funcName, IRType type, std::vector<IRValue*> args)
-        : IRValue{"%" + std::to_string(lastId++), type}, funcName(funcName), args(std::move(args)) {}
+    IRCall(const IRName& funcName, IRType type, std::vector<IRValue*> args) :
+        IRValue{"%" + std::to_string(lastId++), type}, funcName(funcName), args(std::move(args)) {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << name << " = call " << funcName << "(";
@@ -97,8 +103,9 @@ struct IRFunction : IRValue {
     IRName className;
     bool isStatic;
 
-    IRFunction(const IRName& funcName, std::vector<IRValue*> args, IRType returnType, IRName className, bool isStatic)
-        : IRValue{funcName, returnType}, args(args), returnType(returnType), className(className), isStatic(isStatic) {}
+    IRFunction(const IRName& funcName, std::vector<IRValue*> args, IRType returnType, IRName className, bool isStatic) :
+        IRValue{funcName, returnType}, args(args), returnType(returnType), className(className), isStatic(isStatic) {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << "function " << name << "(";
@@ -118,8 +125,8 @@ struct IRFunction : IRValue {
 struct IRNumber : IRValue {
     double number;
 
-    IRNumber(const IRName& name, IRType type, double number)
-        : IRValue{name, type}, number(number) {}
+    IRNumber(const IRName& name, IRType type, double number) : IRValue{name, type}, number(number) {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << name << ": " << type << " = " << number << "\n";
@@ -127,7 +134,8 @@ struct IRNumber : IRValue {
 };
 
 struct IRVariableRead : IRValue {
-    IRVariableRead(const IRName& name, IRType type) : IRValue{name, type} {}
+    IRVariableRead(const IRName& name, IRType type) : IRValue{name, type} {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << "load " << name << ": " << type << "\n";
@@ -137,7 +145,9 @@ struct IRVariableRead : IRValue {
 struct IRStruct : IRValue {
     std::vector<std::unique_ptr<IRValue>> data;
     IRName parentName;
-    IRStruct(const IRName& name, std::vector<std::unique_ptr<IRValue>> body, IRName parentName) : IRValue{name, "%tmp"}, data(std::move(body)), parentName(parentName) {}
+    IRStruct(const IRName& name, std::vector<std::unique_ptr<IRValue>> body, IRName parentName) :
+        IRValue{name, "%tmp"}, data(std::move(body)), parentName(parentName) {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << "struct " << name << ":" << parentName << "\n";
@@ -153,7 +163,9 @@ struct IRAccess : IRValue {
     IRValue* object;
     int memberName;
 
-    IRAccess(const IRName& name, const IRType& type, IRValue* object, const std::string& memberName) : IRValue(name, type), object(object), memberName(std::stoi(memberName)) {}
+    IRAccess(const IRName& name, const IRType& type, IRValue* object, const std::string& memberName) :
+        IRValue(name, type), object(object), memberName(std::stoi(memberName)) {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << name + " = access " + object->name + ", " + std::to_string(memberName) + "\n";
@@ -163,7 +175,8 @@ struct IRAccess : IRValue {
 struct IRClass : IRValue {
     IRName name;
 
-    IRClass(const IRName& name, const IRName& normalName) : IRValue(name, normalName) {}
+    IRClass(const IRName& name, const IRName& normalName) : IRValue(name, normalName) {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << name << " ";
@@ -172,7 +185,8 @@ struct IRClass : IRValue {
 
 struct IRReturn : IRValue {
     IRValue* value;
-    IRReturn(const IRType& type, IRValue* value): IRValue("%tmp", type), value(value) {}
+    IRReturn(const IRType& type, IRValue* value) : IRValue("%tmp", type), value(value) {
+    }
 
     void debug() const override {
         if (value) DEBUG_OUTPUT << "ret " << value->name << " : " << type << "\n";
@@ -183,8 +197,8 @@ struct IRReturn : IRValue {
 struct IRString : IRValue {
     std::string value;
 
-    IRString(const IRName& name, IRType type, std::string value)
-        : IRValue{name, type}, value(std::move(value)) {}
+    IRString(const IRName& name, IRType type, std::string value) : IRValue{name, type}, value(std::move(value)) {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << name << ": " << type << " = \"" << value << "\"\n";
@@ -192,8 +206,8 @@ struct IRString : IRValue {
 };
 
 struct IRNull : IRValue {
-    IRNull(const IRName& name, IRType type)
-        : IRValue{name, type} {}
+    IRNull(const IRName& name, IRType type) : IRValue{name, type} {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << name << ": " << type << " = null\n";
@@ -204,8 +218,9 @@ struct IRNullCoalescing : IRValue {
     IRValue* left;
     IRValue* right;
 
-    IRNullCoalescing(IRType type, IRValue* l, IRValue* r)
-        : IRValue{"%" + std::to_string(lastId++), type}, left(l), right(r) {}
+    IRNullCoalescing(IRType type, IRValue* l, IRValue* r) :
+        IRValue{"%" + std::to_string(lastId++), type}, left(l), right(r) {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << name << ": " << type << " = coalesce " << left->name << " ?: " << right->name << "\n";
@@ -215,8 +230,8 @@ struct IRNullCoalescing : IRValue {
 struct IRNullCheck : IRValue {
     IRValue* value;
 
-    IRNullCheck(IRType type, IRValue* v)
-        : IRValue{"%" + std::to_string(lastId++), type}, value(v) {}
+    IRNullCheck(IRType type, IRValue* v) : IRValue{"%" + std::to_string(lastId++), type}, value(v) {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << name << ": " << type << " = check " << value->name << "??\n";
@@ -227,8 +242,9 @@ struct IRSafeAccess : IRValue {
     IRValue* object;
     int memberIndex;
 
-    IRSafeAccess(const IRName& name, IRType type, IRValue* obj, int memberIdx)
-        : IRValue{name, type}, object(obj), memberIndex(memberIdx) {}
+    IRSafeAccess(const IRName& name, IRType type, IRValue* obj, int memberIdx) :
+        IRValue{name, type}, object(obj), memberIndex(memberIdx) {
+    }
 
     void debug() const override {
         DEBUG_OUTPUT << name << " = safe_access " << object->name << ", " << memberIndex << "\n";

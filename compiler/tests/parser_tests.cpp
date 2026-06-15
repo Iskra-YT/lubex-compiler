@@ -3,15 +3,10 @@
 #include "parser_tests.hpp"
 
 PARSER_TEST(BinaryExpression) {
-    std::vector<Token> tokens = {
-        Token("1", TokenType::NUMBER_TOKEN),
-        Token("+", TokenType::ARITHMETIC_TOKEN),
-        Token("2", TokenType::NUMBER_TOKEN),
-        Token("*", TokenType::ARITHMETIC_TOKEN),
-        Token("3", TokenType::NUMBER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("1", TokenType::NUMBER_TOKEN), Token("+", TokenType::ARITHMETIC_TOKEN),
+                                 Token("2", TokenType::NUMBER_TOKEN), Token("*", TokenType::ARITHMETIC_TOKEN),
+                                 Token("3", TokenType::NUMBER_TOKEN), Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -48,16 +43,10 @@ PARSER_TEST(BinaryExpression) {
 
 PARSER_TEST(VariableDeclaration) {
     {
-        std::vector<Token> tokens = {
-            Token("let", TokenType::KEYWORD_TOKEN),
-            Token("a", TokenType::IDENTYFIER_TOKEN),
-            Token(":", TokenType::DELIMITER_TOKEN),
-            Token("Int", TokenType::IDENTYFIER_TOKEN),
-            Token("=", TokenType::ASSIGNMENT_TOKEN),
-            Token("2", TokenType::NUMBER_TOKEN),
-            Token(";", TokenType::DELIMITER_TOKEN),
-            Token("", TokenType::EOF_TOKEN)
-        };
+        std::vector<Token> tokens = {Token("let", TokenType::KEYWORD_TOKEN),  Token("a", TokenType::IDENTYFIER_TOKEN),
+                                     Token(":", TokenType::DELIMITER_TOKEN),  Token("Int", TokenType::IDENTYFIER_TOKEN),
+                                     Token("=", TokenType::ASSIGNMENT_TOKEN), Token("2", TokenType::NUMBER_TOKEN),
+                                     Token(";", TokenType::DELIMITER_TOKEN),  Token("", TokenType::EOF_TOKEN)};
 
         Parser parser(tokens);
         auto nodes = parser.parse();
@@ -86,14 +75,9 @@ PARSER_TEST(VariableDeclaration) {
         ASSERT_EQ(type->value, "Int");
     }
     {
-        std::vector<Token> tokens = {
-            Token("let", TokenType::KEYWORD_TOKEN),
-            Token("b", TokenType::IDENTYFIER_TOKEN),
-            Token(":", TokenType::DELIMITER_TOKEN),
-            Token("Int", TokenType::IDENTYFIER_TOKEN),
-            Token(";", TokenType::DELIMITER_TOKEN),
-            Token("", TokenType::EOF_TOKEN)
-        };
+        std::vector<Token> tokens = {Token("let", TokenType::KEYWORD_TOKEN), Token("b", TokenType::IDENTYFIER_TOKEN),
+                                     Token(":", TokenType::DELIMITER_TOKEN), Token("Int", TokenType::IDENTYFIER_TOKEN),
+                                     Token(";", TokenType::DELIMITER_TOKEN), Token("", TokenType::EOF_TOKEN)};
 
         Parser parser(tokens);
         auto nodes = parser.parse();
@@ -124,15 +108,10 @@ PARSER_TEST(VariableDeclaration) {
 PARSER_TEST(ConstantDeclaration) {
     {
         std::vector<Token> tokens = {
-            Token("const", TokenType::KEYWORD_TOKEN),
-            Token("a", TokenType::IDENTYFIER_TOKEN),
-            Token(":", TokenType::DELIMITER_TOKEN),
-            Token("Int", TokenType::IDENTYFIER_TOKEN),
-            Token("=", TokenType::ASSIGNMENT_TOKEN),
-            Token("2", TokenType::NUMBER_TOKEN),
-            Token(";", TokenType::DELIMITER_TOKEN),
-            Token("", TokenType::EOF_TOKEN)
-        };
+            Token("const", TokenType::KEYWORD_TOKEN), Token("a", TokenType::IDENTYFIER_TOKEN),
+            Token(":", TokenType::DELIMITER_TOKEN),   Token("Int", TokenType::IDENTYFIER_TOKEN),
+            Token("=", TokenType::ASSIGNMENT_TOKEN),  Token("2", TokenType::NUMBER_TOKEN),
+            Token(";", TokenType::DELIMITER_TOKEN),   Token("", TokenType::EOF_TOKEN)};
 
         Parser parser(tokens);
         auto nodes = parser.parse();
@@ -162,13 +141,9 @@ PARSER_TEST(ConstantDeclaration) {
     }
     {
         std::vector<Token> tokens = {
-            Token("const", TokenType::KEYWORD_TOKEN),
-            Token("b", TokenType::IDENTYFIER_TOKEN),
-            Token(":", TokenType::DELIMITER_TOKEN),
-            Token("Int", TokenType::IDENTYFIER_TOKEN),
-            Token(";", TokenType::DELIMITER_TOKEN),
-            Token("", TokenType::EOF_TOKEN)
-        };
+            Token("const", TokenType::KEYWORD_TOKEN), Token("b", TokenType::IDENTYFIER_TOKEN),
+            Token(":", TokenType::DELIMITER_TOKEN),   Token("Int", TokenType::IDENTYFIER_TOKEN),
+            Token(";", TokenType::DELIMITER_TOKEN),   Token("", TokenType::EOF_TOKEN)};
 
         Parser parser(tokens);
         auto nodes = parser.parse();
@@ -197,13 +172,9 @@ PARSER_TEST(ConstantDeclaration) {
 }
 
 PARSER_TEST(VariableAssigment) {
-    std::vector<Token> tokens = {
-        Token("a", TokenType::IDENTYFIER_TOKEN),
-        Token("=", TokenType::ASSIGNMENT_TOKEN),
-        Token("15", TokenType::NUMBER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("a", TokenType::IDENTYFIER_TOKEN), Token("=", TokenType::ASSIGNMENT_TOKEN),
+                                 Token("15", TokenType::NUMBER_TOKEN), Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -230,21 +201,19 @@ PARSER_TEST(VariableAssigment) {
 
 PARSER_TEST(FunctionDeclaration) {
     {
-        std::vector<Token> tokens = {
-            Token("func", TokenType::KEYWORD_TOKEN),
-            Token("a", TokenType::IDENTYFIER_TOKEN),
-            Token("(", TokenType::DELIMITER_TOKEN),
-            Token("b", TokenType::IDENTYFIER_TOKEN),
-            Token(":", TokenType::DELIMITER_TOKEN),
-            Token("Int", TokenType::IDENTYFIER_TOKEN),
-            Token(")", TokenType::DELIMITER_TOKEN),
-            Token(":", TokenType::DELIMITER_TOKEN),
-            Token("Int", TokenType::IDENTYFIER_TOKEN),
-            Token("{", TokenType::DELIMITER_TOKEN),
-            Token("}", TokenType::DELIMITER_TOKEN),
-            Token(";", TokenType::DELIMITER_TOKEN),
-            Token("", TokenType::EOF_TOKEN)
-        };
+        std::vector<Token> tokens = {Token("func", TokenType::KEYWORD_TOKEN),
+                                     Token("a", TokenType::IDENTYFIER_TOKEN),
+                                     Token("(", TokenType::DELIMITER_TOKEN),
+                                     Token("b", TokenType::IDENTYFIER_TOKEN),
+                                     Token(":", TokenType::DELIMITER_TOKEN),
+                                     Token("Int", TokenType::IDENTYFIER_TOKEN),
+                                     Token(")", TokenType::DELIMITER_TOKEN),
+                                     Token(":", TokenType::DELIMITER_TOKEN),
+                                     Token("Int", TokenType::IDENTYFIER_TOKEN),
+                                     Token("{", TokenType::DELIMITER_TOKEN),
+                                     Token("}", TokenType::DELIMITER_TOKEN),
+                                     Token(";", TokenType::DELIMITER_TOKEN),
+                                     Token("", TokenType::EOF_TOKEN)};
 
         Parser parser(tokens);
         auto nodes = parser.parse();
@@ -285,19 +254,17 @@ PARSER_TEST(FunctionDeclaration) {
         ASSERT_EQ(func->isStatic, false);
     }
     {
-        std::vector<Token> tokens = {
-            Token("func", TokenType::KEYWORD_TOKEN),
-            Token("a", TokenType::IDENTYFIER_TOKEN),
-            Token("(", TokenType::DELIMITER_TOKEN),
-            Token("b", TokenType::IDENTYFIER_TOKEN),
-            Token(":", TokenType::DELIMITER_TOKEN),
-            Token("Int", TokenType::IDENTYFIER_TOKEN),
-            Token(")", TokenType::DELIMITER_TOKEN),
-            Token(":", TokenType::DELIMITER_TOKEN),
-            Token("Int", TokenType::IDENTYFIER_TOKEN),
-            Token(";", TokenType::DELIMITER_TOKEN),
-            Token("", TokenType::EOF_TOKEN)
-        };
+        std::vector<Token> tokens = {Token("func", TokenType::KEYWORD_TOKEN),
+                                     Token("a", TokenType::IDENTYFIER_TOKEN),
+                                     Token("(", TokenType::DELIMITER_TOKEN),
+                                     Token("b", TokenType::IDENTYFIER_TOKEN),
+                                     Token(":", TokenType::DELIMITER_TOKEN),
+                                     Token("Int", TokenType::IDENTYFIER_TOKEN),
+                                     Token(")", TokenType::DELIMITER_TOKEN),
+                                     Token(":", TokenType::DELIMITER_TOKEN),
+                                     Token("Int", TokenType::IDENTYFIER_TOKEN),
+                                     Token(";", TokenType::DELIMITER_TOKEN),
+                                     Token("", TokenType::EOF_TOKEN)};
 
         Parser parser(tokens);
         auto nodes = parser.parse();
@@ -339,21 +306,13 @@ PARSER_TEST(FunctionDeclaration) {
     }
     {
         std::vector<Token> tokens = {
-            Token("static", TokenType::KEYWORD_TOKEN),
-            Token("func", TokenType::KEYWORD_TOKEN),
-            Token("a", TokenType::IDENTYFIER_TOKEN),
-            Token("(", TokenType::DELIMITER_TOKEN),
-            Token("b", TokenType::IDENTYFIER_TOKEN),
-            Token(":", TokenType::DELIMITER_TOKEN),
-            Token("Int", TokenType::IDENTYFIER_TOKEN),
-            Token(")", TokenType::DELIMITER_TOKEN),
-            Token(":", TokenType::DELIMITER_TOKEN),
-            Token("Int", TokenType::IDENTYFIER_TOKEN),
-            Token("{", TokenType::DELIMITER_TOKEN),
-            Token("}", TokenType::DELIMITER_TOKEN),
-            Token(";", TokenType::DELIMITER_TOKEN),
-            Token("", TokenType::EOF_TOKEN)
-        };
+            Token("static", TokenType::KEYWORD_TOKEN), Token("func", TokenType::KEYWORD_TOKEN),
+            Token("a", TokenType::IDENTYFIER_TOKEN),   Token("(", TokenType::DELIMITER_TOKEN),
+            Token("b", TokenType::IDENTYFIER_TOKEN),   Token(":", TokenType::DELIMITER_TOKEN),
+            Token("Int", TokenType::IDENTYFIER_TOKEN), Token(")", TokenType::DELIMITER_TOKEN),
+            Token(":", TokenType::DELIMITER_TOKEN),    Token("Int", TokenType::IDENTYFIER_TOKEN),
+            Token("{", TokenType::DELIMITER_TOKEN),    Token("}", TokenType::DELIMITER_TOKEN),
+            Token(";", TokenType::DELIMITER_TOKEN),    Token("", TokenType::EOF_TOKEN)};
 
         Parser parser(tokens);
         auto nodes = parser.parse();
@@ -398,13 +357,9 @@ PARSER_TEST(FunctionDeclaration) {
 PARSER_TEST(ClassDeclaration) {
     {
         std::vector<Token> tokens = {
-            Token("class", TokenType::KEYWORD_TOKEN),
-            Token("Program", TokenType::IDENTYFIER_TOKEN),
-            Token("{", TokenType::DELIMITER_TOKEN),
-            Token("}", TokenType::DELIMITER_TOKEN),
-            Token(";", TokenType::DELIMITER_TOKEN),
-            Token("", TokenType::EOF_TOKEN)
-        };
+            Token("class", TokenType::KEYWORD_TOKEN), Token("Program", TokenType::IDENTYFIER_TOKEN),
+            Token("{", TokenType::DELIMITER_TOKEN),   Token("}", TokenType::DELIMITER_TOKEN),
+            Token(";", TokenType::DELIMITER_TOKEN),   Token("", TokenType::EOF_TOKEN)};
 
         Parser parser(tokens);
         auto nodes = parser.parse();
@@ -427,12 +382,9 @@ PARSER_TEST(ClassDeclaration) {
         ASSERT_EQ(classNode->isForward, false);
     }
     {
-        std::vector<Token> tokens = {
-            Token("class", TokenType::KEYWORD_TOKEN),
-            Token("Program", TokenType::IDENTYFIER_TOKEN),
-            Token(";", TokenType::DELIMITER_TOKEN),
-            Token("", TokenType::EOF_TOKEN)
-        };
+        std::vector<Token> tokens = {Token("class", TokenType::KEYWORD_TOKEN),
+                                     Token("Program", TokenType::IDENTYFIER_TOKEN),
+                                     Token(";", TokenType::DELIMITER_TOKEN), Token("", TokenType::EOF_TOKEN)};
 
         Parser parser(tokens);
         auto nodes = parser.parse();
@@ -457,12 +409,8 @@ PARSER_TEST(ClassDeclaration) {
 }
 
 PARSER_TEST(ModuleDeclaration) {
-    std::vector<Token> tokens = {
-        Token("module", TokenType::KEYWORD_TOKEN),
-        Token("main", TokenType::IDENTYFIER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("module", TokenType::KEYWORD_TOKEN), Token("main", TokenType::IDENTYFIER_TOKEN),
+                                 Token(";", TokenType::DELIMITER_TOKEN), Token("", TokenType::EOF_TOKEN)};
     Parser parser(tokens);
     auto nodes = parser.parse();
 
@@ -483,13 +431,9 @@ PARSER_TEST(ModuleDeclaration) {
 }
 
 PARSER_TEST(FunctionCall) {
-    std::vector<Token> tokens = {
-        Token("abc", TokenType::IDENTYFIER_TOKEN),
-        Token("(", TokenType::DELIMITER_TOKEN),
-        Token(")", TokenType::DELIMITER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("abc", TokenType::IDENTYFIER_TOKEN), Token("(", TokenType::DELIMITER_TOKEN),
+                                 Token(")", TokenType::DELIMITER_TOKEN), Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
     Parser parser(tokens);
     auto nodes = parser.parse();
 
@@ -510,13 +454,9 @@ PARSER_TEST(FunctionCall) {
 }
 
 PARSER_TEST(MemberAccess) {
-    std::vector<Token> tokens = {
-        Token("abc", TokenType::IDENTYFIER_TOKEN),
-        Token(".", TokenType::DELIMITER_TOKEN),
-        Token("cba", TokenType::IDENTYFIER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("abc", TokenType::IDENTYFIER_TOKEN), Token(".", TokenType::DELIMITER_TOKEN),
+                                 Token("cba", TokenType::IDENTYFIER_TOKEN), Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
     Parser parser(tokens);
     auto nodes = parser.parse();
 
@@ -539,15 +479,11 @@ PARSER_TEST(MemberAccess) {
 
     ASSERT_EQ(object->value, "abc");
     ASSERT_EQ(member->value, "cba");
-    }
+}
 
-    PARSER_TEST(ReturnStatement) {
-    std::vector<Token> tokens = {
-        Token("return", TokenType::KEYWORD_TOKEN),
-        Token("42", TokenType::NUMBER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+PARSER_TEST(ReturnStatement) {
+    std::vector<Token> tokens = {Token("return", TokenType::KEYWORD_TOKEN), Token("42", TokenType::NUMBER_TOKEN),
+                                 Token(";", TokenType::DELIMITER_TOKEN), Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -564,20 +500,14 @@ PARSER_TEST(MemberAccess) {
     auto val = dynamic_cast<NumberNode*>(ret->value.get());
     ASSERT_NE(val, nullptr);
     ASSERT_EQ(val->value, 42.0);
-    }
+}
 
 PARSER_TEST(NullableType) {
-    std::vector<Token> tokens = {
-        Token("let", TokenType::KEYWORD_TOKEN),
-        Token("x", TokenType::IDENTYFIER_TOKEN),
-        Token(":", TokenType::DELIMITER_TOKEN),
-        Token("Number", TokenType::IDENTYFIER_TOKEN),
-        Token("?", TokenType::DELIMITER_TOKEN),
-        Token("=", TokenType::ASSIGNMENT_TOKEN),
-        Token("null", TokenType::KEYWORD_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("let", TokenType::KEYWORD_TOKEN),  Token("x", TokenType::IDENTYFIER_TOKEN),
+                                 Token(":", TokenType::DELIMITER_TOKEN),  Token("Number", TokenType::IDENTYFIER_TOKEN),
+                                 Token("?", TokenType::DELIMITER_TOKEN),  Token("=", TokenType::ASSIGNMENT_TOKEN),
+                                 Token("null", TokenType::KEYWORD_TOKEN), Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -605,12 +535,8 @@ PARSER_TEST(NullableType) {
 }
 
 PARSER_TEST(NullCheck) {
-    std::vector<Token> tokens = {
-        Token("x", TokenType::IDENTYFIER_TOKEN),
-        Token("??", TokenType::DELIMITER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("x", TokenType::IDENTYFIER_TOKEN), Token("??", TokenType::DELIMITER_TOKEN),
+                                 Token(";", TokenType::DELIMITER_TOKEN), Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -631,14 +557,9 @@ PARSER_TEST(NullCheck) {
 }
 
 PARSER_TEST(NullCoalescing) {
-    std::vector<Token> tokens = {
-        Token("x", TokenType::IDENTYFIER_TOKEN),
-        Token("?", TokenType::DELIMITER_TOKEN),
-        Token(":", TokenType::DELIMITER_TOKEN),
-        Token("y", TokenType::IDENTYFIER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("x", TokenType::IDENTYFIER_TOKEN), Token("?", TokenType::DELIMITER_TOKEN),
+                                 Token(":", TokenType::DELIMITER_TOKEN),  Token("y", TokenType::IDENTYFIER_TOKEN),
+                                 Token(";", TokenType::DELIMITER_TOKEN),  Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -662,13 +583,9 @@ PARSER_TEST(NullCoalescing) {
 }
 
 PARSER_TEST(SafeNavigation) {
-    std::vector<Token> tokens = {
-        Token("x", TokenType::IDENTYFIER_TOKEN),
-        Token("?.", TokenType::DELIMITER_TOKEN),
-        Token("y", TokenType::IDENTYFIER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("x", TokenType::IDENTYFIER_TOKEN), Token("?.", TokenType::DELIMITER_TOKEN),
+                                 Token("y", TokenType::IDENTYFIER_TOKEN), Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -692,12 +609,8 @@ PARSER_TEST(SafeNavigation) {
 }
 
 PARSER_TEST(ImportStatement) {
-    std::vector<Token> tokens = {
-        Token("import", TokenType::KEYWORD_TOKEN),
-        Token("std", TokenType::IDENTYFIER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("import", TokenType::KEYWORD_TOKEN), Token("std", TokenType::IDENTYFIER_TOKEN),
+                                 Token(";", TokenType::DELIMITER_TOKEN), Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -718,19 +631,17 @@ PARSER_TEST(ImportStatement) {
 }
 
 PARSER_TEST(Attributes) {
-    std::vector<Token> tokens = {
-        Token("@", TokenType::DELIMITER_TOKEN),
-        Token("mangle", TokenType::IDENTYFIER_TOKEN),
-        Token("(", TokenType::DELIMITER_TOKEN),
-        Token("testName", TokenType::IDENTYFIER_TOKEN),
-        Token(")", TokenType::DELIMITER_TOKEN),
-        Token("class", TokenType::KEYWORD_TOKEN),
-        Token("Foo", TokenType::IDENTYFIER_TOKEN),
-        Token("{", TokenType::DELIMITER_TOKEN),
-        Token("}", TokenType::DELIMITER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("@", TokenType::DELIMITER_TOKEN),
+                                 Token("mangle", TokenType::IDENTYFIER_TOKEN),
+                                 Token("(", TokenType::DELIMITER_TOKEN),
+                                 Token("testName", TokenType::IDENTYFIER_TOKEN),
+                                 Token(")", TokenType::DELIMITER_TOKEN),
+                                 Token("class", TokenType::KEYWORD_TOKEN),
+                                 Token("Foo", TokenType::IDENTYFIER_TOKEN),
+                                 Token("{", TokenType::DELIMITER_TOKEN),
+                                 Token("}", TokenType::DELIMITER_TOKEN),
+                                 Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -760,19 +671,17 @@ PARSER_TEST(Attributes) {
 }
 
 PARSER_TEST(ClassWithMembers) {
-    std::vector<Token> tokens = {
-        Token("class", TokenType::KEYWORD_TOKEN),
-        Token("Foo", TokenType::IDENTYFIER_TOKEN),
-        Token("{", TokenType::DELIMITER_TOKEN),
-        Token("let", TokenType::KEYWORD_TOKEN),
-        Token("x", TokenType::IDENTYFIER_TOKEN),
-        Token(":", TokenType::DELIMITER_TOKEN),
-        Token("Number", TokenType::IDENTYFIER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("}", TokenType::DELIMITER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("class", TokenType::KEYWORD_TOKEN),
+                                 Token("Foo", TokenType::IDENTYFIER_TOKEN),
+                                 Token("{", TokenType::DELIMITER_TOKEN),
+                                 Token("let", TokenType::KEYWORD_TOKEN),
+                                 Token("x", TokenType::IDENTYFIER_TOKEN),
+                                 Token(":", TokenType::DELIMITER_TOKEN),
+                                 Token("Number", TokenType::IDENTYFIER_TOKEN),
+                                 Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("}", TokenType::DELIMITER_TOKEN),
+                                 Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -796,16 +705,10 @@ PARSER_TEST(ClassWithMembers) {
 }
 
 PARSER_TEST(Inheritance) {
-    std::vector<Token> tokens = {
-        Token("class", TokenType::KEYWORD_TOKEN),
-        Token("B", TokenType::IDENTYFIER_TOKEN),
-        Token("extends", TokenType::KEYWORD_TOKEN),
-        Token("A", TokenType::IDENTYFIER_TOKEN),
-        Token("{", TokenType::DELIMITER_TOKEN),
-        Token("}", TokenType::DELIMITER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("class", TokenType::KEYWORD_TOKEN),   Token("B", TokenType::IDENTYFIER_TOKEN),
+                                 Token("extends", TokenType::KEYWORD_TOKEN), Token("A", TokenType::IDENTYFIER_TOKEN),
+                                 Token("{", TokenType::DELIMITER_TOKEN),     Token("}", TokenType::DELIMITER_TOKEN),
+                                 Token(";", TokenType::DELIMITER_TOKEN),     Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -832,11 +735,8 @@ PARSER_TEST(Inheritance) {
 }
 
 PARSER_TEST(ThisExpression) {
-    std::vector<Token> tokens = {
-        Token("this", TokenType::KEYWORD_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("this", TokenType::KEYWORD_TOKEN), Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -853,11 +753,8 @@ PARSER_TEST(ThisExpression) {
 }
 
 PARSER_TEST(StringLiteral) {
-    std::vector<Token> tokens = {
-        Token("hello", TokenType::STRING_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("hello", TokenType::STRING_TOKEN), Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -875,12 +772,8 @@ PARSER_TEST(StringLiteral) {
 }
 
 PARSER_TEST(ParserErrorHandling) {
-    std::vector<Token> tokens = {
-        Token("class", TokenType::KEYWORD_TOKEN),
-        Token("Foo", TokenType::IDENTYFIER_TOKEN),
-        Token("{", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("class", TokenType::KEYWORD_TOKEN), Token("Foo", TokenType::IDENTYFIER_TOKEN),
+                                 Token("{", TokenType::DELIMITER_TOKEN), Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -889,19 +782,13 @@ PARSER_TEST(ParserErrorHandling) {
     ASSERT_FALSE(errors.empty());
 }
 
-    PARSER_TEST(ComplexBinaryExpressionPrecedence) {
+PARSER_TEST(ComplexBinaryExpressionPrecedence) {
     // 1 + 2 * 3 + 4
-    std::vector<Token> tokens = {
-        Token("1", TokenType::NUMBER_TOKEN),
-        Token("+", TokenType::ARITHMETIC_TOKEN),
-        Token("2", TokenType::NUMBER_TOKEN),
-        Token("*", TokenType::ARITHMETIC_TOKEN),
-        Token("3", TokenType::NUMBER_TOKEN),
-        Token("+", TokenType::ARITHMETIC_TOKEN),
-        Token("4", TokenType::NUMBER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("1", TokenType::NUMBER_TOKEN), Token("+", TokenType::ARITHMETIC_TOKEN),
+                                 Token("2", TokenType::NUMBER_TOKEN), Token("*", TokenType::ARITHMETIC_TOKEN),
+                                 Token("3", TokenType::NUMBER_TOKEN), Token("+", TokenType::ARITHMETIC_TOKEN),
+                                 Token("4", TokenType::NUMBER_TOKEN), Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -920,16 +807,12 @@ PARSER_TEST(ParserErrorHandling) {
     auto right4 = dynamic_cast<NumberNode*>(root->right.get());
     ASSERT_NE(right4, nullptr);
     ASSERT_EQ(right4->value, 4.0);
-    }
+}
 
 PARSER_TEST(ComparisonExpression) {
-    std::vector<Token> tokens = {
-        Token("1", TokenType::NUMBER_TOKEN),
-        Token("<", TokenType::COMPARISON_TOKEN),
-        Token("2", TokenType::NUMBER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("1", TokenType::NUMBER_TOKEN), Token("<", TokenType::COMPARISON_TOKEN),
+                                 Token("2", TokenType::NUMBER_TOKEN), Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -953,15 +836,10 @@ PARSER_TEST(ComparisonExpression) {
 }
 
 PARSER_TEST(ComparisonChained) {
-    std::vector<Token> tokens = {
-        Token("1", TokenType::NUMBER_TOKEN),
-        Token("<", TokenType::COMPARISON_TOKEN),
-        Token("2", TokenType::NUMBER_TOKEN),
-        Token("==", TokenType::COMPARISON_TOKEN),
-        Token("3", TokenType::NUMBER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("1", TokenType::NUMBER_TOKEN), Token("<", TokenType::COMPARISON_TOKEN),
+                                 Token("2", TokenType::NUMBER_TOKEN), Token("==", TokenType::COMPARISON_TOKEN),
+                                 Token("3", TokenType::NUMBER_TOKEN), Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -980,12 +858,8 @@ PARSER_TEST(ComparisonChained) {
 }
 
 PARSER_TEST(UnaryNotExpression) {
-    std::vector<Token> tokens = {
-        Token("!", TokenType::DELIMITER_TOKEN),
-        Token("1", TokenType::NUMBER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("!", TokenType::DELIMITER_TOKEN), Token("1", TokenType::NUMBER_TOKEN),
+                                 Token(";", TokenType::DELIMITER_TOKEN), Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -1004,12 +878,8 @@ PARSER_TEST(UnaryNotExpression) {
 }
 
 PARSER_TEST(UnaryBitwiseNotExpression) {
-    std::vector<Token> tokens = {
-        Token("~", TokenType::DELIMITER_TOKEN),
-        Token("42", TokenType::NUMBER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("~", TokenType::DELIMITER_TOKEN), Token("42", TokenType::NUMBER_TOKEN),
+                                 Token(";", TokenType::DELIMITER_TOKEN), Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -1028,17 +898,11 @@ PARSER_TEST(UnaryBitwiseNotExpression) {
 }
 
 PARSER_TEST(ComparisonVsArithmeticPrecedence) {
-    std::vector<Token> tokens = {
-        Token("1", TokenType::NUMBER_TOKEN),
-        Token("+", TokenType::ARITHMETIC_TOKEN),
-        Token("2", TokenType::NUMBER_TOKEN),
-        Token("<", TokenType::COMPARISON_TOKEN),
-        Token("3", TokenType::NUMBER_TOKEN),
-        Token("*", TokenType::ARITHMETIC_TOKEN),
-        Token("4", TokenType::NUMBER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("1", TokenType::NUMBER_TOKEN), Token("+", TokenType::ARITHMETIC_TOKEN),
+                                 Token("2", TokenType::NUMBER_TOKEN), Token("<", TokenType::COMPARISON_TOKEN),
+                                 Token("3", TokenType::NUMBER_TOKEN), Token("*", TokenType::ARITHMETIC_TOKEN),
+                                 Token("4", TokenType::NUMBER_TOKEN), Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();
@@ -1061,13 +925,9 @@ PARSER_TEST(ComparisonVsArithmeticPrecedence) {
 }
 
 PARSER_TEST(DoubleUnary) {
-    std::vector<Token> tokens = {
-        Token("!", TokenType::DELIMITER_TOKEN),
-        Token("!", TokenType::DELIMITER_TOKEN),
-        Token("1", TokenType::NUMBER_TOKEN),
-        Token(";", TokenType::DELIMITER_TOKEN),
-        Token("", TokenType::EOF_TOKEN)
-    };
+    std::vector<Token> tokens = {Token("!", TokenType::DELIMITER_TOKEN), Token("!", TokenType::DELIMITER_TOKEN),
+                                 Token("1", TokenType::NUMBER_TOKEN), Token(";", TokenType::DELIMITER_TOKEN),
+                                 Token("", TokenType::EOF_TOKEN)};
 
     Parser parser(tokens);
     auto nodes = parser.parse();

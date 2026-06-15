@@ -5,13 +5,12 @@
 
 class DebugStream {
     public:
-        template <typename T>
-        DebugStream& operator<<(const T& value) {
+    template <typename T> DebugStream& operator<<(const T& value) {
 #ifdef DEBUG
-            std::cout << value;
-# endif // DEBUG
-            return *this;
-        }
+        std::cout << value;
+#endif // DEBUG
+        return *this;
+    }
 };
 
 inline DebugStream DEBUG_OUTPUT;

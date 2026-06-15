@@ -27,4 +27,4 @@ struct ProjectConfig {
 
 ProjectConfig readConfig();
 
-#endif //CONFIG_LUBEX_HPP
+#endif // CONFIG_LUBEX_HPP

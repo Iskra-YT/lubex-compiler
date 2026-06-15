@@ -6,4 +6,4 @@
 
 bool initProject(char* name);
 
-#endif //INIT_LUBEX_HPP
+#endif // INIT_LUBEX_HPP

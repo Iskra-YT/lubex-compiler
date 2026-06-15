@@ -9,4 +9,4 @@
 
 void getOptimization(std::vector<std::unique_ptr<ASTNode>>* nodes);
 
-#endif //OPTIMIZER_LUBEX_HPP
+#endif // OPTIMIZER_LUBEX_HPP
