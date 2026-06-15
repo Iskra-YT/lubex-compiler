@@ -8,7 +8,8 @@ LLVMGenerator::LLVMGenerator(const std::string& moduleName) : emiterBuilder(emit
 
     generateBuildInStruct("_BI_Object", {"_BI_TypeInfo"});
     generateBuildInFunction("_BI_Object_init", "_BI_Object", {"_BI_Object"}, "_BI_Object");
-    generateBuildInFunction("_BI_Object_toString", "_BI_Object", {"_BI_Object"}, "_BI_String");
+    generateBuildInFunction("_BI_Object_toString", "_BI_String", {"_BI_Object"}, "_BI_Object");
+    generateBuildInFunction("_BI_Object_getType", "_BI_String", {"_BI_Object"}, "_BI_Object");
 
     generateBuildInStruct("_BI_Number", {"double"});
     generateBuildInFunction("_BI_Number_init", "_BI_Number", {"_BI_Number", "double"}, "_BI_Number");

@@ -12,5 +12,6 @@ typedef struct {
 
 _BI_Object* _BI_Object_init(_BI_Object* obj);
 _BI_String* _BI_Object_toString(_BI_Object* obj);
+_BI_String* _BI_Object_getType(_BI_Object* obj);
 
 #endif // LUBRTX_LIB_LBXOBJECT_H

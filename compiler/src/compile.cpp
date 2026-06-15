@@ -34,6 +34,7 @@ IdentyfierNode subName(PositionSpan(0, 0), "subtract");
 IdentyfierNode mulName(PositionSpan(0, 0), "multiply");
 IdentyfierNode divName(PositionSpan(0, 0), "divide");
 IdentyfierNode toStringName(PositionSpan(0, 0), "toString");
+IdentyfierNode getTypeName(PositionSpan(0, 0), "getType");
 
 ProjectConfig config;
 bool parsingModule = false;
@@ -110,21 +111,37 @@ bool compileProject() {
     auto voidContext = std::make_unique<Context>(&globalCtx);
     auto stringContext = std::make_unique<Context>(&globalCtx);
 
+    // String (defined before Object methods so toString/getType can reference it)
+    auto stringClass = std::make_unique<Symbol>(SymbolKind::CLASS, &stringType, nullptr, nullptr);
+    auto func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, stringClass.get(), nullptr);
+    func->isStatic = true;
+    numberOfParameters["String"]["init"] = 1;
+    stringContext->declare(std::move(func));
+    stringClass->scope = stringContext.get();
+    Symbol* stringClassPtr = stringClass.get();
+    globalCtx.declare(std::move(stringClass));
+
     // Object
     auto object = std::make_unique<Symbol>(SymbolKind::CLASS, &objectType, nullptr, nullptr);
     object->forcedMangle = "_BI_Object";
     // Object.init
-    auto func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, object.get(), nullptr);
+    func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, object.get(), nullptr);
     func->isStatic = true;
     func->forcedMangle = "_BI_Object_init";
     objectContext->declare(std::move(func));
     numberOfParameters["Object"]["init"] = 0;
     // Object.toString
-    func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &toStringName, object.get(), nullptr);
+    func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &toStringName, stringClassPtr, nullptr);
     func->isStatic = false;
     func->forcedMangle = "_BI_Object_toString";
     objectContext->declare(std::move(func));
     numberOfParameters["Object"]["toString"] = 1;
+    // Object.getType
+    func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &getTypeName, stringClassPtr, nullptr);
+    func->isStatic = false;
+    func->forcedMangle = "_BI_Object_getType";
+    objectContext->declare(std::move(func));
+    numberOfParameters["Object"]["getType"] = 1;
     object->scope = objectContext.get();
     globalCtx.declare(std::move(object));
 
@@ -157,15 +174,6 @@ bool compileProject() {
     voidContext->declare(std::move(func));
     voidClass->scope = voidContext.get();
     globalCtx.declare(std::move(voidClass));
-
-    // String
-    auto stringClass = std::make_unique<Symbol>(SymbolKind::CLASS, &stringType, nullptr, nullptr);
-    func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, stringClass.get(), nullptr);
-    func->isStatic = true;
-    numberOfParameters["Number"]["init"] = 1;
-    stringContext->declare(std::move(func));
-    stringClass->scope = stringContext.get();
-    globalCtx.declare(std::move(stringClass));
 
     // Null
     auto nullClass = std::make_unique<Symbol>(SymbolKind::CLASS, &nullType, nullptr, nullptr);

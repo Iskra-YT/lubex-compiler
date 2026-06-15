@@ -16,6 +16,9 @@ llvm::Value* LLVMGenerator::generateAlloca(IRAlloca* a) {
 }
 
 llvm::Value* LLVMGenerator::generateVariableRead(IRVariableRead* v) {
+    llvm::Value* found = nullptr;
+    llvm::Value* allocaVal = nullptr;
+
     for (auto& [key, val] : namedValues) {
         if (key->name == v->name) {
             if (dynamic_cast<IRArg*>(key)) {
@@ -23,15 +26,24 @@ llvm::Value* LLVMGenerator::generateVariableRead(IRVariableRead* v) {
                 return val;
             }
 
-            llvm::Type* ty = mapLLVMType(v->type);
-            auto var = emiterBuilder.CreateLoad(ty, val);
-            namedValues[v] = var;
-            return var;
+            found = val;
+            if (dynamic_cast<IRAlloca*>(key)) {
+                allocaVal = val;
+            }
         }
     }
 
-    std::cerr << "Variable not found: " << v->name << "\n";
-    return nullptr;
+    if (allocaVal) found = allocaVal;
+
+    if (!found) {
+        std::cerr << "Variable not found: " << v->name << "\n";
+        return nullptr;
+    }
+
+    llvm::Type* ty = mapLLVMType(v->type);
+    auto var = emiterBuilder.CreateLoad(ty, found);
+    namedValues[v] = var;
+    return var;
 }
 
 llvm::Value* LLVMGenerator::generateStore(IRStore* s) {

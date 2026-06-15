@@ -284,6 +284,9 @@ Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
                                                mainSource.filename().string()));
                 }
             }
+        } else if (isOverride) {
+            ctx.errors.push_back(Error(position, "Function marked 'override' must extend a parent class",
+                                       mainSource.filename().string()));
         }
     }
 
