@@ -4,7 +4,8 @@
 extern HEAP_BLOCK* __R_mainHeap;
 
 HEAP_BLOCK* __R_cblock(HEAP_BLOCK* previous) {
-    HEAP_BLOCK* newBlock = (HEAP_BLOCK*)__OS_mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    HEAP_BLOCK* newBlock =
+        (HEAP_BLOCK*)__OS_mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (newBlock == (void*)-1) return NULL;
 
     __R_memset(newBlock, 0, 4096);
@@ -74,12 +75,7 @@ void* _BI_malloc(long size) {
 }
 
 void* __R_memset(void* ptr, int value, unsigned long num) {
-    asm volatile (
-        "rep stosb"
-        : "+D" (ptr), "+c" (num)
-        : "a" (value)
-        : "memory"
-    );
+    asm volatile("rep stosb" : "+D"(ptr), "+c"(num) : "a"(value) : "memory");
     return ptr;
 }
 
@@ -92,11 +88,6 @@ unsigned long __R_strlen(const char* str) {
 }
 
 void* __R_memcpy(void* dest, const void* src, unsigned long n) {
-    asm volatile (
-        "rep movsb"
-        : "+D" (dest), "+S" (src), "+c" (n)
-        :
-        : "memory"
-    );
+    asm volatile("rep movsb" : "+D"(dest), "+S"(src), "+c"(n) : : "memory");
     return dest;
 }

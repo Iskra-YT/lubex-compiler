@@ -7,7 +7,10 @@
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/MC/TargetRegistry.h>
 
-bool emitObjectFile(llvm::Module& module, const std::string& triple, const std::filesystem::path& output, ProjectConfig config) {
+bool emitObjectFile(llvm::Module& module,
+                    const std::string& triple,
+                    const std::filesystem::path& output,
+                    ProjectConfig config) {
     std::string error;
 
     const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple, error);
@@ -19,9 +22,8 @@ bool emitObjectFile(llvm::Module& module, const std::string& triple, const std::
     llvm::TargetOptions opt;
 
     llvm::Reloc::Model RM = llvm::Reloc::PIC_;
-    auto targetMachine = std::unique_ptr<llvm::TargetMachine>(
-        target->createTargetMachine(triple, "generic", "", opt, RM)
-    );
+    auto targetMachine =
+        std::unique_ptr<llvm::TargetMachine>(target->createTargetMachine(triple, "generic", "", opt, RM));
 
     if (!targetMachine) {
         llvm::errs() << "Failed to create TargetMachine\n";
@@ -29,21 +31,21 @@ bool emitObjectFile(llvm::Module& module, const std::string& triple, const std::
     }
 
     switch (config.optimalization) {
-        case 0:
-            targetMachine->setOptLevel(llvm::CodeGenOpt::None);
-            break;
-        case 1:
-            targetMachine->setOptLevel(llvm::CodeGenOpt::Less);
-            break;
-        case 2:
-            targetMachine->setOptLevel(llvm::CodeGenOpt::Default);
-            break;
-        case 3:
-            targetMachine->setOptLevel(llvm::CodeGenOpt::Aggressive);
-            break;
-        default:
-            targetMachine->setOptLevel(llvm::CodeGenOpt::Default);
-            break;
+    case 0:
+        targetMachine->setOptLevel(llvm::CodeGenOpt::None);
+        break;
+    case 1:
+        targetMachine->setOptLevel(llvm::CodeGenOpt::Less);
+        break;
+    case 2:
+        targetMachine->setOptLevel(llvm::CodeGenOpt::Default);
+        break;
+    case 3:
+        targetMachine->setOptLevel(llvm::CodeGenOpt::Aggressive);
+        break;
+    default:
+        targetMachine->setOptLevel(llvm::CodeGenOpt::Default);
+        break;
     }
 
     module.setTargetTriple(triple);

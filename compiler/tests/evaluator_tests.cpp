@@ -133,10 +133,7 @@ EVALUATOR_TEST(NullCoalescingTypeCheck) {
         std::move(rightIdent)
     );
 
-    // Without declaring x and y, this should produce errors
     auto result = coalescing->evaluateSymbol(ctx);
-    // The left evaluateSymbol will fail because 'x' is undefined
-    // But the method should handle nullptr gracefully
     ASSERT_EQ(result, nullptr);
 }
 
@@ -149,17 +146,14 @@ EVALUATOR_TEST(NullCheckOnNullable) {
 
     auto* numberSym = ctx.lookup(&numberIdent);
 
-    // Create a nullable Number type
     auto nullType = std::make_unique<Symbol>(SymbolKind::CLASS, &numberIdent, numberSym, nullptr);
     nullType->isNullable = true;
     Symbol* nullTypePtr = nullType.get();
 
-    // Declare a variable of nullable Number type
     auto varName = new IdentyfierNode(PositionSpan(0,0), "x");
     ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, varName, nullTypePtr, nullptr));
     nullType.release();
 
-    // Now test ?? on the nullable variable
     auto ident = std::make_unique<IdentyfierNode>(PositionSpan(0,0), "x");
     auto nullCheck = std::make_unique<NullCheckNode>(PositionSpan(0,0), std::move(ident));
 
@@ -177,7 +171,6 @@ EVALUATOR_TEST(NullCheckOnNonNullable) {
 
     auto* numberSym = ctx.lookup(&numberIdent);
 
-    // Declare a non-nullable Number variable
     auto varName = new IdentyfierNode(PositionSpan(0,0), "x");
     ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, varName, numberSym, nullptr));
 
@@ -185,7 +178,6 @@ EVALUATOR_TEST(NullCheckOnNonNullable) {
     auto nullCheck = std::make_unique<NullCheckNode>(PositionSpan(0,0), std::move(ident));
 
     auto result = nullCheck->evaluateSymbol(ctx);
-    // Should produce error since x is not nullable
     ASSERT_GT(ctx.getErrors().size(), 0);
     ASSERT_EQ(result, nullptr);
 }
@@ -197,17 +189,14 @@ EVALUATOR_TEST(InheritedScopeLookup) {
     auto numberIdent = IdentyfierNode(PositionSpan(0, 0), "Number");
     ctx.declare(std::make_unique<Symbol>(SymbolKind::CLASS, &numberIdent, nullptr, static_cast<ASTNode*>(&numberIdent)));
 
-    // Parent context - child of root
     auto parentCtx = ctx.addChild();
     auto parentName = new IdentyfierNode(PositionSpan(0,0), "parentVal");
     parentCtx->declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, parentName, nullptr, nullptr));
 
-    // Child context - child of parentCtx
     auto childCtx = parentCtx->addChild();
     auto childName = new IdentyfierNode(PositionSpan(0,0), "childVal");
     childCtx->declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, childName, nullptr, nullptr));
 
-    // Lookup from child - should find both (parentVal via parent chain)
     IdentyfierNode lookParent(PositionSpan(0,0), "parentVal");
     IdentyfierNode lookChild(PositionSpan(0,0), "childVal");
     IdentyfierNode lookMissing(PositionSpan(0,0), "missingVal");

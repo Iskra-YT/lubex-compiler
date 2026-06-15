@@ -1,0 +1,1 @@
+find compiler/ runtime/ standard/ -path "*/build/*" -prune -o \( -name '*.cpp' -o -name '*.hpp' -o -name '*.c' -o -name '*.h' \) -print | xargs -r clang-format-15 -i

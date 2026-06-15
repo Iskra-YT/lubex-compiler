@@ -2,15 +2,15 @@
 #include <cstring>
 
 extern "C" {
-    #include "lbxmem.h"
-    #include "lbxint.h"
-    #include "lbxstr.h"
-    #include "lbxvoid.h"
-    HEAP_BLOCK* __R_mainHeap;
+#include "lbxmem.h"
+#include "lbxint.h"
+#include "lbxstr.h"
+#include "lbxvoid.h"
+HEAP_BLOCK* __R_mainHeap;
 }
 
 class RuntimeTest : public ::testing::Test {
-protected:
+    protected:
     void SetUp() override {
         __R_mainHeap = __R_malloc_init();
     }
@@ -24,7 +24,7 @@ protected:
 TEST_F(RuntimeTest, MallocBasic) {
     void* ptr1 = _BI_malloc(10);
     ASSERT_NE(ptr1, nullptr);
-    
+
     void* ptr2 = _BI_malloc(20);
     ASSERT_NE(ptr2, nullptr);
     ASSERT_NE(ptr1, ptr2);

@@ -58,25 +58,14 @@ llvm::Value* LLVMGenerator::generateString(IRString* s) {
 
     llvm::Constant* constStr = llvm::ConstantDataArray::getString(emiterContext, str, true);
 
-    auto global = new llvm::GlobalVariable(
-        *emiterModule,
-        constStr->getType(),
-        true,
-        llvm::GlobalValue::PrivateLinkage,
-        constStr
-    );
+    auto global =
+        new llvm::GlobalVariable(*emiterModule, constStr->getType(), true, llvm::GlobalValue::PrivateLinkage, constStr);
 
-    llvm::Value* zero = llvm::ConstantInt::get(
-        llvm::Type::getInt32Ty(emiterContext), 0
-    );
+    llvm::Value* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(emiterContext), 0);
 
-    llvm::Value* indices[] = { zero, zero };
+    llvm::Value* indices[] = {zero, zero};
 
-    llvm::Value* ptr = emiterBuilder.CreateInBoundsGEP(
-        global->getValueType(),
-        global,
-        indices
-    );
+    llvm::Value* ptr = emiterBuilder.CreateInBoundsGEP(global->getValueType(), global, indices);
 
     namedValues[s] = ptr;
     return ptr;
@@ -90,7 +79,7 @@ llvm::Value* LLVMGenerator::generateAccess(IRAccess* a) {
     }
 
     int idx = a->memberName;
-    
+
     if (!obj->getType()->isPointerTy()) {
         std::cerr << "Object is not a pointer type\n";
         return nullptr;
@@ -113,17 +102,16 @@ llvm::Value* LLVMGenerator::generateAccess(IRAccess* a) {
 llvm::Value* LLVMGenerator::generateAllocaStruct(IRAllocaStruct* g) {
     llvm::Type* type = mapLLVMType(g->type, false);
 
-    llvm::Function* callee = emiterModule->getFunction("_BI_malloc");        
+    llvm::Function* callee = emiterModule->getFunction("_BI_malloc");
     if (!callee) return nullptr;
 
-    const llvm::DataLayout &dl = emiterModule->getDataLayout();
+    const llvm::DataLayout& dl = emiterModule->getDataLayout();
     uint64_t totalSize = dl.getTypeAllocSize(type);
 
     llvm::Value* sizeVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(emiterContext), totalSize);
 
-    llvm::Value* allocated = emiterBuilder.CreateCall(callee, { sizeVal });
+    llvm::Value* allocated = emiterBuilder.CreateCall(callee, {sizeVal});
     llvm::Value* objPtr = emiterBuilder.CreateBitCast(allocated, type->getPointerTo());
-
 
     auto tiIt = typeInfos.find(g->type);
     if (tiIt == typeInfos.end() || !tiIt->second) {
@@ -146,9 +134,7 @@ llvm::Value* LLVMGenerator::generateAllocaStruct(IRAllocaStruct* g) {
 }
 
 llvm::Value* LLVMGenerator::generateNull(IRNull* n) {
-    llvm::Value* nullPtr = llvm::ConstantPointerNull::get(
-        llvm::Type::getInt8PtrTy(emiterContext)
-    );
+    llvm::Value* nullPtr = llvm::ConstantPointerNull::get(llvm::Type::getInt8PtrTy(emiterContext));
     namedValues[n] = nullPtr;
     return nullPtr;
 }
@@ -162,17 +148,9 @@ llvm::Value* LLVMGenerator::generateNullCoalescing(IRNullCoalescing* nc) {
     }
 
     llvm::Value* isNull = emiterBuilder.CreateICmpEQ(
-        leftVal,
-        llvm::ConstantPointerNull::get(
-            llvm::cast<llvm::PointerType>(leftVal->getType())
-        )
-    );
+        leftVal, llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(leftVal->getType())));
 
-    llvm::Value* result = emiterBuilder.CreateSelect(
-        isNull,
-        rightVal,
-        leftVal
-    );
+    llvm::Value* result = emiterBuilder.CreateSelect(isNull, rightVal, leftVal);
     namedValues[nc] = result;
     return result;
 }
@@ -189,12 +167,8 @@ llvm::Value* LLVMGenerator::generateNullCheck(IRNullCheck* nc) {
     llvm::BasicBlock* panicBB = llvm::BasicBlock::Create(emiterContext, "panic", func);
     llvm::BasicBlock* contBB = llvm::BasicBlock::Create(emiterContext, "cont", func);
 
-    llvm::Value* isNull = emiterBuilder.CreateICmpEQ(
-        val,
-        llvm::ConstantPointerNull::get(
-            llvm::cast<llvm::PointerType>(val->getType())
-        )
-    );
+    llvm::Value* isNull =
+        emiterBuilder.CreateICmpEQ(val, llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(val->getType())));
     emiterBuilder.CreateCondBr(isNull, panicBB, contBB);
 
     // Panic block
@@ -206,22 +180,12 @@ llvm::Value* LLVMGenerator::generateNullCheck(IRNullCheck* nc) {
     }
     std::string panicMsg = "Unexpected null value";
     llvm::Constant* msgConst = llvm::ConstantDataArray::getString(emiterContext, panicMsg, true);
-    auto* global = new llvm::GlobalVariable(
-        *emiterModule,
-        msgConst->getType(),
-        true,
-        llvm::GlobalValue::PrivateLinkage,
-        msgConst,
-        ".panic_msg"
-    );
+    auto* global = new llvm::GlobalVariable(*emiterModule, msgConst->getType(), true, llvm::GlobalValue::PrivateLinkage,
+                                            msgConst, ".panic_msg");
     llvm::Value* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(emiterContext), 0);
-    llvm::Value* indices[] = { zero, zero };
-    llvm::Value* msgPtr = emiterBuilder.CreateInBoundsGEP(
-        global->getValueType(),
-        global,
-        indices
-    );
-    emiterBuilder.CreateCall(panicFn, { msgPtr });
+    llvm::Value* indices[] = {zero, zero};
+    llvm::Value* msgPtr = emiterBuilder.CreateInBoundsGEP(global->getValueType(), global, indices);
+    emiterBuilder.CreateCall(panicFn, {msgPtr});
     emiterBuilder.CreateUnreachable();
 
     // Continue block
@@ -243,19 +207,13 @@ llvm::Value* LLVMGenerator::generateSafeAccess(IRSafeAccess* sa) {
     llvm::BasicBlock* accessBB = llvm::BasicBlock::Create(emiterContext, "safe_access", func);
     llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(emiterContext, "safe_merge", func);
 
-    llvm::Value* isNull = emiterBuilder.CreateICmpEQ(
-        obj,
-        llvm::ConstantPointerNull::get(
-            llvm::cast<llvm::PointerType>(obj->getType())
-        )
-    );
+    llvm::Value* isNull =
+        emiterBuilder.CreateICmpEQ(obj, llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(obj->getType())));
     emiterBuilder.CreateCondBr(isNull, nullBB, accessBB);
 
     // Null block
     emiterBuilder.SetInsertPoint(nullBB);
-    llvm::Value* nullResult = llvm::ConstantPointerNull::get(
-        llvm::cast<llvm::PointerType>(obj->getType())
-    );
+    llvm::Value* nullResult = llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(obj->getType()));
     emiterBuilder.CreateBr(mergeBB);
 
     // Access block
@@ -270,15 +228,8 @@ llvm::Value* LLVMGenerator::generateSafeAccess(IRSafeAccess* sa) {
         std::cerr << "Missing member index for safe access\n";
         return nullptr;
     }
-    llvm::Value* gep = emiterBuilder.CreateStructGEP(
-        mapLLVMType(sa->object->type, false),
-        obj,
-        memberIt->second
-    );
-    llvm::Value* memberVal = emiterBuilder.CreateLoad(
-        mapLLVMType(sa->type),
-        gep
-    );
+    llvm::Value* gep = emiterBuilder.CreateStructGEP(mapLLVMType(sa->object->type, false), obj, memberIt->second);
+    llvm::Value* memberVal = emiterBuilder.CreateLoad(mapLLVMType(sa->type), gep);
     emiterBuilder.CreateBr(mergeBB);
 
     // Merge block

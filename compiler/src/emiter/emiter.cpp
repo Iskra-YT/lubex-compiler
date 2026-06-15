@@ -34,7 +34,8 @@ std::vector<llvm::Value*> LLVMGenerator::generate(std::vector<std::unique_ptr<IR
             }
 
             llvm::FunctionType* funcType = llvm::FunctionType::get(mapLLVMType(f->returnType), argTypes, false);
-            llvm::Function* func = llvm::Function::Create(funcType, llvm::GlobalValue::LinkageTypes::ExternalLinkage, f->name, emiterModule.get());
+            llvm::Function* func = llvm::Function::Create(funcType, llvm::GlobalValue::LinkageTypes::ExternalLinkage,
+                                                          f->name, emiterModule.get());
             typeMethods[f->className].push_back(func);
             functionTable[func] = instr.get();
         } else if (auto c = dynamic_cast<IRStruct*>(instr.get())) {
@@ -68,7 +69,7 @@ std::vector<llvm::Value*> LLVMGenerator::generate(std::vector<std::unique_ptr<IR
         }
     }
 
-    for (auto& [key, _] : typeMethods) {    
+    for (auto& [key, _] : typeMethods) {
         buildVTable(key);
     }
 

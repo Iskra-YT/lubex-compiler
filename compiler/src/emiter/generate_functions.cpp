@@ -49,22 +49,12 @@ llvm::Value* LLVMGenerator::generateFunction(IRFunction* f) {
 
             llvm::Type* i8PtrTy = llvm::Type::getInt8PtrTy(emiterContext);
 
-            llvm::Value* typeInfoPtr = emiterBuilder.CreateBitCast(
-                typeInfoGV,
-                typeInfoTy->getPointerTo()
-            );
-            
-            llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(
-                typeInfoTy,
-                typeInfoPtr,
-                2
-            );
-            
-            llvm::Value* vtablePtr = emiterBuilder.CreateLoad(
-                i8PtrTy->getPointerTo(),
-                vtablePtrPtr
-            );
-            
+            llvm::Value* typeInfoPtr = emiterBuilder.CreateBitCast(typeInfoGV, typeInfoTy->getPointerTo());
+
+            llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(typeInfoTy, typeInfoPtr, 2);
+
+            llvm::Value* vtablePtr = emiterBuilder.CreateLoad(i8PtrTy->getPointerTo(), vtablePtrPtr);
+
             auto voidVtIt = vTablePos.find("_BI_Void");
             if (voidVtIt == vTablePos.end()) {
                 std::cerr << "Missing vtable for _BI_Void\n";
@@ -76,34 +66,21 @@ llvm::Value* LLVMGenerator::generateFunction(IRFunction* f) {
                 return nullptr;
             }
             int idx = initIt->second;
-            llvm::Value* idxVal = llvm::ConstantInt::get(
-                llvm::Type::getInt32Ty(emiterContext),
-                idx
-            );
-            
-            llvm::Value* fnPtrPtr = emiterBuilder.CreateInBoundsGEP(
-                i8PtrTy,
-                vtablePtr,
-                idxVal
-            );
-            
-            llvm::Value* fnPtr = emiterBuilder.CreateLoad(
-                i8PtrTy,
-                fnPtrPtr
-            );
-            
-            llvm::Function* callee = emiterModule->getFunction("_BI_Void_init");  
+            llvm::Value* idxVal = llvm::ConstantInt::get(llvm::Type::getInt32Ty(emiterContext), idx);
+
+            llvm::Value* fnPtrPtr = emiterBuilder.CreateInBoundsGEP(i8PtrTy, vtablePtr, idxVal);
+
+            llvm::Value* fnPtr = emiterBuilder.CreateLoad(i8PtrTy, fnPtrPtr);
+
+            llvm::Function* callee = emiterModule->getFunction("_BI_Void_init");
             if (!callee) {
                 std::cerr << "Missing _BI_Void_init\n";
                 return nullptr;
             }
 
             llvm::FunctionType* fnType = callee->getFunctionType();
-            llvm::Value* typedFn = emiterBuilder.CreateBitCast(
-                fnPtr,
-                fnType->getPointerTo()
-            );
-            
+            llvm::Value* typedFn = emiterBuilder.CreateBitCast(fnPtr, fnType->getPointerTo());
+
             llvm::Type* voidTy = mapLLVMType("_BI_Void", false);
             llvm::Function* mallocFn = emiterModule->getFunction("_BI_malloc");
             if (!mallocFn) {
@@ -113,17 +90,13 @@ llvm::Value* LLVMGenerator::generateFunction(IRFunction* f) {
             const llvm::DataLayout& dl = emiterModule->getDataLayout();
             uint64_t totalSize = dl.getTypeAllocSize(voidTy);
             llvm::Value* sizeVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(emiterContext), totalSize);
-            llvm::Value* allocated = emiterBuilder.CreateCall(mallocFn, { sizeVal });
+            llvm::Value* allocated = emiterBuilder.CreateCall(mallocFn, {sizeVal});
             llvm::Value* objPtr = emiterBuilder.CreateBitCast(allocated, voidTy->getPointerTo());
             llvm::Value* typeInfoGEP = emiterBuilder.CreateStructGEP(voidTy, objPtr, 0);
             emiterBuilder.CreateStore(typeInfoPtr, typeInfoGEP);
-            
-            llvm::Value* call = emiterBuilder.CreateCall(
-                fnType,
-                typedFn,
-                {objPtr}
-            );
-            
+
+            llvm::Value* call = emiterBuilder.CreateCall(fnType, typedFn, {objPtr});
+
             emiterBuilder.CreateRet(call);
         } else {
             std::cerr << "Missing return in function: " << f->name << "\n";
@@ -150,7 +123,7 @@ llvm::Value* LLVMGenerator::generateCall(IRCall* c) {
             std::cerr << "Missing arg value in call: " << c->funcName << "\n";
             return nullptr;
         }
-    
+
         args.push_back(nvIt->second);
     }
 
@@ -166,12 +139,12 @@ llvm::Value* LLVMGenerator::generateCall(IRCall* c) {
             return nullptr;
         }
         auto funcIr = dynamic_cast<IRFunction*>(ftIt->second);
-    
+
         if (!funcIr) {
             std::cerr << "Missing IR for function: " << c->funcName << "\n";
             return nullptr;
         }
-    
+
         className = funcIr->className;
         isStatic = funcIr->isStatic;
     }
@@ -190,11 +163,8 @@ llvm::Value* LLVMGenerator::generateCall(IRCall* c) {
     }
     int idx = mthIt->second;
 
-    llvm::Value* idxVal = llvm::ConstantInt::get(
-        llvm::Type::getInt32Ty(emiterContext),
-        idx
-    );
-    
+    llvm::Value* idxVal = llvm::ConstantInt::get(llvm::Type::getInt32Ty(emiterContext), idx);
+
     llvm::Type* i8PtrTy = llvm::Type::getInt8PtrTy(emiterContext);
 
     auto typeInfoIt = structTypes.find("_BI_TypeInfo");
@@ -212,22 +182,12 @@ llvm::Value* LLVMGenerator::generateCall(IRCall* c) {
             return nullptr;
         }
         llvm::Value* typeInfoGV = tiIt->second;
-    
-        llvm::Value* typeInfoPtr = emiterBuilder.CreateBitCast(
-            typeInfoGV,
-            typeInfoTy->getPointerTo()
-        );
-        
-        llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(
-            typeInfoTy,
-            typeInfoPtr,
-            2
-        );
-        
-        vtablePtr = emiterBuilder.CreateLoad(
-            i8PtrTy->getPointerTo(),
-            vtablePtrPtr
-        );
+
+        llvm::Value* typeInfoPtr = emiterBuilder.CreateBitCast(typeInfoGV, typeInfoTy->getPointerTo());
+
+        llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(typeInfoTy, typeInfoPtr, 2);
+
+        vtablePtr = emiterBuilder.CreateLoad(i8PtrTy->getPointerTo(), vtablePtrPtr);
     } else {
         if (args.empty()) {
             std::cerr << "Missing this pointer for instance method call\n";
@@ -236,56 +196,25 @@ llvm::Value* LLVMGenerator::generateCall(IRCall* c) {
         llvm::Value* thisPtr = args[0];
         auto* classTy = llvm::cast<llvm::StructType>(mapLLVMType(className, false));
 
-        llvm::Value* typedThis = emiterBuilder.CreateBitCast(
-            thisPtr,
-            classTy->getPointerTo()
-        );
+        llvm::Value* typedThis = emiterBuilder.CreateBitCast(thisPtr, classTy->getPointerTo());
 
-        llvm::Value* typeInfoPtrPtr = emiterBuilder.CreateStructGEP(
-            classTy,
-            typedThis,
-            0
-        );
-        
-        llvm::Value* typeInfoPtr = emiterBuilder.CreateLoad(
-            typeInfoTy->getPointerTo(),
-            typeInfoPtrPtr
-        );
-        
-        llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(
-            typeInfoTy,
-            typeInfoPtr,
-            2
-        );
-        
-        vtablePtr = emiterBuilder.CreateLoad(
-            i8PtrTy->getPointerTo(),
-            vtablePtrPtr
-        );
+        llvm::Value* typeInfoPtrPtr = emiterBuilder.CreateStructGEP(classTy, typedThis, 0);
+
+        llvm::Value* typeInfoPtr = emiterBuilder.CreateLoad(typeInfoTy->getPointerTo(), typeInfoPtrPtr);
+
+        llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(typeInfoTy, typeInfoPtr, 2);
+
+        vtablePtr = emiterBuilder.CreateLoad(i8PtrTy->getPointerTo(), vtablePtrPtr);
     }
 
-    llvm::Value* fnPtrPtr = emiterBuilder.CreateInBoundsGEP(
-        i8PtrTy,
-        vtablePtr,
-        idxVal
-    );
-    
-    llvm::Value* fnPtr = emiterBuilder.CreateLoad(
-        i8PtrTy,
-        fnPtrPtr
-    );
-    
-    llvm::Value* typedFn = emiterBuilder.CreateBitCast(
-        fnPtr,
-        fnType->getPointerTo()
-    );
-    
-    llvm::Value* call = emiterBuilder.CreateCall(
-        fnType,
-        typedFn,
-        args
-    );
-    
+    llvm::Value* fnPtrPtr = emiterBuilder.CreateInBoundsGEP(i8PtrTy, vtablePtr, idxVal);
+
+    llvm::Value* fnPtr = emiterBuilder.CreateLoad(i8PtrTy, fnPtrPtr);
+
+    llvm::Value* typedFn = emiterBuilder.CreateBitCast(fnPtr, fnType->getPointerTo());
+
+    llvm::Value* call = emiterBuilder.CreateCall(fnType, typedFn, args);
+
     namedValues[c] = call;
     return call;
 }

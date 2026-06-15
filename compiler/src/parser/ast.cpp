@@ -107,7 +107,7 @@ void ReturnNode::debug() {
     if (value) value->debug();
 }
 
-void AttributesNode::debug(){
+void AttributesNode::debug() {
     DEBUG_OUTPUT << "attr value ";
     value->debug();
 }

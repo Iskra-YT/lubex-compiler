@@ -1,7 +1,7 @@
 #include "emiter/emiter.hpp"
 #include <vector>
 
-std::string mangleName(const std::string &name) {
+std::string mangleName(const std::string& name) {
     if (mangleVisitor != "") {
         return mangleVisitor;
     }
@@ -9,7 +9,7 @@ std::string mangleName(const std::string &name) {
     std::vector<std::string> parts;
     size_t start = 0;
     size_t end = name.find('.');
-    
+
     while (end != std::string::npos) {
         parts.push_back(name.substr(start, end - start));
         start = end + 1;

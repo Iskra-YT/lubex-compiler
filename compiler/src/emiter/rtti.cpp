@@ -2,7 +2,8 @@
 #include <iostream>
 #include <unordered_set>
 
-llvm::GlobalVariable* LLVMGenerator::updateTypeInfoWithVTable(llvm::GlobalVariable* typeInfo, llvm::Constant* vtablePtr) {
+llvm::GlobalVariable* LLVMGenerator::updateTypeInfoWithVTable(llvm::GlobalVariable* typeInfo,
+                                                              llvm::Constant* vtablePtr) {
     auto* ty = structTypes["_BI_TypeInfo"];
 
     llvm::Constant* oldInit = typeInfo->getInitializer();
@@ -36,7 +37,8 @@ llvm::GlobalVariable* LLVMGenerator::getOrCreateTypeInfo(const std::string& name
 
     globalTypeInfos[name] = {name, parentName, id};
 
-    auto* gv = new llvm::GlobalVariable(*emiterModule, structTypes["_BI_TypeInfo"], true, llvm::GlobalValue::ExternalLinkage, nullptr, "_T" + name);
+    auto* gv = new llvm::GlobalVariable(*emiterModule, structTypes["_BI_TypeInfo"], true,
+                                        llvm::GlobalValue::ExternalLinkage, nullptr, "_T" + name);
 
     typeInfos[name] = gv;
     return gv;
@@ -90,14 +92,20 @@ void LLVMGenerator::buildVTable(const std::string& cls) {
     }
 
     auto* vtableType = llvm::ArrayType::get(llvm::Type::getInt8PtrTy(emiterContext), finalMethods.size());
-    auto* vTableGlobal = new llvm::GlobalVariable(*emiterModule, vtableType, true, llvm::GlobalValue::ExternalLinkage, nullptr, "_VT" + cls);
+    auto* vTableGlobal = new llvm::GlobalVariable(*emiterModule, vtableType, true, llvm::GlobalValue::ExternalLinkage,
+                                                  nullptr, "_VT" + cls);
 
     vTables[cls] = finalMethods;
 }
 
-std::unique_ptr<llvm::Module> generateRTTIModule(llvm::LLVMContext& ctx, const std::unordered_map<std::string, RTTIRecord>& globalTypeInfos, const std::string& moduleName) {
+std::unique_ptr<llvm::Module> generateRTTIModule(llvm::LLVMContext& ctx,
+                                                 const std::unordered_map<std::string, RTTIRecord>& globalTypeInfos,
+                                                 const std::string& moduleName) {
     auto module = std::make_unique<llvm::Module>(moduleName, ctx);
-    auto* typeInfoTy = llvm::StructType::create(ctx, {llvm::Type::getInt128Ty(ctx), llvm::PointerType::getUnqual(ctx), llvm::Type::getInt8PtrTy(ctx)->getPointerTo()}, "_BI_TypeInfo");
+    auto* typeInfoTy = llvm::StructType::create(ctx,
+                                                {llvm::Type::getInt128Ty(ctx), llvm::PointerType::getUnqual(ctx),
+                                                 llvm::Type::getInt8PtrTy(ctx)->getPointerTo()},
+                                                "_BI_TypeInfo");
 
     std::unordered_map<std::string, llvm::GlobalVariable*> typeInfos;
     std::unordered_set<std::string> declaredFunctions;
@@ -108,17 +116,13 @@ std::unique_ptr<llvm::Module> generateRTTIModule(llvm::LLVMContext& ctx, const s
             declaredFunctions.insert(fnName);
 
             auto* fnTy = llvm::FunctionType::get(llvm::Type::getInt8PtrTy(ctx), true);
-            llvm::Function::Create(
-                fnTy,
-                llvm::GlobalValue::ExternalLinkage,
-                fnName,
-                module.get()
-            );
+            llvm::Function::Create(fnTy, llvm::GlobalValue::ExternalLinkage, fnName, module.get());
         }
     }
 
     for (auto& [name, _] : globalTypeInfos) {
-        auto* gv = new llvm::GlobalVariable(*module, typeInfoTy, true, llvm::GlobalValue::ExternalLinkage, nullptr, "_T" + name);
+        auto* gv = new llvm::GlobalVariable(*module, typeInfoTy, true, llvm::GlobalValue::ExternalLinkage, nullptr,
+                                            "_T" + name);
         typeInfos[name] = gv;
     }
 
@@ -134,7 +138,8 @@ std::unique_ptr<llvm::Module> generateRTTIModule(llvm::LLVMContext& ctx, const s
         auto* arrTy = llvm::ArrayType::get(llvm::Type::getInt8PtrTy(ctx), entries.size());
         auto* arr = llvm::ConstantArray::get(arrTy, entries);
 
-        auto* gv = new llvm::GlobalVariable(*module, arrTy, true, llvm::GlobalValue::ExternalLinkage, arr, info.vtableName);
+        auto* gv =
+            new llvm::GlobalVariable(*module, arrTy, true, llvm::GlobalValue::ExternalLinkage, arr, info.vtableName);
         vtables[name] = gv;
     }
 
@@ -146,23 +151,12 @@ std::unique_ptr<llvm::Module> generateRTTIModule(llvm::LLVMContext& ctx, const s
             parent = typeInfos[info.parent];
         }
 
-        llvm::Constant* idConst = llvm::ConstantInt::get(
-            llvm::Type::getInt128Ty(ctx),
-            toAPInt(info.id)
-        );
+        llvm::Constant* idConst = llvm::ConstantInt::get(llvm::Type::getInt128Ty(ctx), toAPInt(info.id));
 
-        llvm::Constant* vtablePtr = llvm::ConstantExpr::getBitCast(
-            vtables[name],
-            llvm::Type::getInt8PtrTy(ctx)->getPointerTo()
-        );
+        llvm::Constant* vtablePtr =
+            llvm::ConstantExpr::getBitCast(vtables[name], llvm::Type::getInt8PtrTy(ctx)->getPointerTo());
 
-        auto* init = llvm::ConstantStruct::get(typeInfoTy,
-            {
-                idConst,
-                parent,
-                vtablePtr
-            }
-        );
+        auto* init = llvm::ConstantStruct::get(typeInfoTy, {idConst, parent, vtablePtr});
 
         typeInfos[name]->setInitializer(init);
     }

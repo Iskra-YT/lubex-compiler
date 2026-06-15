@@ -126,13 +126,6 @@ LIR_TEST(BasicNumber) {
 
     ASSERT_FALSE(lir.empty());
     
-    // For "let a: Number = 5;", we expect:
-    // 1. Alloca for 'a'
-    // 2. Alloca for temporary Number (for literal 5)
-    // 3. Number literal value
-    // 4. Call to _BI_Number_init
-    // 5. Store literal to 'a'
-    
     bool foundAllocaA = false;
     bool foundNumber5 = false;
     bool foundStore = false;

@@ -13,10 +13,10 @@ static void replaceBinaryWithNumber(std::unique_ptr<ASTNode>& expr, double value
 }
 
 static void optimizeBinary(BinaryNode* expr, std::unique_ptr<ASTNode>& node) {
-    if (expr->left)  optimizeNode(expr->left);
+    if (expr->left) optimizeNode(expr->left);
     if (expr->right) optimizeNode(expr->right);
 
-    NumberNode* leftNum  = asNumber(expr->left.get());
+    NumberNode* leftNum = asNumber(expr->left.get());
     NumberNode* rightNum = asNumber(expr->right.get());
     if (!leftNum || !rightNum) return;
 

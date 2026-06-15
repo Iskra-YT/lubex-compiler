@@ -8,7 +8,8 @@ int Context::nextId = 0;
 
 void Context::declare(std::unique_ptr<Symbol> sym) {
     if (lookup(sym->name, false)) {
-        errors.push_back(Error(sym->name->position, "Symbol '" + sym->name->value + "' is already defined", mainSource.filename().string()));
+        errors.push_back(Error(sym->name->position, "Symbol '" + sym->name->value + "' is already defined",
+                               mainSource.filename().string()));
         return;
     }
     symbols[sym->name->value] = std::move(sym);
@@ -17,14 +18,15 @@ void Context::declare(std::unique_ptr<Symbol> sym) {
 Symbol* Context::lookup(const IdentyfierNode* name, bool getError) {
     if (symbols.contains(name->value)) {
         return symbols[name->value].get();
-    } 
+    }
 
     if (parent) {
         return parent->lookup(name, getError);
     }
 
     if (getError) {
-        errors.emplace_back(name->position, "Undefined identifier '" + name->value + "'", mainSource.filename().string());
+        errors.emplace_back(name->position, "Undefined identifier '" + name->value + "'",
+                            mainSource.filename().string());
     }
 
     return nullptr;
@@ -33,7 +35,7 @@ Symbol* Context::lookup(const IdentyfierNode* name, bool getError) {
 Symbol* Context::lookup(const std::string name, PositionSpan span, bool getError) {
     if (symbols.contains(name)) {
         return symbols[name].get();
-    } 
+    }
 
     if (parent) {
         return parent->lookup(name, span, getError);
@@ -49,7 +51,7 @@ Symbol* Context::lookup(const std::string name, PositionSpan span, bool getError
 Symbol* Context::lookup(const std::string name) {
     if (symbols.contains(name)) {
         return symbols[name].get();
-    } 
+    }
 
     if (parent) {
         return parent->lookup(name);
@@ -90,22 +92,33 @@ void printIndent(int level) {
 
 std::string symbolKindToString(SymbolKind kind) {
     switch (kind) {
-        case SymbolKind::NOT: return "NOT";
-        case SymbolKind::VARIABLE: return "VARIABLE";
-        case SymbolKind::FUNCTION: return "FUNCTION";
-        case SymbolKind::CLASS: return "CLASS";
-        case SymbolKind::MODULE: return "MODULE";
-        case SymbolKind::ERROR: return "ERROR";
-        default: return "UNKNOWN";
+    case SymbolKind::NOT:
+        return "NOT";
+    case SymbolKind::VARIABLE:
+        return "VARIABLE";
+    case SymbolKind::FUNCTION:
+        return "FUNCTION";
+    case SymbolKind::CLASS:
+        return "CLASS";
+    case SymbolKind::MODULE:
+        return "MODULE";
+    case SymbolKind::ERROR:
+        return "ERROR";
+    default:
+        return "UNKNOWN";
     }
 }
 
 std::string passPhaseToString(PassPhase phase) {
     switch (phase) {
-        case PassPhase::DECLARATION: return "DECLARATION";
-        case PassPhase::MIDPASS: return "MIDPASS";
-        case PassPhase::TYPE_CHECK: return "TYPE_CHECK";
-        default: return "UNKNOWN";
+    case PassPhase::DECLARATION:
+        return "DECLARATION";
+    case PassPhase::MIDPASS:
+        return "MIDPASS";
+    case PassPhase::TYPE_CHECK:
+        return "TYPE_CHECK";
+    default:
+        return "UNKNOWN";
     }
 }
 
@@ -114,24 +127,26 @@ void printSymbol(const Symbol* sym, const std::string& prefix = "", bool isLast 
 
     DEBUG_OUTPUT << prefix;
     DEBUG_OUTPUT << (isLast ? "└─ " : "├─ ");
-    DEBUG_OUTPUT << "Symbol: " << (sym->name ? sym->name->value : "nullptr")
-              << " [" << symbolKindToString(sym->kind) << "]"
-              << ", mangled: " << sym->mangledName << "\n";
+    DEBUG_OUTPUT << "Symbol: " << (sym->name ? sym->name->value : "nullptr") << " [" << symbolKindToString(sym->kind)
+                 << "]"
+                 << ", mangled: " << sym->mangledName << "\n";
 
     if (sym->type && sym->kind != SymbolKind::CLASS) {
         printSymbol(sym->type, prefix + (isLast ? "   " : "│  "), true);
     }
 }
 
-void printContext(const Context* ctx, const std::string& prefix, bool isLast, std::unordered_set<const Context*>& visited) {
+void printContext(const Context* ctx,
+                  const std::string& prefix,
+                  bool isLast,
+                  std::unordered_set<const Context*>& visited) {
     if (!ctx) return;
 
     if (visited.find(ctx) != visited.end()) {
-        std::string genName = (ctx->generativeSymbol && ctx->generativeSymbol->name)
-                              ? ctx->generativeSymbol->name->value
-                              : "unnamed";
-        DEBUG_OUTPUT << prefix << (isLast ? "└─ " : "├─ ")
-                  << "[CYCLE DETECTED: generativeSymbol=\"" << genName << "\"]\n";
+        std::string genName =
+            (ctx->generativeSymbol && ctx->generativeSymbol->name) ? ctx->generativeSymbol->name->value : "unnamed";
+        DEBUG_OUTPUT << prefix << (isLast ? "└─ " : "├─ ") << "[CYCLE DETECTED: generativeSymbol=\"" << genName
+                     << "\"]\n";
         return;
     }
     visited.insert(ctx);
@@ -143,8 +158,7 @@ void printContext(const Context* ctx, const std::string& prefix, bool isLast, st
     std::string childPrefix = prefix + (isLast ? "   " : "│  ");
 
     DEBUG_OUTPUT << childPrefix << "├─ GenerativeSymbol:\n";
-    if (ctx->generativeSymbol)
-        printSymbol(ctx->generativeSymbol, childPrefix + "│  ", true);
+    if (ctx->generativeSymbol) printSymbol(ctx->generativeSymbol, childPrefix + "│  ", true);
 
     DEBUG_OUTPUT << childPrefix << "├─ SymbolKind: " << symbolKindToString(ctx->symbolKind) << "\n";
 

@@ -3,9 +3,7 @@
 #include <unordered_set>
 
 bool isVariableAllowed(char c) {
-    if ((c >= 'a' && c <= 'z') || 
-        (c >= 'A' && c <= 'Z') || 
-        c == '_' || c == '#' || c == '$') {
+    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c == '#' || c == '$') {
         return true;
     }
     return false;
@@ -49,9 +47,9 @@ std::vector<Token> Lexer::lex() {
             }
             tokens.push_back({{startPos, currentPosition}, value, TokenType::NUMBER_TOKEN});
             continue;
-        } 
+        }
 
-        else if (isVariableAllowed(currentToken))  {
+        else if (isVariableAllowed(currentToken)) {
             std::string value;
             while (isVariableAllowed(currentToken) || std::isdigit(currentToken)) {
                 value += currentToken;
@@ -62,11 +60,10 @@ std::vector<Token> Lexer::lex() {
                 tokens.push_back({{startPos, currentPosition}, value, TokenType::KEYWORD_TOKEN});
             else if (value == "NaN" || value == "Infinity")
                 tokens.push_back({{startPos, currentPosition}, value, TokenType::NUMBER_TOKEN});
-            else
-                tokens.push_back({{startPos, currentPosition}, value, TokenType::IDENTYFIER_TOKEN});
+            else tokens.push_back({{startPos, currentPosition}, value, TokenType::IDENTYFIER_TOKEN});
 
             continue;
-        } 
+        }
 
         else if (currentToken == '+' || currentToken == '-' || currentToken == '*' || currentToken == '/') {
             if (currentToken == '/' && !input.empty() && input.front() == '/') {
@@ -81,22 +78,23 @@ std::vector<Token> Lexer::lex() {
 
                 while (!input.empty()) {
                     if (currentToken == '*' && !input.empty() && input.front() == '/') {
-                        advance(); 
-                        advance(); 
+                        advance();
+                        advance();
                         break;
                     }
                     advance();
                 }
-            
+
                 continue;
             }
 
             tokens.push_back({{startPos, currentPosition}, std::string(1, currentToken), TokenType::ARITHMETIC_TOKEN});
             advance();
             continue;
-        } 
+        }
 
-        else if (currentToken == '(' || currentToken == ')' || currentToken == ';' || currentToken == ':' || currentToken == '{' || currentToken == '}' || currentToken == '.' || currentToken == ',') {
+        else if (currentToken == '(' || currentToken == ')' || currentToken == ';' || currentToken == ':' ||
+                 currentToken == '{' || currentToken == '}' || currentToken == '.' || currentToken == ',') {
             tokens.push_back({{startPos, currentPosition}, std::string(1, currentToken), TokenType::DELIMITER_TOKEN});
             advance();
             continue;
@@ -193,7 +191,7 @@ std::vector<Token> Lexer::lex() {
                 } else {
                     value += currentToken;
                 }
-            
+
                 advance();
             }
 

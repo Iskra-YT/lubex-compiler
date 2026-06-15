@@ -40,17 +40,10 @@ bool parsingModule = false;
 
 std::string targetToTriple(const std::string& target) {
     std::unordered_map<std::string, std::string> arch_map = {
-        {"x64", "x86_64"},
-        {"x86", "i386"},
-        {"arm64", "aarch64"},
-        {"arm", "arm"}
-    };
+        {"x64", "x86_64"}, {"x86", "i386"}, {"arm64", "aarch64"}, {"arm", "arm"}};
 
     std::unordered_map<std::string, std::string> os_map = {
-        {"linux", "pc-linux-gnu"},
-        {"windows", "pc-windows-msvc"},
-        {"darwin", "apple-darwin"}
-    };
+        {"linux", "pc-linux-gnu"}, {"windows", "pc-windows-msvc"}, {"darwin", "apple-darwin"}};
 
     size_t dash_pos = target.find('-');
     if (dash_pos == std::string::npos) {
@@ -75,7 +68,11 @@ std::filesystem::path mainSource;
 
 bool compile(std::filesystem::path ms, Context& globalCtx);
 
-Symbol* createBuiltinClass(Context& globalCtx, std::unique_ptr<Context>& ctx, const std::string& name, IdentyfierNode* typeNode, const std::string& mangle) {
+Symbol* createBuiltinClass(Context& globalCtx,
+                           std::unique_ptr<Context>& ctx,
+                           const std::string& name,
+                           IdentyfierNode* typeNode,
+                           const std::string& mangle) {
     auto cls = std::make_unique<Symbol>(SymbolKind::CLASS, typeNode, nullptr, nullptr);
     cls->forcedMangle = mangle;
 
@@ -85,7 +82,8 @@ Symbol* createBuiltinClass(Context& globalCtx, std::unique_ptr<Context>& ctx, co
     return globalCtx.lookup(typeNode);
 }
 
-Symbol* addBuiltinFunction(Context& ctx, Symbol* owner, IdentyfierNode* name, const std::string& mangle, bool isStatic = true) {
+Symbol*
+addBuiltinFunction(Context& ctx, Symbol* owner, IdentyfierNode* name, const std::string& mangle, bool isStatic = true) {
     auto fn = std::make_unique<Symbol>(SymbolKind::FUNCTION, name, owner, nullptr);
     fn->isStatic = isStatic;
     fn->forcedMangle = mangle;
@@ -115,7 +113,7 @@ bool compileProject() {
     // Object
     auto object = std::make_unique<Symbol>(SymbolKind::CLASS, &objectType, nullptr, nullptr);
     object->forcedMangle = "_BI_Object";
-    //Object.init
+    // Object.init
     auto func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, object.get(), nullptr);
     func->isStatic = true;
     func->forcedMangle = "_BI_Object_init";
@@ -135,7 +133,7 @@ bool compileProject() {
     // Number.init
     func = std::make_unique<Symbol>(SymbolKind::FUNCTION, &initName, intClass.get(), nullptr);
     func->isStatic = true;
-     func->forcedMangle = "_BI_Number_init";
+    func->forcedMangle = "_BI_Number_init";
     numberOfParameters["Number"]["init"] = 1;
     intContext->declare(std::move(func));
 
@@ -175,8 +173,7 @@ bool compileProject() {
     nullClass->isNullable = true;
     globalCtx.declare(std::move(nullClass));
 
-    if (!compile(mainSource, *globalCtx.addChild()))
-        return false;
+    if (!compile(mainSource, *globalCtx.addChild())) return false;
 
     for (auto& target : config.targets) {
         llvm::LLVMContext rttiCtx;
@@ -189,7 +186,7 @@ bool compileProject() {
         rttiModule->print(llvm::errs(), nullptr);
 #endif // DEBUG
     }
-    
+
     return true;
 }
 
@@ -225,7 +222,8 @@ bool compile(std::filesystem::path ms, Context& globalCtx) {
     std::vector<Error> errors;
 
     if (size == 0) {
-        std::cerr << Error(PositionSpan(1, 1), "Source file is empty", mainSource.filename().string()).returnError() << "\n";
+        std::cerr << Error(PositionSpan(1, 1), "Source file is empty", mainSource.filename().string()).returnError()
+                  << "\n";
         return false;
     }
 
@@ -259,11 +257,13 @@ bool compile(std::filesystem::path ms, Context& globalCtx) {
     }
 
     if (!dynamic_cast<ModuleDeclaration*>(dynamic_cast<StatementNode*>(nodes[0].get())->value.get())) {
-        std::cerr << Error(PositionSpan(1, 1), "First declaration must be a module declaration", mainSource.filename().string()).returnError() << "\n";
+        std::cerr << Error(PositionSpan(1, 1), "First declaration must be a module declaration",
+                           mainSource.filename().string())
+                         .returnError()
+                  << "\n";
         return false;
     }
 
-    
     for (const auto& node : nodes) {
         node->debug();
         DEBUG_OUTPUT << "\n";
@@ -271,14 +271,13 @@ bool compile(std::filesystem::path ms, Context& globalCtx) {
 
     DEBUG_OUTPUT << "\n\n";
 
-    std::string moduleName = static_cast<IdentyfierNode*>(static_cast<ModuleDeclaration*>(static_cast<StatementNode*>(nodes[0].get())->value.get())->name.get())->value;
+    std::string moduleName =
+        static_cast<IdentyfierNode*>(
+            static_cast<ModuleDeclaration*>(static_cast<StatementNode*>(nodes[0].get())->value.get())->name.get())
+            ->value;
     moduleAST[moduleName] = std::move(nodes);
 
-    for (auto phase : {
-        PassPhase::DECLARATION,
-        PassPhase::MIDPASS,
-        PassPhase::TYPE_CHECK
-    }) {
+    for (auto phase : {PassPhase::DECLARATION, PassPhase::MIDPASS, PassPhase::TYPE_CHECK}) {
         globalCtx.phase = phase;
         for (auto& node : moduleAST[moduleName]) {
             node->evaluateSymbol(globalCtx);
@@ -304,7 +303,7 @@ bool compile(std::filesystem::path ms, Context& globalCtx) {
         std::cerr << e.error.returnError() << "\n";
         return false;
     }
-    
+
     DEBUG_OUTPUT << "Size: " << lir.size() << "\n";
     for (auto& instr : lir) {
         instr->debug();
@@ -316,15 +315,15 @@ bool compile(std::filesystem::path ms, Context& globalCtx) {
     llvm::InitializeAllAsmParsers();
     llvm::InitializeAllAsmPrinters();
 
-
     for (auto target : config.targets) {
         LLVMGenerator llvm(moduleName);
-        llvm.generate(std::move(lir)); 
+        llvm.generate(std::move(lir));
 
         if (!parsingModule) {
             llvm::Type* intType = llvm::Type::getInt32Ty(llvm.emiterContext);
             llvm::FunctionType* mainType = llvm::FunctionType::get(intType, false);
-            llvm::Function* mainFunc = llvm::Function::Create(mainType, llvm::GlobalValue::LinkageTypes::ExternalLinkage, "main", llvm.emiterModule.get());
+            llvm::Function* mainFunc = llvm::Function::Create(
+                mainType, llvm::GlobalValue::LinkageTypes::ExternalLinkage, "main", llvm.emiterModule.get());
 
             llvm::BasicBlock* entry = llvm::BasicBlock::Create(llvm.emiterContext, "entry", mainFunc);
             llvm.emiterBuilder.SetInsertPoint(entry);
@@ -341,7 +340,8 @@ bool compile(std::filesystem::path ms, Context& globalCtx) {
             llvm::Value* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm.emiterContext), 0);
             llvm::Value* returnPtr = llvm.emiterBuilder.CreateStructGEP(biIntType, callValue, 1);
 
-            llvm::Value* returnValue = llvm.emiterBuilder.CreateLoad(llvm::Type::getDoubleTy(llvm.emiterContext), returnPtr);
+            llvm::Value* returnValue =
+                llvm.emiterBuilder.CreateLoad(llvm::Type::getDoubleTy(llvm.emiterContext), returnPtr);
 
             llvm::Value* intVal = llvm.emiterBuilder.CreateFPToSI(returnValue, intType);
             llvm.emiterBuilder.CreateRet(intVal);

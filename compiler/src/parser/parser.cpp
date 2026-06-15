@@ -7,7 +7,7 @@ extern std::filesystem::path mainSource;
 
 struct ASTNode;
 
-Parser::Parser(std::vector<Token> toks): tokens(toks) {
+Parser::Parser(std::vector<Token> toks) : tokens(toks) {
     initVarDecl();
     initFuncDecl();
     initClassDecl();
@@ -57,7 +57,8 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parseFunctionArgs() {
     std::vector<std::unique_ptr<ASTNode>> args;
 
     if (!getCurrent().match(Token("(", TokenType::DELIMITER_TOKEN))) {
-        pushError(Error(getCurrent().position, "Expected '(' at beginning of function arguments", mainSource.filename().string()));
+        pushError(Error(getCurrent().position, "Expected '(' at beginning of function arguments",
+                        mainSource.filename().string()));
         return args;
     }
     advance();
@@ -91,21 +92,18 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parseFunctionArgs() {
         if (getCurrent().match(Token("?", TokenType::DELIMITER_TOKEN))) {
             advance();
             typeNode = std::make_unique<NullableTypeNode>(
-                PositionSpan(typeToken.position.start, getCurrent().position.end),
-                std::move(typeNode)
-            );
+                PositionSpan(typeToken.position.start, getCurrent().position.end), std::move(typeNode));
         }
 
         args.push_back(std::make_unique<ArgDeclaration>(
             PositionSpan(argNameToken.position.start, typeNode->position.end),
-            std::make_unique<IdentyfierNode>(argNameToken.position, argNameToken.value),
-            std::move(typeNode)
-        ));
+            std::make_unique<IdentyfierNode>(argNameToken.position, argNameToken.value), std::move(typeNode)));
 
         if (getCurrent().match(Token(",", TokenType::DELIMITER_TOKEN))) {
             advance();
         } else if (!getCurrent().match(Token(")", TokenType::DELIMITER_TOKEN))) {
-            pushError(Error(getCurrent().position, "Expected ',' or ')' in argument list", mainSource.filename().string()));
+            pushError(
+                Error(getCurrent().position, "Expected ',' or ')' in argument list", mainSource.filename().string()));
             return args;
         }
     }
@@ -186,7 +184,6 @@ std::unique_ptr<ASTNode> Parser::parseInstruction(InstructionSet& instrSet, void
     return tryStep(0);
 }
 
-
 std::unique_ptr<ASTNode> Parser::parseStatement() {
     setDefaultVisibility();
     setDefaultOverride();
@@ -198,20 +195,23 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
     }
 
     if (!getCurrent().match(Token(";", TokenType::DELIMITER_TOKEN))) {
-        pushError(Error(PositionSpan(getCurrent().position.start, getCurrent().position.end), "Expected ';' after statement", mainSource.filename().string()));
+        pushError(Error(PositionSpan(getCurrent().position.start, getCurrent().position.end),
+                        "Expected ';' after statement", mainSource.filename().string()));
         return nullptr;
     }
     advance();
-    return std::make_unique<StatementNode>(PositionSpan(node->position.start, getCurrent().position.end), std::move(node));
+    return std::make_unique<StatementNode>(PositionSpan(node->position.start, getCurrent().position.end),
+                                           std::move(node));
 }
 
 std::unique_ptr<ASTNode> Parser::parseExpr() {
     Token tok = getCurrent();
- 
+
     if (tok.match(Token("let", TokenType::KEYWORD_TOKEN))) {
         VarDeclContext ctx;
         return parseInstruction(varDeclInstr, &ctx);
-    } else if (tok.match(Token("func", TokenType::KEYWORD_TOKEN)) || tok.match(Token("static", TokenType::KEYWORD_TOKEN))) {
+    } else if (tok.match(Token("func", TokenType::KEYWORD_TOKEN)) ||
+               tok.match(Token("static", TokenType::KEYWORD_TOKEN))) {
         FuncDeclContext ctx;
         ctx.visibility = currentVisibilityLevel;
         ctx.isOverride = currentOverrideLevel;
@@ -219,7 +219,7 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
             ctx.isStatic = true;
             advance();
         }
-        
+
         return parseInstruction(funcDeclInstr, &ctx);
     } else if (tok.match(Token("class", TokenType::KEYWORD_TOKEN))) {
         ClassDeclContext ctx;
@@ -261,7 +261,7 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
         advance();
         return parseExpr();
     }
-    
+
     auto node = parseTerm();
 
     while (true) {
@@ -270,7 +270,8 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
             std::string op = tok.value;
             advance();
             auto right = parseTerm();
-            node = std::make_unique<BinaryNode>(PositionSpan(tok.position.start, getCurrent().position.end), op, std::move(node), std::move(right));
+            node = std::make_unique<BinaryNode>(PositionSpan(tok.position.start, getCurrent().position.end), op,
+                                                std::move(node), std::move(right));
         } else {
             break;
         }
@@ -279,15 +280,14 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
     while (true) {
         Token tok = getCurrent();
         if (tok.match(Token("==", TokenType::COMPARISON_TOKEN)) ||
-            tok.match(Token("!=", TokenType::COMPARISON_TOKEN)) ||
-            tok.match(Token("<", TokenType::COMPARISON_TOKEN)) ||
-            tok.match(Token(">", TokenType::COMPARISON_TOKEN)) ||
-            tok.match(Token("<=", TokenType::COMPARISON_TOKEN)) ||
+            tok.match(Token("!=", TokenType::COMPARISON_TOKEN)) || tok.match(Token("<", TokenType::COMPARISON_TOKEN)) ||
+            tok.match(Token(">", TokenType::COMPARISON_TOKEN)) || tok.match(Token("<=", TokenType::COMPARISON_TOKEN)) ||
             tok.match(Token(">=", TokenType::COMPARISON_TOKEN))) {
             std::string op = tok.value;
             advance();
             auto right = parseTerm();
-            node = std::make_unique<BinaryNode>(PositionSpan(tok.position.start, getCurrent().position.end), op, std::move(node), std::move(right));
+            node = std::make_unique<BinaryNode>(PositionSpan(tok.position.start, getCurrent().position.end), op,
+                                                std::move(node), std::move(right));
         } else {
             break;
         }
@@ -298,18 +298,16 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
         if (getCurrent().match(Token(":", TokenType::DELIMITER_TOKEN))) {
             advance();
             auto right = parseExpr();
-            return std::make_unique<NullCoalescingNode>(
-                PositionSpan(node->position.start, right->position.end),
-                std::move(node),
-                std::move(right)
-            );
+            return std::make_unique<NullCoalescingNode>(PositionSpan(node->position.start, right->position.end),
+                                                        std::move(node), std::move(right));
         }
     }
 
     if (getCurrent().match(Token("=", TokenType::ASSIGNMENT_TOKEN))) {
         advance();
         auto right = parseExpr();
-        return std::make_unique<VariableAssigment>(PositionSpan(node->position.start, right->position.end), std::move(node), std::move(right));
+        return std::make_unique<VariableAssigment>(PositionSpan(node->position.start, right->position.end),
+                                                   std::move(node), std::move(right));
     }
 
     return node;
@@ -321,15 +319,15 @@ std::unique_ptr<ASTNode> Parser::parseTerm() {
     while (true) {
         Token tok = getCurrent();
 
-        if (tok.match(Token("*", TokenType::ARITHMETIC_TOKEN)) ||
-            tok.match(Token("/", TokenType::ARITHMETIC_TOKEN))) {
+        if (tok.match(Token("*", TokenType::ARITHMETIC_TOKEN)) || tok.match(Token("/", TokenType::ARITHMETIC_TOKEN))) {
             std::string op = tok.value;
             advance();
 
             auto right = parseFactor();
             if (!node || !right) return nullptr;
 
-            node = std::make_unique<BinaryNode>(PositionSpan(tok.position.start, getCurrent().position.end), op, std::move(node), std::move(right));
+            node = std::make_unique<BinaryNode>(PositionSpan(tok.position.start, getCurrent().position.end), op,
+                                                std::move(node), std::move(right));
         } else {
             break;
         }
@@ -349,10 +347,7 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
 
     if (tok.type == TokenType::NUMBER_TOKEN) {
         advance();
-        return std::make_unique<NumberNode>(
-            PositionSpan(tok.position.start, tok.position.end),
-            strToDouble(tok.value)
-        );
+        return std::make_unique<NumberNode>(PositionSpan(tok.position.start, tok.position.end), strToDouble(tok.value));
     }
 
     if (tok.type == TokenType::IDENTYFIER_TOKEN) {
@@ -383,13 +378,11 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
 
     if (tok.type == TokenType::STRING_TOKEN) {
         advance();
-        return std::make_unique<StringNode>(
-            PositionSpan(tok.position.start, tok.position.end),
-            tok.value
-        );
+        return std::make_unique<StringNode>(PositionSpan(tok.position.start, tok.position.end), tok.value);
     }
 
-    pushError(Error(tok.position, "Expected primary expression, got '" + tok.value + "'", mainSource.filename().string()));
+    pushError(
+        Error(tok.position, "Expected primary expression, got '" + tok.value + "'", mainSource.filename().string()));
     return nullptr;
 }
 
@@ -407,8 +400,7 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
     auto node = parsePrimary();
     if (!node) return nullptr;
 
-    if (!allowCallAndMember)
-        return node;
+    if (!allowCallAndMember) return node;
 
     while (true) {
         tok = getCurrent();
@@ -437,11 +429,8 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
             }
             advance();
 
-            node = std::make_unique<CallNode>(
-                PositionSpan(node->position.start, getCurrent().position.end),
-                std::move(node),
-                std::move(args)
-            );
+            node = std::make_unique<CallNode>(PositionSpan(node->position.start, getCurrent().position.end),
+                                              std::move(node), std::move(args));
             continue;
         }
 
@@ -457,11 +446,8 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
 
             auto memberNode = std::make_unique<IdentyfierNode>(memberTok.position, memberTok.value);
 
-            node = std::make_unique<MemberAccessNode>(
-                PositionSpan(node->position.start, memberNode->position.end),
-                std::move(node),
-                std::move(memberNode)
-            );
+            node = std::make_unique<MemberAccessNode>(PositionSpan(node->position.start, memberNode->position.end),
+                                                      std::move(node), std::move(memberNode));
             continue;
         }
 
@@ -477,11 +463,8 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
 
             auto memberNode = std::make_unique<IdentyfierNode>(memberTok.position, memberTok.value);
 
-            node = std::make_unique<SafeNavigationNode>(
-                PositionSpan(node->position.start, memberNode->position.end),
-                std::move(node),
-                std::move(memberNode)
-            );
+            node = std::make_unique<SafeNavigationNode>(PositionSpan(node->position.start, memberNode->position.end),
+                                                        std::move(node), std::move(memberNode));
             continue;
         }
 
@@ -490,10 +473,8 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
 
     if (getCurrent().match(Token("??", TokenType::DELIMITER_TOKEN))) {
         advance();
-        node = std::make_unique<NullCheckNode>(
-            PositionSpan(node->position.start, getCurrent().position.end),
-            std::move(node)
-        );
+        node = std::make_unique<NullCheckNode>(PositionSpan(node->position.start, getCurrent().position.end),
+                                               std::move(node));
     }
 
     return node;

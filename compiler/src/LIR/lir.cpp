@@ -37,7 +37,7 @@ LIRGenerate parseLValue(ASTNode* node) {
             throw LIRException(Error(id->position, "Undefined variable", mainSource.filename().string()));
         }
 
-        return { it->second, {} };
+        return {it->second, {}};
     }
 
     if (auto access = dynamic_cast<MemberAccessNode*>(node)) {
@@ -50,17 +50,14 @@ LIRGenerate parseLValue(ASTNode* node) {
 
         std::vector<std::unique_ptr<IRValue>> res;
 
-        auto accessIr = std::make_unique<IRAccess>(
-            "%" + std::to_string(lastId++),
-            getType(memberSym->type->name, memberSym),
-            baseIR,
-            std::to_string(memberSym->classMemberIndex)
-        );
+        auto accessIr =
+            std::make_unique<IRAccess>("%" + std::to_string(lastId++), getType(memberSym->type->name, memberSym),
+                                       baseIR, std::to_string(memberSym->classMemberIndex));
 
         IRValue* ptr = accessIr.get();
         res.push_back(std::move(accessIr));
 
-        return { ptr, std::move(res) };
+        return {ptr, std::move(res)};
     }
 
     throw LIRException(Error(node->position, "Invalid LValue", mainSource.filename().string()));
@@ -96,7 +93,7 @@ LIRGenerate parseNumbers(NumberNode* num) {
 
 LIRGenerate parseVariableDeclaration(VariableDeclarationNode* decl) {
     auto varSym = currentContext->lookup(static_cast<IdentyfierNode*>(decl->name.get()));
-    
+
     std::string typeName = getType(varSym->type->name, varSym->type);
     auto alloca = std::make_unique<IRAlloca>("%" + std::to_string(lastId++), typeName);
     IRValue* allocaPtr = alloca.get();
@@ -117,25 +114,19 @@ LIRGenerate parseVariableDeclaration(VariableDeclarationNode* decl) {
 
         res.push_back(std::move(store));
 
-        return {
-            allocaPtr,
-            std::move(res)
-        };
+        return {allocaPtr, std::move(res)};
     }
 
     std::vector<std::unique_ptr<IRValue>> body;
     body.push_back(std::move(alloca));
-    return {
-        alloca.get(),
-        std::move(body)
-    };
+    return {alloca.get(), std::move(body)};
 }
 
 LIRGenerate parseVariableAssigment(VariableAssigment* assign) {
     std::vector<std::unique_ptr<IRValue>> res;
     IRValue* base = nullptr;
     Symbol* sym = resolveCallChain(assign->name.get(), base);
-    
+
     auto valIR = parse(assign->value.get());
 
     for (auto& instr : valIR.code) {
@@ -147,16 +138,13 @@ LIRGenerate parseVariableAssigment(VariableAssigment* assign) {
     for (auto& instr : lhs.code) {
         res.push_back(std::move(instr));
     }
-    
+
     IRValue* allocaPtr = lhs.mainValue;
 
     auto store = std::make_unique<IRStore>(allocaPtr, valIR.mainValue);
 
     res.push_back(std::move(store));
-    return {
-        res.back().get(),
-        std::move(res)
-    };
+    return {res.back().get(), std::move(res)};
 }
 
 LIRGenerate parseBinaryExpression(BinaryNode* bin) {
@@ -176,94 +164,118 @@ LIRGenerate parseBinaryExpression(BinaryNode* bin) {
     // TODO: Add Object type support
     if (bin->op == "+") {
         if (binSym->type->name->value == "Number") {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_add", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_add", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else if (binSym->type->name->value == "Void") {
-            res.push_back(std::make_unique<IRCall>("_BI_Void_add", "_BI_Void", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(
+                std::make_unique<IRCall>("_BI_Void_add", "_BI_Void", std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else {
-            res.push_back(std::make_unique<IRCall>(mangleName(binSym->type) + "_F3add", mangleName(binSym->type), std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>(mangleName(binSym->type) + "_F3add", mangleName(binSym->type),
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         }
     } else if (bin->op == "-") {
         if (binSym->type->name->value == "Number") {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_subtract", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_subtract", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else if (binSym->type->name->value == "Void") {
-            res.push_back(std::make_unique<IRCall>("_BI_Void_subtract", "_BI_Void", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Void_subtract", "_BI_Void",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else {
-            res.push_back(std::make_unique<IRCall>(mangleName(binSym->type) + "_F8subtract", mangleName(binSym->type), std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>(mangleName(binSym->type) + "_F8subtract", mangleName(binSym->type),
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         }
     } else if (bin->op == "*") {
         if (binSym->type->name->value == "Number") {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_multiply", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_multiply", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else if (binSym->type->name->value == "Void") {
-            res.push_back(std::make_unique<IRCall>("_BI_Void_multiply", "_BI_Void", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Void_multiply", "_BI_Void",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else {
-            res.push_back(std::make_unique<IRCall>(mangleName(binSym->type) + "_F8multiply", mangleName(binSym->type), std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>(mangleName(binSym->type) + "_F8multiply", mangleName(binSym->type),
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         }
     } else if (bin->op == "/") {
         if (binSym->type->name->value == "Number") {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_divide", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_divide", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else if (binSym->type->name->value == "Void") {
-            res.push_back(std::make_unique<IRCall>("_BI_Void_divide", "_BI_Void", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Void_divide", "_BI_Void",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else {
-            res.push_back(std::make_unique<IRCall>(mangleName(binSym->type) + "_F6divide", mangleName(binSym->type), std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>(mangleName(binSym->type) + "_F6divide", mangleName(binSym->type),
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         }
     } else if (bin->op == "==") {
         if (binSym->type->name->value == "Number") {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_equals", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_equals", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_equals", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_equals", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         }
     } else if (bin->op == "!=") {
         if (binSym->type->name->value == "Number") {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_notEquals", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_notEquals", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_notEquals", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_notEquals", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         }
     } else if (bin->op == "<") {
         if (binSym->type->name->value == "Number") {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_lessThan", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_lessThan", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_lessThan", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_lessThan", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         }
     } else if (bin->op == ">") {
         if (binSym->type->name->value == "Number") {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_greaterThan", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_greaterThan", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_greaterThan", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_greaterThan", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         }
     } else if (bin->op == "<=") {
         if (binSym->type->name->value == "Number") {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_lessOrEqual", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_lessOrEqual", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_lessOrEqual", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_lessOrEqual", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         }
     } else if (bin->op == ">=") {
         if (binSym->type->name->value == "Number") {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_greaterOrEqual", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_greaterOrEqual", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         } else {
-            res.push_back(std::make_unique<IRCall>("_BI_Number_greaterOrEqual", "_BI_Number", std::vector<IRValue*>{L.mainValue, R.mainValue}));
+            res.push_back(std::make_unique<IRCall>("_BI_Number_greaterOrEqual", "_BI_Number",
+                                                   std::vector<IRValue*>{L.mainValue, R.mainValue}));
             return {res.back().get(), std::move(res)};
         }
     }
@@ -280,10 +292,12 @@ LIRGenerate parseUnaryExpression(UnaryNode* un) {
     }
 
     if (un->op == "!") {
-        res.push_back(std::make_unique<IRCall>("_BI_Number_logicalNot", "_BI_Number", std::vector<IRValue*>{V.mainValue}));
+        res.push_back(
+            std::make_unique<IRCall>("_BI_Number_logicalNot", "_BI_Number", std::vector<IRValue*>{V.mainValue}));
         return {res.back().get(), std::move(res)};
     } else if (un->op == "~") {
-        res.push_back(std::make_unique<IRCall>("_BI_Number_bitwiseNot", "_BI_Number", std::vector<IRValue*>{V.mainValue}));
+        res.push_back(
+            std::make_unique<IRCall>("_BI_Number_bitwiseNot", "_BI_Number", std::vector<IRValue*>{V.mainValue}));
         return {res.back().get(), std::move(res)};
     }
 
@@ -291,14 +305,15 @@ LIRGenerate parseUnaryExpression(UnaryNode* un) {
 }
 
 LIRGenerate parseFunction(FunctionDeclaration* func) {
-    auto funcSym = currentContext->lookup(static_cast<IdentyfierNode*>(func->name.get())); 
+    auto funcSym = currentContext->lookup(static_cast<IdentyfierNode*>(func->name.get()));
     std::vector<std::unique_ptr<IRValue>> res;
     std::vector<IRValue*> args;
 
     lastId = 0;
 
     if (!func->isStatic) {
-        variables[mangleName(funcSym->mangledName + ".this")] = createArg(mangleName(funcSym->scope->parent->generativeSymbol));
+        variables[mangleName(funcSym->mangledName + ".this")] =
+            createArg(mangleName(funcSym->scope->parent->generativeSymbol));
         args.push_back(variables[mangleName(funcSym->mangledName + ".this")]);
     }
 
@@ -309,7 +324,8 @@ LIRGenerate parseFunction(FunctionDeclaration* func) {
     }
 
     std::string typeName = getType(funcSym->type->name, funcSym->type);
-    auto funcIr = std::make_unique<IRFunction>(mangleName(funcSym), std::move(args), typeName, mangleName(funcSym->scope->parent->generativeSymbol), funcSym->isStatic);
+    auto funcIr = std::make_unique<IRFunction>(mangleName(funcSym), std::move(args), typeName,
+                                               mangleName(funcSym->scope->parent->generativeSymbol), funcSym->isStatic);
     for (auto& node : func->body) {
         currentContext = funcSym->scope;
         auto ir = parse(node.get());
@@ -320,10 +336,7 @@ LIRGenerate parseFunction(FunctionDeclaration* func) {
 
     auto funcIrPtr = funcIr.get();
     res.push_back(std::move(funcIr));
-    return {
-        funcIrPtr,
-        std::move(res)
-    };
+    return {funcIrPtr, std::move(res)};
 }
 
 LIRGenerate parseClassDeclaration(ClassDeclNode* cls) {
@@ -354,25 +367,24 @@ LIRGenerate parseClassDeclaration(ClassDeclNode* cls) {
         }
     }
 
-    auto stc = std::make_unique<IRStruct>(mangleName(classSym), std::move(structBody), classSym->classTypes.size() != 0 ? mangleName(classSym->classTypes[0]) : "");
+    auto stc = std::make_unique<IRStruct>(mangleName(classSym), std::move(structBody),
+                                          classSym->classTypes.size() != 0 ? mangleName(classSym->classTypes[0]) : "");
     body.insert(body.begin(), std::move(stc));
     variables[mangleName(classSym)] = body[0].get();
 
-    return {
-        body[0].get(),
-        std::move(body)
-    };
+    return {body[0].get(), std::move(body)};
 }
 
 LIRGenerate parseIdentyfierNode(IdentyfierNode* id) {
     auto idSym = currentContext->lookup(id);
     if (idSym->kind == SymbolKind::CLASS) {
-        return { new IRClass(mangleName(idSym), idSym->name->value), {} };
+        return {new IRClass(mangleName(idSym), idSym->name->value), {}};
     }
 
     auto it = variables.find(mangleName(idSym));
     if (it == variables.end()) {
-        throw LIRException(Error(id->position, "Undefined variable: " + id->value + " in LIR", mainSource.filename().string()));
+        throw LIRException(
+            Error(id->position, "Undefined variable: " + id->value + " in LIR", mainSource.filename().string()));
     }
 
     auto allocSym = it->second;
@@ -382,7 +394,7 @@ LIRGenerate parseIdentyfierNode(IdentyfierNode* id) {
     std::vector<std::unique_ptr<IRValue>> res;
     res.push_back(std::move(var));
 
-    return { res.back().get(), std::move(res) };
+    return {res.back().get(), std::move(res)};
 }
 
 extern IdentyfierNode* initName;
@@ -401,11 +413,12 @@ Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase, bool is
 
         if (callBase && sym->kind == SymbolKind::CLASS) {
             Symbol* initSym = lookupWithInheritance(sym, "init", currentContext->lookup(&objectType));
-            
+
             if (!initSym) {
-                throw LIRException(Error(id->position, "Class " + id->value + " has no init method", mainSource.filename().string()));
+                throw LIRException(
+                    Error(id->position, "Class " + id->value + " has no init method", mainSource.filename().string()));
             }
-        
+
             baseIR = nullptr;
             initSym->type = sym;
             return initSym;
@@ -429,7 +442,8 @@ Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase, bool is
             classToSearch = leftSym;
         } else {
             if (!leftSym->type) {
-                throw LIRException(Error(node->position, "Invalid object in call chain", mainSource.filename().string()));
+                throw LIRException(
+                    Error(node->position, "Invalid object in call chain", mainSource.filename().string()));
             }
             classToSearch = leftSym->type;
         }
@@ -441,7 +455,8 @@ Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase, bool is
         Symbol* memberSym = lookupWithInheritance(classToSearch, memberName, currentContext->lookup(&objectType));
 
         if (!memberSym) {
-            throw LIRException(Error(node->position, "Unknown member in call chain: " + memberName, mainSource.filename().string()));
+            throw LIRException(
+                Error(node->position, "Unknown member in call chain: " + memberName, mainSource.filename().string()));
         }
 
         baseIR = leftIR;
@@ -453,9 +468,7 @@ Symbol* resolveCallChain(ASTNode* node, IRValue*& baseIR, bool callBase, bool is
 
         auto classSym = currentContext->parent->generativeSymbol;
 
-        baseIR = variables[
-            mangleName(currentContext->generativeSymbol->mangledName + ".this")
-        ];
+        baseIR = variables[mangleName(currentContext->generativeSymbol->mangledName + ".this")];
 
         return classSym;
     }
@@ -470,11 +483,11 @@ LIRGenerate parseCallNode(CallNode* call) {
     std::vector<std::unique_ptr<IRValue>> res;
     std::vector<IRValue*> args;
 
-
     if (!callSym->isStatic) {
         if (!baseObject) {
             if (currentContext->generativeSymbol->isStatic) {
-                throw LIRException(Error(call->position, "Cannot call non-static method from static context", mainSource.filename().string()));
+                throw LIRException(Error(call->position, "Cannot call non-static method from static context",
+                                         mainSource.filename().string()));
             }
             baseObject = new IRVariableRead("%0", mangleName(currentContext->parent->generativeSymbol));
         } else {
@@ -484,9 +497,8 @@ LIRGenerate parseCallNode(CallNode* call) {
                 res.push_back(std::move(load));
             }
         }
-        
-        if (callSym->name->value != "init")
-            args.push_back(baseObject);
+
+        if (callSym->name->value != "init") args.push_back(baseObject);
     }
 
     for (auto& arg : call->args) {
@@ -510,7 +522,7 @@ LIRGenerate parseCallNode(CallNode* call) {
         res.push_back(std::move(callIR));
     }
 
-    return { res.back().get(), std::move(res) };
+    return {res.back().get(), std::move(res)};
 }
 
 LIRGenerate parseMemberAccessNode(MemberAccessNode* access) {
@@ -523,14 +535,11 @@ LIRGenerate parseMemberAccessNode(MemberAccessNode* access) {
 
     auto ptr = lval.mainValue;
 
-    auto load = std::make_unique<IRVariableRead>(
-        ptr->name,
-        ptr->type
-    );
+    auto load = std::make_unique<IRVariableRead>(ptr->name, ptr->type);
     IRValue* val = load.get();
 
     res.push_back(std::move(load));
-    return { val, std::move(res) };
+    return {val, std::move(res)};
 }
 
 LIRGenerate parseReturnNode(ReturnNode* ret) {
@@ -544,8 +553,8 @@ LIRGenerate parseReturnNode(ReturnNode* ret) {
         auto ir = std::make_unique<IRCall>("_BI_Void_init", "_BI_Void", std::vector<IRValue*>{res.back().get()});
         auto resIr = std::vector<std::unique_ptr<IRValue>>{};
         resIr.push_back(std::move(ir));
-        
-        valueIr = { resIr.back().get(), std::move(resIr) };
+
+        valueIr = {resIr.back().get(), std::move(resIr)};
     }
 
     for (auto& instr : valueIr.code) {
@@ -555,10 +564,7 @@ LIRGenerate parseReturnNode(ReturnNode* ret) {
     auto returnIR = std::make_unique<IRReturn>(valueIr.mainValue->type, valueIr.mainValue);
     res.push_back(std::move(returnIR));
 
-    return {
-        res.back().get(),
-        std::move(res)
-    };
+    return {res.back().get(), std::move(res)};
 }
 
 LIRGenerate parseAttributes(AttributesNode* attr) {
@@ -570,7 +576,9 @@ LIRGenerate parseAttributes(AttributesNode* attr) {
 
         return parse(attr->value.get());
     } else {
-        throw LIRException(Error(attr->position, "Unknown attribute: " + static_cast<IdentyfierNode*>(attr->name.get())->value, mainSource.filename().string()));
+        throw LIRException(Error(attr->position,
+                                 "Unknown attribute: " + static_cast<IdentyfierNode*>(attr->name.get())->value,
+                                 mainSource.filename().string()));
     }
 }
 
@@ -579,14 +587,17 @@ LIRGenerate parseImport(ImportNode* imp) {
     auto name = static_cast<IdentyfierNode*>(imp->value.get());
     auto impSym = currentContext->lookup(name);
     if (!impSym || !impSym->scope) {
-        throw LIRException(Error(imp->position, "Cannot import unknown module: " + name->value, mainSource.filename().string()));
+        throw LIRException(
+            Error(imp->position, "Cannot import unknown module: " + name->value, mainSource.filename().string()));
     }
 
     std::vector<std::unique_ptr<IRValue>> res;
 
     for (auto& [symName, sym] : impSym->scope->symbols) {
         if (sym->kind == SymbolKind::CLASS) {
-            auto structIR = std::make_unique<IRStruct>(mangleName(sym.get()), std::vector<std::unique_ptr<IRValue>>{}, sym->classTypes.size() != 0 ? mangleName(sym->classTypes[0]) : "");
+            auto structIR =
+                std::make_unique<IRStruct>(mangleName(sym.get()), std::vector<std::unique_ptr<IRValue>>{},
+                                           sym->classTypes.size() != 0 ? mangleName(sym->classTypes[0]) : "");
             variables[mangleName(sym.get())] = structIR.get();
             res.push_back(std::move(structIR));
 
@@ -611,7 +622,9 @@ LIRGenerate parseImport(ImportNode* imp) {
                     else if (methodSym->type->name->value == "Void") typeName = "_BI_Void";
                     else typeName = mangleName(methodSym->type);
 
-                    auto funcIR = std::make_unique<IRFunction>(mangleName(methodSym.get()), args, typeName, mangleName(methodSym->scope->parent->generativeSymbol), methodSym->isStatic);
+                    auto funcIR = std::make_unique<IRFunction>(mangleName(methodSym.get()), args, typeName,
+                                                               mangleName(methodSym->scope->parent->generativeSymbol),
+                                                               methodSym->isStatic);
                     variables[mangleName(methodSym.get())] = funcIR.get();
                     res.push_back(std::move(funcIR));
                 }
@@ -621,7 +634,7 @@ LIRGenerate parseImport(ImportNode* imp) {
         }
     }
 
-    return { nullptr, std::move(res) };
+    return {nullptr, std::move(res)};
 }
 
 LIRGenerate parseString(StringNode* str) {
@@ -630,11 +643,12 @@ LIRGenerate parseString(StringNode* str) {
 
     auto alloc = std::make_unique<IRAllocaStruct>("%" + std::to_string(lastId++), "_BI_String");
     res.push_back(std::move(alloc));
-    
-    auto call = std::make_unique<IRCall>("_BI_String_init", "_BI_String", std::vector<IRValue*>{res.back().get(), strIR.get()});
+
+    auto call =
+        std::make_unique<IRCall>("_BI_String_init", "_BI_String", std::vector<IRValue*>{res.back().get(), strIR.get()});
     res.push_back(std::move(strIR));
     res.push_back(std::move(call));
-    return { res.back().get(), std::move(res) };
+    return {res.back().get(), std::move(res)};
 }
 
 LIRGenerate parseNullNode(NullNode* node) {
@@ -642,7 +656,7 @@ LIRGenerate parseNullNode(NullNode* node) {
     IRValue* ptr = nullIR.get();
     std::vector<std::unique_ptr<IRValue>> res;
     res.push_back(std::move(nullIR));
-    return { ptr, std::move(res) };
+    return {ptr, std::move(res)};
 }
 
 LIRGenerate parseNullCoalescing(NullCoalescingNode* coalesce) {
@@ -653,14 +667,10 @@ LIRGenerate parseNullCoalescing(NullCoalescingNode* coalesce) {
     for (auto& instr : L.code) res.push_back(std::move(instr));
     for (auto& instr : R.code) res.push_back(std::move(instr));
 
-    auto result = std::make_unique<IRNullCoalescing>(
-        L.mainValue->type,
-        L.mainValue,
-        R.mainValue
-    );
+    auto result = std::make_unique<IRNullCoalescing>(L.mainValue->type, L.mainValue, R.mainValue);
     IRValue* ptr = result.get();
     res.push_back(std::move(result));
-    return { ptr, std::move(res) };
+    return {ptr, std::move(res)};
 }
 
 LIRGenerate parseNullCheck(NullCheckNode* check) {
@@ -668,13 +678,10 @@ LIRGenerate parseNullCheck(NullCheckNode* check) {
     auto valIR = parse(check->value.get());
     for (auto& instr : valIR.code) res.push_back(std::move(instr));
 
-    auto result = std::make_unique<IRNullCheck>(
-        valIR.mainValue->type,
-        valIR.mainValue
-    );
+    auto result = std::make_unique<IRNullCheck>(valIR.mainValue->type, valIR.mainValue);
     IRValue* ptr = result.get();
     res.push_back(std::move(result));
-    return { ptr, std::move(res) };
+    return {ptr, std::move(res)};
 }
 
 LIRGenerate parseSafeNavigationNode(SafeNavigationNode* safe) {
@@ -701,22 +708,19 @@ LIRGenerate parseSafeNavigationNode(SafeNavigationNode* safe) {
     }
 
     if (memberSym->kind == SymbolKind::FUNCTION) {
-        throw LIRException(Error(safe->position, "Safe navigation on methods is not yet supported", mainSource.filename().string()));
+        throw LIRException(
+            Error(safe->position, "Safe navigation on methods is not yet supported", mainSource.filename().string()));
     }
 
     std::string memberTypeName = memberSym->type ? memberSym->type->name->value : "Void";
     std::string memberType = getType(memberSym->type->name, memberSym->type);
 
-    auto safeIr = std::make_unique<IRSafeAccess>(
-        "%" + std::to_string(lastId++),
-        memberType,
-        objIR.mainValue,
-        memberSym->classMemberIndex
-    );
+    auto safeIr = std::make_unique<IRSafeAccess>("%" + std::to_string(lastId++), memberType, objIR.mainValue,
+                                                 memberSym->classMemberIndex);
     IRValue* result = safeIr.get();
     res.push_back(std::move(safeIr));
 
-    return { result, std::move(res) };
+    return {result, std::move(res)};
 }
 
 LIRGenerate parseThisNode(ThisNode* node) {
@@ -725,7 +729,8 @@ LIRGenerate parseThisNode(ThisNode* node) {
     }
 
     if (currentContext->generativeSymbol->isStatic) {
-        throw LIRException(Error(node->position, "'this' cannot be used in static context", mainSource.filename().string()));
+        throw LIRException(
+            Error(node->position, "'this' cannot be used in static context", mainSource.filename().string()));
     }
 
     auto classSym = currentContext->parent->generativeSymbol;
@@ -734,7 +739,7 @@ LIRGenerate parseThisNode(ThisNode* node) {
     std::vector<std::unique_ptr<IRValue>> res;
     res.push_back(std::move(thisVal));
 
-    return { res.back().get(), std::move(res) };
+    return {res.back().get(), std::move(res)};
 }
 
 LIRGenerate parse(ASTNode* node) {
