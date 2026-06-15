@@ -1,0 +1,64 @@
+name: Build Matrix
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release]
+        compiler:
+          - cc: gcc
+            cxx: g++
+          - cc: clang-15
+            cxx: clang++-15
+
+    runs-on: ubuntu-latest
+
+    env:
+      CC: ${{ matrix.compiler.cc }}
+      CXX: ${{ matrix.compiler.cxx }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: |
+          chmod +x ./setup.sh
+          ./setup.sh
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ccache-${{ matrix.compiler.cc }}-${{ matrix.build_type }}-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-${{ matrix.compiler.cc }}-
+            ${{ runner.os }}-ccache-
+
+      - name: Set LLVM_DIR
+        run: echo "LLVM_DIR=/usr/lib/llvm-15/lib/cmake/llvm" >> $GITHUB_ENV
+
+      - name: Configure and build
+        run: |
+          chmod +x ./build.sh
+          EXTRA_FLAGS=""
+          if [ "${{ matrix.build_type }}" == "Debug" ]; then
+            EXTRA_FLAGS="-DDEBUG_BUILD=ON -DENABLE_SANITIZERS=ON"
+          fi
+          ./build.sh -DCMAKE_PREFIX_PATH="$LLVM_DIR" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUSE_LLD=ON $EXTRA_FLAGS
+
+      - name: Run tests
+        run: |
+          chmod +x ./test.sh
+          ./test.sh
+
+      - name: Upload artifacts (${{ matrix.build_type }}, ${{ matrix.compiler.cc }})
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: artifacts-${{ matrix.build_type }}-${{ matrix.compiler.cc }}
+          path: build/
