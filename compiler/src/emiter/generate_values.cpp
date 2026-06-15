@@ -144,3 +144,149 @@ llvm::Value* LLVMGenerator::generateAllocaStruct(IRAllocaStruct* g) {
     namedValues[g] = objPtr;
     return objPtr;
 }
+
+llvm::Value* LLVMGenerator::generateNull(IRNull* n) {
+    llvm::Value* nullPtr = llvm::ConstantPointerNull::get(
+        llvm::Type::getInt8PtrTy(emiterContext)
+    );
+    namedValues[n] = nullPtr;
+    return nullPtr;
+}
+
+llvm::Value* LLVMGenerator::generateNullCoalescing(IRNullCoalescing* nc) {
+    llvm::Value* leftVal = namedValues[nc->left];
+    llvm::Value* rightVal = namedValues[nc->right];
+    if (!leftVal || !rightVal) {
+        std::cerr << "Missing values for null coalescing\n";
+        return nullptr;
+    }
+
+    llvm::Value* isNull = emiterBuilder.CreateICmpEQ(
+        leftVal,
+        llvm::ConstantPointerNull::get(
+            llvm::cast<llvm::PointerType>(leftVal->getType())
+        )
+    );
+
+    llvm::Value* result = emiterBuilder.CreateSelect(
+        isNull,
+        rightVal,
+        leftVal
+    );
+    namedValues[nc] = result;
+    return result;
+}
+
+llvm::Value* LLVMGenerator::generateNullCheck(IRNullCheck* nc) {
+    llvm::Value* val = namedValues[nc->value];
+    if (!val) {
+        std::cerr << "Missing value for null check\n";
+        return nullptr;
+    }
+
+    llvm::Function* func = emiterBuilder.GetInsertBlock()->getParent();
+
+    llvm::BasicBlock* panicBB = llvm::BasicBlock::Create(emiterContext, "panic", func);
+    llvm::BasicBlock* contBB = llvm::BasicBlock::Create(emiterContext, "cont", func);
+
+    llvm::Value* isNull = emiterBuilder.CreateICmpEQ(
+        val,
+        llvm::ConstantPointerNull::get(
+            llvm::cast<llvm::PointerType>(val->getType())
+        )
+    );
+    emiterBuilder.CreateCondBr(isNull, panicBB, contBB);
+
+    // Panic block
+    emiterBuilder.SetInsertPoint(panicBB);
+    llvm::Function* panicFn = emiterModule->getFunction("__R_panic");
+    if (!panicFn) {
+        std::cerr << "Missing __R_panic function\n";
+        return nullptr;
+    }
+    std::string panicMsg = "Unexpected null value";
+    llvm::Constant* msgConst = llvm::ConstantDataArray::getString(emiterContext, panicMsg, true);
+    auto* global = new llvm::GlobalVariable(
+        *emiterModule,
+        msgConst->getType(),
+        true,
+        llvm::GlobalValue::PrivateLinkage,
+        msgConst,
+        ".panic_msg"
+    );
+    llvm::Value* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(emiterContext), 0);
+    llvm::Value* indices[] = { zero, zero };
+    llvm::Value* msgPtr = emiterBuilder.CreateInBoundsGEP(
+        global->getValueType(),
+        global,
+        indices
+    );
+    emiterBuilder.CreateCall(panicFn, { msgPtr });
+    emiterBuilder.CreateUnreachable();
+
+    // Continue block
+    emiterBuilder.SetInsertPoint(contBB);
+    namedValues[nc] = val;
+    return val;
+}
+
+llvm::Value* LLVMGenerator::generateSafeAccess(IRSafeAccess* sa) {
+    llvm::Value* obj = namedValues[sa->object];
+    if (!obj) {
+        std::cerr << "Missing object for safe access\n";
+        return nullptr;
+    }
+
+    llvm::Function* func = emiterBuilder.GetInsertBlock()->getParent();
+
+    llvm::BasicBlock* nullBB = llvm::BasicBlock::Create(emiterContext, "safe_null", func);
+    llvm::BasicBlock* accessBB = llvm::BasicBlock::Create(emiterContext, "safe_access", func);
+    llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(emiterContext, "safe_merge", func);
+
+    llvm::Value* isNull = emiterBuilder.CreateICmpEQ(
+        obj,
+        llvm::ConstantPointerNull::get(
+            llvm::cast<llvm::PointerType>(obj->getType())
+        )
+    );
+    emiterBuilder.CreateCondBr(isNull, nullBB, accessBB);
+
+    // Null block
+    emiterBuilder.SetInsertPoint(nullBB);
+    llvm::Value* nullResult = llvm::ConstantPointerNull::get(
+        llvm::cast<llvm::PointerType>(obj->getType())
+    );
+    emiterBuilder.CreateBr(mergeBB);
+
+    // Access block
+    emiterBuilder.SetInsertPoint(accessBB);
+    auto svIt = structValues.find(sa->object->type);
+    if (svIt == structValues.end()) {
+        std::cerr << "Missing struct values for safe access type: " << sa->object->type << "\n";
+        return nullptr;
+    }
+    auto memberIt = svIt->second.find("$" + std::to_string(sa->memberIndex));
+    if (memberIt == svIt->second.end()) {
+        std::cerr << "Missing member index for safe access\n";
+        return nullptr;
+    }
+    llvm::Value* gep = emiterBuilder.CreateStructGEP(
+        mapLLVMType(sa->object->type, false),
+        obj,
+        memberIt->second
+    );
+    llvm::Value* memberVal = emiterBuilder.CreateLoad(
+        mapLLVMType(sa->type),
+        gep
+    );
+    emiterBuilder.CreateBr(mergeBB);
+
+    // Merge block
+    emiterBuilder.SetInsertPoint(mergeBB);
+    llvm::PHINode* phi = emiterBuilder.CreatePHI(obj->getType(), 2);
+    phi->addIncoming(nullResult, nullBB);
+    phi->addIncoming(memberVal, accessBB);
+
+    namedValues[sa] = phi;
+    return phi;
+}

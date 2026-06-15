@@ -10,6 +10,7 @@ IdentyfierNode intType(PositionSpan(0, 0), "Number");
 IdentyfierNode objectType(PositionSpan(0, 0), "Object");
 IdentyfierNode voidType(PositionSpan(0, 0), "Void");
 IdentyfierNode stringType(PositionSpan(0, 0), "String");
+IdentyfierNode nullType(PositionSpan(0, 0), "Null");
 
 void ASTNode::debug() {
     throw std::runtime_error("Internal error: unreachable path");
@@ -122,4 +123,30 @@ void StringNode::debug() {
 
 void ThisNode::debug() {
     DEBUG_OUTPUT << "this";
+}
+
+void NullNode::debug() {
+    DEBUG_OUTPUT << "null";
+}
+
+void NullableTypeNode::debug() {
+    baseType->debug();
+    DEBUG_OUTPUT << "?";
+}
+
+void NullCoalescingNode::debug() {
+    left->debug();
+    DEBUG_OUTPUT << " ?: ";
+    right->debug();
+}
+
+void NullCheckNode::debug() {
+    value->debug();
+    DEBUG_OUTPUT << "??";
+}
+
+void SafeNavigationNode::debug() {
+    object->debug();
+    DEBUG_OUTPUT << "?.";
+    member->debug();
 }

@@ -87,10 +87,19 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parseFunctionArgs() {
         }
         advance();
 
+        std::unique_ptr<ASTNode> typeNode = std::make_unique<IdentyfierNode>(typeToken.position, typeToken.value);
+        if (getCurrent().match(Token("?", TokenType::DELIMITER_TOKEN))) {
+            advance();
+            typeNode = std::make_unique<NullableTypeNode>(
+                PositionSpan(typeToken.position.start, getCurrent().position.end),
+                std::move(typeNode)
+            );
+        }
+
         args.push_back(std::make_unique<ArgDeclaration>(
-            PositionSpan(argNameToken.position.start, typeToken.position.end),
+            PositionSpan(argNameToken.position.start, typeNode->position.end),
             std::make_unique<IdentyfierNode>(argNameToken.position, argNameToken.value),
-            std::make_unique<IdentyfierNode>(typeToken.position, typeToken.value)
+            std::move(typeNode)
         ));
 
         if (getCurrent().match(Token(",", TokenType::DELIMITER_TOKEN))) {
@@ -267,6 +276,19 @@ std::unique_ptr<ASTNode> Parser::parseExpr() {
         }
     }
 
+    if (getCurrent().match(Token("?", TokenType::DELIMITER_TOKEN))) {
+        advance();
+        if (getCurrent().match(Token(":", TokenType::DELIMITER_TOKEN))) {
+            advance();
+            auto right = parseExpr();
+            return std::make_unique<NullCoalescingNode>(
+                PositionSpan(node->position.start, right->position.end),
+                std::move(node),
+                std::move(right)
+            );
+        }
+    }
+
     if (getCurrent().match(Token("=", TokenType::ASSIGNMENT_TOKEN))) {
         advance();
         auto right = parseExpr();
@@ -335,6 +357,11 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
     if (tok.match(Token("this", TokenType::KEYWORD_TOKEN))) {
         advance();
         return std::make_unique<ThisNode>(tok.position);
+    }
+
+    if (tok.match(Token("null", TokenType::KEYWORD_TOKEN))) {
+        advance();
+        return std::make_unique<NullNode>(tok.position);
     }
 
     if (tok.type == TokenType::STRING_TOKEN) {
@@ -411,7 +438,35 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
             continue;
         }
 
+        if (tok.match(Token("?.", TokenType::DELIMITER_TOKEN))) {
+            advance();
+
+            Token memberTok = getCurrent();
+            if (memberTok.type != TokenType::IDENTYFIER_TOKEN) {
+                pushError(Error(memberTok.position, "Expected identifier after '?.'", mainSource.filename().string()));
+                return nullptr;
+            }
+            advance();
+
+            auto memberNode = std::make_unique<IdentyfierNode>(memberTok.position, memberTok.value);
+
+            node = std::make_unique<SafeNavigationNode>(
+                PositionSpan(node->position.start, memberNode->position.end),
+                std::move(node),
+                std::move(memberNode)
+            );
+            continue;
+        }
+
         break;
+    }
+
+    if (getCurrent().match(Token("??", TokenType::DELIMITER_TOKEN))) {
+        advance();
+        node = std::make_unique<NullCheckNode>(
+            PositionSpan(node->position.start, getCurrent().position.end),
+            std::move(node)
+        );
     }
 
     return node;

@@ -18,6 +18,8 @@ std::string getType(IdentyfierNode* name, Symbol* sym) {
         return "_BI_Void";
     } else if (name->value == "Object") {
         return "_BI_Object";
+    } else if (name->value == "Null") {
+        return "void*";
     }
 
     return mangleName(sym);
@@ -102,6 +104,10 @@ LIRGenerate parseVariableDeclaration(VariableDeclarationNode* decl) {
 
     if (decl->value.get()) {
         std::vector<std::unique_ptr<IRValue>> res;
+
+        auto allocaPtr = alloca.get();
+        res.push_back(std::move(alloca));
+
         auto valIR = parse(decl->value.get());
         auto store = std::make_unique<IRStore>(allocaPtr, valIR.mainValue);
 
@@ -109,8 +115,6 @@ LIRGenerate parseVariableDeclaration(VariableDeclarationNode* decl) {
             res.push_back(std::move(insr));
         }
 
-        auto allocaPtr = alloca.get();
-        res.push_back(std::move(alloca));
         res.push_back(std::move(store));
 
         return {
@@ -566,6 +570,88 @@ LIRGenerate parseString(StringNode* str) {
     return { res.back().get(), std::move(res) };
 }
 
+LIRGenerate parseNullNode(NullNode* node) {
+    auto nullIR = std::make_unique<IRNull>("%" + std::to_string(lastId++), "void*");
+    IRValue* ptr = nullIR.get();
+    std::vector<std::unique_ptr<IRValue>> res;
+    res.push_back(std::move(nullIR));
+    return { ptr, std::move(res) };
+}
+
+LIRGenerate parseNullCoalescing(NullCoalescingNode* coalesce) {
+    std::vector<std::unique_ptr<IRValue>> res;
+    auto L = parse(coalesce->left.get());
+    auto R = parse(coalesce->right.get());
+
+    for (auto& instr : L.code) res.push_back(std::move(instr));
+    for (auto& instr : R.code) res.push_back(std::move(instr));
+
+    auto result = std::make_unique<IRNullCoalescing>(
+        L.mainValue->type,
+        L.mainValue,
+        R.mainValue
+    );
+    IRValue* ptr = result.get();
+    res.push_back(std::move(result));
+    return { ptr, std::move(res) };
+}
+
+LIRGenerate parseNullCheck(NullCheckNode* check) {
+    std::vector<std::unique_ptr<IRValue>> res;
+    auto valIR = parse(check->value.get());
+    for (auto& instr : valIR.code) res.push_back(std::move(instr));
+
+    auto result = std::make_unique<IRNullCheck>(
+        valIR.mainValue->type,
+        valIR.mainValue
+    );
+    IRValue* ptr = result.get();
+    res.push_back(std::move(result));
+    return { ptr, std::move(res) };
+}
+
+LIRGenerate parseSafeNavigationNode(SafeNavigationNode* safe) {
+    std::vector<std::unique_ptr<IRValue>> res;
+
+    auto objIR = parse(safe->object.get());
+    for (auto& instr : objIR.code) res.push_back(std::move(instr));
+
+    auto objSym = safe->object->evaluateSymbol(*currentContext);
+    if (!objSym || !objSym->type) {
+        throw LIRException(Error(safe->position, "Cannot resolve safe access", mainSource.filename().string()));
+    }
+
+    Symbol* objType = objSym->type;
+    if (objType->name->value == "Null") {
+        throw LIRException(Error(safe->position, "Cannot access member on null", mainSource.filename().string()));
+    }
+
+    std::string memberName = static_cast<IdentyfierNode*>(safe->member.get())->value;
+    Symbol* objectClass = currentContext->lookup(&objectType);
+    Symbol* memberSym = lookupWithInheritance(objType, memberName, objectClass);
+    if (!memberSym) {
+        throw LIRException(Error(safe->position, "No such member: " + memberName, mainSource.filename().string()));
+    }
+
+    if (memberSym->kind == SymbolKind::FUNCTION) {
+        throw LIRException(Error(safe->position, "Safe navigation on methods is not yet supported", mainSource.filename().string()));
+    }
+
+    std::string memberTypeName = memberSym->type ? memberSym->type->name->value : "Void";
+    std::string memberType = getType(memberSym->type->name, memberSym->type);
+
+    auto safeIr = std::make_unique<IRSafeAccess>(
+        "%" + std::to_string(lastId++),
+        memberType,
+        objIR.mainValue,
+        memberSym->classMemberIndex
+    );
+    IRValue* result = safeIr.get();
+    res.push_back(std::move(safeIr));
+
+    return { result, std::move(res) };
+}
+
 LIRGenerate parseThisNode(ThisNode* node) {
     if (!currentContext || !currentContext->generativeSymbol) {
         throw LIRException(Error(node->position, "'this' used outside of context", mainSource.filename().string()));
@@ -609,6 +695,14 @@ LIRGenerate parse(ASTNode* node) {
         return parseMemberAccessNode(access);
     } else if (auto ret = dynamic_cast<ReturnNode*>(node)) {
         return parseReturnNode(ret);
+    } else if (auto nullNode = dynamic_cast<NullNode*>(node)) {
+        return parseNullNode(nullNode);
+    } else if (auto coalesce = dynamic_cast<NullCoalescingNode*>(node)) {
+        return parseNullCoalescing(coalesce);
+    } else if (auto check = dynamic_cast<NullCheckNode*>(node)) {
+        return parseNullCheck(check);
+    } else if (auto safe = dynamic_cast<SafeNavigationNode*>(node)) {
+        return parseSafeNavigationNode(safe);
     } else if (auto attr = dynamic_cast<AttributesNode*>(node)) {
         return parseAttributes(attr);
     } else if (auto mod = dynamic_cast<ModuleDeclaration*>(node)) {

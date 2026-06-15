@@ -38,6 +38,7 @@ struct Symbol {
     bool isStatic = false;
     std::string forcedMangle = "";
     std::vector<Symbol*> classTypes;
+    bool isNullable = false;
 
     Symbol(SymbolKind kind, IdentyfierNode* name, Symbol* type, ASTNode* node) : kind(kind), name(name), type(type), node(node) {}
     Symbol* clone() const {
@@ -47,6 +48,7 @@ struct Symbol {
         copy->isStatic = isStatic;
         copy->forcedMangle = forcedMangle;
         copy->scope = scope;
+        copy->isNullable = isNullable;
         return copy;
     }
 

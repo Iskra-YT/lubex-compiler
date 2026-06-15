@@ -16,6 +16,10 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
     if (auto s = dynamic_cast<IRString*>(node)) return generateString(s);
     if (auto a = dynamic_cast<IRAccess*>(node)) return generateAccess(a);
     if (auto g = dynamic_cast<IRAllocaStruct*>(node)) return generateAllocaStruct(g);
+    if (auto n = dynamic_cast<IRNull*>(node)) return generateNull(n);
+    if (auto n = dynamic_cast<IRNullCoalescing*>(node)) return generateNullCoalescing(n);
+    if (auto n = dynamic_cast<IRNullCheck*>(node)) return generateNullCheck(n);
+    if (auto s = dynamic_cast<IRSafeAccess*>(node)) return generateSafeAccess(s);
 
     return nullptr;
 }

@@ -70,7 +70,7 @@ llvm::Value* LLVMGenerator::generateFunction(IRFunction* f) {
                 std::cerr << "Missing vtable for _BI_Void\n";
                 return nullptr;
             }
-            auto initIt = voidVtIt->second.find("init");
+            auto initIt = voidVtIt->second.find("_BI_Void_init");
             if (initIt == voidVtIt->second.end()) {
                 std::cerr << "Missing init in _BI_Void vtable\n";
                 return nullptr;
@@ -104,10 +104,24 @@ llvm::Value* LLVMGenerator::generateFunction(IRFunction* f) {
                 fnType->getPointerTo()
             );
             
+            llvm::Type* voidTy = mapLLVMType("_BI_Void", false);
+            llvm::Function* mallocFn = emiterModule->getFunction("_BI_malloc");
+            if (!mallocFn) {
+                std::cerr << "Missing _BI_malloc\n";
+                return nullptr;
+            }
+            const llvm::DataLayout& dl = emiterModule->getDataLayout();
+            uint64_t totalSize = dl.getTypeAllocSize(voidTy);
+            llvm::Value* sizeVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(emiterContext), totalSize);
+            llvm::Value* allocated = emiterBuilder.CreateCall(mallocFn, { sizeVal });
+            llvm::Value* objPtr = emiterBuilder.CreateBitCast(allocated, voidTy->getPointerTo());
+            llvm::Value* typeInfoGEP = emiterBuilder.CreateStructGEP(voidTy, objPtr, 0);
+            emiterBuilder.CreateStore(typeInfoPtr, typeInfoGEP);
+            
             llvm::Value* call = emiterBuilder.CreateCall(
                 fnType,
                 typedFn,
-                {}
+                {objPtr}
             );
             
             emiterBuilder.CreateRet(call);

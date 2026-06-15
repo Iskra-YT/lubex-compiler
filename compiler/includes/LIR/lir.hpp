@@ -191,6 +191,50 @@ struct IRString : IRValue {
     }
 };
 
+struct IRNull : IRValue {
+    IRNull(const IRName& name, IRType type)
+        : IRValue{name, type} {}
+
+    void debug() const override {
+        DEBUG_OUTPUT << name << ": " << type << " = null\n";
+    }
+};
+
+struct IRNullCoalescing : IRValue {
+    IRValue* left;
+    IRValue* right;
+
+    IRNullCoalescing(IRType type, IRValue* l, IRValue* r)
+        : IRValue{"%" + std::to_string(lastId++), type}, left(l), right(r) {}
+
+    void debug() const override {
+        DEBUG_OUTPUT << name << ": " << type << " = coalesce " << left->name << " ?: " << right->name << "\n";
+    }
+};
+
+struct IRNullCheck : IRValue {
+    IRValue* value;
+
+    IRNullCheck(IRType type, IRValue* v)
+        : IRValue{"%" + std::to_string(lastId++), type}, value(v) {}
+
+    void debug() const override {
+        DEBUG_OUTPUT << name << ": " << type << " = check " << value->name << "??\n";
+    }
+};
+
+struct IRSafeAccess : IRValue {
+    IRValue* object;
+    int memberIndex;
+
+    IRSafeAccess(const IRName& name, IRType type, IRValue* obj, int memberIdx)
+        : IRValue{name, type}, object(obj), memberIndex(memberIdx) {}
+
+    void debug() const override {
+        DEBUG_OUTPUT << name << " = safe_access " << object->name << ", " << memberIndex << "\n";
+    }
+};
+
 struct LIRGenerate {
     IRValue* mainValue;
     std::vector<std::unique_ptr<IRValue>> code;

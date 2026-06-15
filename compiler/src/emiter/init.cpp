@@ -24,6 +24,9 @@ LLVMGenerator::LLVMGenerator(const std::string& moduleName) : emiterBuilder(emit
     generateBuildInFunction("_BI_String_init", "_BI_String", {"_BI_String", "i8*"}, "_BI_String");
 
     generateBuildInFunction("_BI_malloc", "void*", {"i64"}, "");
+
+    // Runtime panic function: __R_panic(message: i8*) -> never (void)
+    generateBuildInFunction("__R_panic", "void", {"i8*"}, "");
 }
 
 llvm::Function* LLVMGenerator::generateBuildInFunction(std::string name, std::string returnType, std::vector<std::string> argTypes, std::string className) {

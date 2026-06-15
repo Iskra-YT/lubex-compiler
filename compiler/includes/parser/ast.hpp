@@ -196,4 +196,40 @@ struct ThisNode : ASTNode {
     void debug() override;
 };
 
+struct NullNode : ASTNode {
+    NullNode(PositionSpan span) : ASTNode(span) {}
+    Symbol* evaluateSymbol(Context& ctx) override;
+    void debug() override;
+};
+
+struct NullableTypeNode : ASTNode {
+    std::unique_ptr<ASTNode> baseType;
+    NullableTypeNode(PositionSpan span, std::unique_ptr<ASTNode> bt) : ASTNode(span), baseType(std::move(bt)) {}
+    Symbol* evaluateSymbol(Context& ctx) override;
+    void debug() override;
+};
+
+struct NullCoalescingNode : ASTNode {
+    std::unique_ptr<ASTNode> left;
+    std::unique_ptr<ASTNode> right;
+    NullCoalescingNode(PositionSpan span, std::unique_ptr<ASTNode> l, std::unique_ptr<ASTNode> r) : ASTNode(span), left(std::move(l)), right(std::move(r)) {}
+    Symbol* evaluateSymbol(Context& ctx) override;
+    void debug() override;
+};
+
+struct NullCheckNode : ASTNode {
+    std::unique_ptr<ASTNode> value;
+    NullCheckNode(PositionSpan span, std::unique_ptr<ASTNode> v) : ASTNode(span), value(std::move(v)) {}
+    Symbol* evaluateSymbol(Context& ctx) override;
+    void debug() override;
+};
+
+struct SafeNavigationNode : ASTNode {
+    std::unique_ptr<ASTNode> object;
+    std::unique_ptr<ASTNode> member;
+    SafeNavigationNode(PositionSpan span, std::unique_ptr<ASTNode> o, std::unique_ptr<ASTNode> m) : ASTNode(span), object(std::move(o)), member(std::move(m)) {}
+    Symbol* evaluateSymbol(Context& ctx) override;
+    void debug() override;
+};
+
 #endif // AST_NODE_HPP

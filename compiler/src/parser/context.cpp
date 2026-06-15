@@ -12,6 +12,13 @@ void Parser::initVarDecl() {
         {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx){ 
             auto& c = *(VarDeclContext*)ctx;
             c.type = parsePrimary();
+            if (getCurrent().match(Token("?", TokenType::DELIMITER_TOKEN))) {
+                advance();
+                c.type = std::make_unique<NullableTypeNode>(
+                    PositionSpan(c.type->position.start, getCurrent().position.end),
+                    std::move(c.type)
+                );
+            }
         }, false, 2},
         {TokenType::ASSIGNMENT_TOKEN, "=", [](Token&, void*){}, true, 1},
         {TokenType::ANY, "", [&](Token&, void* ctx){
@@ -57,6 +64,13 @@ void Parser::initFuncDecl() {
         {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx){
             auto& c = *(FuncDeclContext*)ctx;
             c.returnType = parseFactor();
+            if (getCurrent().match(Token("?", TokenType::DELIMITER_TOKEN))) {
+                advance();
+                c.returnType = std::make_unique<NullableTypeNode>(
+                    PositionSpan(c.returnType->position.start, getCurrent().position.end),
+                    std::move(c.returnType)
+                );
+            }
         }, false, 0},
         {TokenType::DELIMITER_TOKEN, "{", [&](Token&, void* ctx){
             auto& c = *(FuncDeclContext*)ctx;
@@ -130,6 +144,13 @@ void Parser::initConstDecl() {
         {TokenType::IDENTYFIER_TOKEN, "", [&](Token& t, void* ctx){ 
             auto& c = *(VarDeclContext*)ctx;
             c.type = parsePrimary();
+            if (getCurrent().match(Token("?", TokenType::DELIMITER_TOKEN))) {
+                advance();
+                c.type = std::make_unique<NullableTypeNode>(
+                    PositionSpan(c.type->position.start, getCurrent().position.end),
+                    std::move(c.type)
+                );
+            }
         }, false, 2},
         {TokenType::ASSIGNMENT_TOKEN, "=", [](Token&, void*){}, true, 1},
         {TokenType::ANY, "", [&](Token&, void* ctx){

@@ -65,6 +65,10 @@ class LLVMGenerator {
         llvm::Value* generateString(IRString* s);
         llvm::Value* generateAccess(IRAccess* a);
         llvm::Value* generateAllocaStruct(IRAllocaStruct* g);
+        llvm::Value* generateNull(IRNull* n);
+        llvm::Value* generateNullCoalescing(IRNullCoalescing* n);
+        llvm::Value* generateNullCheck(IRNullCheck* n);
+        llvm::Value* generateSafeAccess(IRSafeAccess* s);
 
         llvm::StructType* generateStruct(const std::string& name, const std::vector<llvm::Type*>& types, const std::string parentName = "_BI_Object");
         llvm::StructType* generateStruct(const std::string& name, const std::vector<llvm::Type*>& types, const std::vector<std::string>& parents);

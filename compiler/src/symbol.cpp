@@ -10,8 +10,37 @@ extern IdentyfierNode intType;
 extern IdentyfierNode objectType;
 extern IdentyfierNode voidType;
 extern IdentyfierNode stringType;
+extern IdentyfierNode nullType;
 
 extern std::filesystem::path mainSource;
+
+static bool isTypeCompatible(Symbol* targetType, Symbol* valueType, std::string& errorMsg) {
+    if (!targetType || !valueType) return true;
+
+    std::string tName = targetType->name->value;
+    std::string vName = valueType->name->value;
+
+    // null -> T? : compatible
+    if (vName == "Null") {
+        if (targetType->isNullable) return true;
+        errorMsg = "Cannot assign null to non-nullable type '" + tName + "'";
+        return false;
+    }
+
+    // T? -> T : NOT compatible (must unwrap via ?? or ?:)
+    if (valueType->isNullable && !targetType->isNullable) {
+        errorMsg = "Cannot assign nullable type '" + vName + "?' to non-nullable type '" + tName + "'. Use '\?\?' to unwrap or '?:' to provide default";
+        return false;
+    }
+
+    // Different base types
+    if (tName != vName) {
+        errorMsg = "Type mismatch: cannot assign '" + vName + "' to '" + tName + "'";
+        return false;
+    }
+
+    return true;
+}
 
 bool inStatic = false;
 
@@ -65,9 +94,12 @@ Symbol* VariableDeclarationNode::evaluateSymbol(Context& ctx) {
             if (value && ctx.generativeSymbol->kind != SymbolKind::CLASS) {
                 auto v = value->evaluateSymbol(ctx);
                 auto sym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
-                if (v && t && sym && t->name->value != v->type->name->value) {
-                    ctx.errors.push_back(Error(position, "Type mismatch in variable declaration", mainSource.filename().string()));
-                    return;
+                if (v && t && sym) {
+                    std::string compatErr;
+                    if (!isTypeCompatible(t, v->type, compatErr)) {
+                        ctx.errors.push_back(Error(position, compatErr, mainSource.filename().string()));
+                        return;
+                    }
                 }
 
                 ctx.declare(std::make_unique<Symbol>(SymbolKind::VARIABLE, dynamic_cast<IdentyfierNode*>(name.get()), t, static_cast<ASTNode*>(this)));
@@ -115,8 +147,11 @@ Symbol* VariableAssigment::evaluateSymbol(Context& ctx) {
         if (!n || !v) return nullptr;
         if (!n || n->kind != SymbolKind::VARIABLE) {
             ctx.errors.push_back(Error(position, "Cannot assign to non-variable symbol", mainSource.filename().string()));
-        } else if (n->type->name->value != v->type->name->value) {
-            ctx.errors.push_back(Error(position, "Type mismatch in variable assignment", mainSource.filename().string()));
+        } else {
+            std::string compatErr;
+            if (!isTypeCompatible(n->type, v->type, compatErr)) {
+                ctx.errors.push_back(Error(position, compatErr, mainSource.filename().string()));
+            }
         } 
         
         if (dynamic_cast<VariableDeclarationNode*>(n->node) && dynamic_cast<VariableDeclarationNode*>(n->node)->isConst) {
@@ -358,6 +393,16 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
         return nullptr;
     }
 
+    if (obj->type && obj->type->isNullable) {
+        ctx.errors.push_back(Error(position, "Cannot use '.' on nullable type '" + obj->type->name->value + "?'. Use '?.' instead", mainSource.filename().string()));
+        return nullptr;
+    }
+
+    if (obj->type && obj->type->name->value == "Null") {
+        ctx.errors.push_back(Error(position, "Cannot use '.' on null literal", mainSource.filename().string()));
+        return nullptr;
+    }
+
     Symbol* memberSym = nullptr;
     bool isStaticAccess = false;
 
@@ -419,8 +464,11 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
 Symbol* ReturnNode::evaluateSymbol(Context& ctx) {
     if (value) {
         auto valueSym = value->evaluateSymbol(ctx);
-        if (valueSym->type->name->value != ctx.generativeSymbol->type->name->value) {
-            ctx.errors.push_back(Error(position, "Type mismatch in return statement", mainSource.filename().string()));
+        if (valueSym && valueSym->type && ctx.generativeSymbol) {
+            std::string compatErr;
+            if (!isTypeCompatible(ctx.generativeSymbol->type, valueSym->type, compatErr)) {
+                ctx.errors.push_back(Error(position, "Type mismatch in return statement: " + compatErr, mainSource.filename().string()));
+            }
         }
 
         return valueSym;
@@ -494,4 +542,108 @@ Symbol* ThisNode::evaluateSymbol(Context& ctx) {
     auto sym = ctx.parent->generativeSymbol->clone();
     sym->type = sym;
     return sym;
+}
+
+Symbol* NullNode::evaluateSymbol(Context& ctx) {
+    auto sym = ctx.lookup(&nullType);
+    sym->type = sym;
+    return sym;
+}
+
+Symbol* NullableTypeNode::evaluateSymbol(Context& ctx) {
+    auto baseTypeSym = baseType->evaluateSymbol(ctx);
+    if (!baseTypeSym) return nullptr;
+
+    auto* nullableSym = new Symbol(SymbolKind::CLASS, baseTypeSym->name, baseTypeSym, nullptr);
+    nullableSym->isNullable = true;
+    nullableSym->scope = baseTypeSym->scope;
+    nullableSym->forcedMangle = baseTypeSym->forcedMangle;
+    return nullableSym;
+}
+
+Symbol* NullCoalescingNode::evaluateSymbol(Context& ctx) {
+    if (ctx.phase != PassPhase::TYPE_CHECK) return nullptr;
+
+    auto L = left->evaluateSymbol(ctx);
+    auto R = right->evaluateSymbol(ctx);
+    if (!L || !R || !L->type || !R->type) return nullptr;
+
+    std::string leftBase = L->type->name->value;
+    bool leftIsNullable = L->type->isNullable || leftBase == "Null";
+
+    if (!leftIsNullable) {
+        ctx.errors.push_back(Error(position, "Left operand of '?:' must be nullable type", mainSource.filename().string()));
+        return nullptr;
+    }
+
+    if (leftBase == "Null") leftBase = R->type->name->value;
+
+    if (R->type->name->value != leftBase) {
+        ctx.errors.push_back(Error(position, "Type mismatch in '?:' expression", mainSource.filename().string()));
+        return nullptr;
+    }
+
+    auto baseSym = ctx.lookup(leftBase, position);
+    baseSym->type = baseSym;
+    return baseSym;
+}
+
+Symbol* NullCheckNode::evaluateSymbol(Context& ctx) {
+    if (ctx.phase != PassPhase::TYPE_CHECK) return nullptr;
+
+    auto v = value->evaluateSymbol(ctx);
+    if (!v || !v->type) return nullptr;
+
+    if (!v->type->isNullable && v->type->name->value != "Null") {
+        ctx.errors.push_back(Error(position, "Operand of '\?\?' must be nullable type", mainSource.filename().string()));
+        return nullptr;
+    }
+
+    if (v->type->name->value == "Null") {
+        ctx.errors.push_back(Error(position, "Cannot use '\?\?' on null literal", mainSource.filename().string()));
+        return nullptr;
+    }
+
+    auto baseSym = ctx.lookup(v->type->name->value, position);
+    baseSym->type = baseSym;
+    return baseSym;
+}
+
+Symbol* SafeNavigationNode::evaluateSymbol(Context& ctx) {
+    if (ctx.phase != PassPhase::TYPE_CHECK) return nullptr;
+
+    auto obj = object->evaluateSymbol(ctx);
+    if (!obj) return nullptr;
+
+    Symbol* objBaseType = obj->type;
+    if (!objBaseType) return nullptr;
+
+    if (!objBaseType->isNullable && objBaseType->name->value != "Null") {
+        ctx.errors.push_back(Error(position, "Left-hand side of '?.' must be nullable type", mainSource.filename().string()));
+        return nullptr;
+    }
+
+    if (objBaseType->name->value == "Null") {
+        ctx.errors.push_back(Error(position, "Cannot use '?.' on null literal", mainSource.filename().string()));
+        return nullptr;
+    }
+
+    Symbol* classToSearch = objBaseType;
+    std::string memberName = static_cast<IdentyfierNode*>(member.get())->value;
+
+    Symbol* memberSym = lookupWithInheritance(classToSearch, memberName, ctx.lookup(&objectType));
+    if (!memberSym) {
+        ctx.errors.push_back(Error(position, "Type '" + objBaseType->name->value + "' has no member '" + memberName + "'", mainSource.filename().string()));
+        return nullptr;
+    }
+
+    if (!memberSym->type) {
+        ctx.errors.push_back(Error(position, "Member has no type", mainSource.filename().string()));
+        return nullptr;
+    }
+
+    auto resultType = ctx.lookup(memberSym->type->name->value, position);
+    resultType->isNullable = true;
+    resultType->type = resultType;
+    return resultType;
 }

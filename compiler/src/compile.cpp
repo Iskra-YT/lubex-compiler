@@ -26,6 +26,7 @@ extern IdentyfierNode intType;
 extern IdentyfierNode objectType;
 extern IdentyfierNode voidType;
 extern IdentyfierNode stringType;
+extern IdentyfierNode nullType;
 
 IdentyfierNode initName(PositionSpan(0, 0), "init");
 IdentyfierNode addName(PositionSpan(0, 0), "add");
@@ -167,6 +168,12 @@ bool compileProject() {
     stringContext->declare(std::move(func));
     stringClass->scope = stringContext.get();
     globalCtx.declare(std::move(stringClass));
+
+    // Null
+    auto nullClass = std::make_unique<Symbol>(SymbolKind::CLASS, &nullType, nullptr, nullptr);
+    nullClass->forcedMangle = "_BI_Null";
+    nullClass->isNullable = true;
+    globalCtx.declare(std::move(nullClass));
 
     if (!compile(mainSource, *globalCtx.addChild()))
         return false;
