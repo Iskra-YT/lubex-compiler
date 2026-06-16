@@ -1,7 +1,11 @@
 #include "math.h"
 
 _BI_Number* _std_math_pow(_BI_Number* base, _BI_Number* exponent) {
+    if (!base || !exponent) return NULL;
+
     _BI_Number* result = (_BI_Number*)_BI_malloc(sizeof(_BI_Number));
+    if (!result) return NULL;
+
     if (exponent->value == 0) {
         result->value = 1;
         return result;

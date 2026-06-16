@@ -2,6 +2,8 @@
 #include "lbxos.h"
 
 void __R_print(const char* s) {
+    if (!s) return;
+
     long len = 0;
     while (s[len]) len++;
 

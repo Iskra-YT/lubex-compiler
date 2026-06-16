@@ -3,6 +3,9 @@
 
 void __R_panic(const char* message) {
     const char* prefix = "Panic: ";
+    const char* defaultMsg = "unknown";
+
+    if (!message) message = defaultMsg;
 
     long prefixLen = 0;
     while (prefix[prefixLen]) prefixLen++;

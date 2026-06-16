@@ -251,6 +251,20 @@ struct IRSafeAccess : IRValue {
     }
 };
 
+struct IRSafeCall : IRValue {
+    IRValue* object;
+    std::string funcName;
+    std::vector<IRValue*> args;
+
+    IRSafeCall(const std::string& funcName, IRType type, std::vector<IRValue*> args, IRValue* obj) :
+        IRValue{"%" + std::to_string(lastId++), type}, object(obj), funcName(funcName), args(std::move(args)) {
+    }
+
+    void debug() const override {
+        DEBUG_OUTPUT << name << " = safe_call " << funcName << "(...) : " << type << "\n";
+    }
+};
+
 struct LIRGenerate {
     IRValue* mainValue;
     std::vector<std::unique_ptr<IRValue>> code;

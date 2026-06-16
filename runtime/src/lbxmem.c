@@ -80,6 +80,8 @@ void* __R_memset(void* ptr, int value, unsigned long num) {
 }
 
 unsigned long __R_strlen(const char* str) {
+    if (!str) return 0;
+
     const char* s = str;
     while (*s) {
         s++;

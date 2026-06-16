@@ -47,8 +47,14 @@ llvm::Value* LLVMGenerator::generateVariableRead(IRVariableRead* v) {
 }
 
 llvm::Value* LLVMGenerator::generateStore(IRStore* s) {
-    llvm::Value* ptr = namedValues[s->ptr];
-    llvm::Value* val = namedValues[s->value];
+    auto ptrIt = namedValues.find(s->ptr);
+    auto valIt = namedValues.find(s->value);
+    if (ptrIt == namedValues.end() || valIt == namedValues.end()) {
+        std::cerr << "Missing values in store\n";
+        return nullptr;
+    }
+    llvm::Value* ptr = ptrIt->second;
+    llvm::Value* val = valIt->second;
 
     auto store = emiterBuilder.CreateStore(val, ptr);
     namedValues[s] = store;
@@ -57,8 +63,13 @@ llvm::Value* LLVMGenerator::generateStore(IRStore* s) {
 }
 
 llvm::Value* LLVMGenerator::generateReturn(IRReturn* r) {
+    auto valIt = namedValues.find(r->value);
+    if (valIt == namedValues.end()) {
+        std::cerr << "Missing value in return\n";
+        return nullptr;
+    }
     llvm::Value* ret;
-    llvm::Value* value = namedValues[r->value];
+    llvm::Value* value = valIt->second;
     ret = emiterBuilder.CreateRet(value);
 
     namedValues[r] = ret;
@@ -84,11 +95,12 @@ llvm::Value* LLVMGenerator::generateString(IRString* s) {
 }
 
 llvm::Value* LLVMGenerator::generateAccess(IRAccess* a) {
-    llvm::Value* obj = namedValues[a->object];
-    if (!obj) {
+    auto objIt = namedValues.find(a->object);
+    if (objIt == namedValues.end() || !objIt->second) {
         std::cerr << "Object not found in access: " << a->object->name << "\n";
         return nullptr;
     }
+    llvm::Value* obj = objIt->second;
 
     int idx = a->memberName;
 
@@ -152,12 +164,14 @@ llvm::Value* LLVMGenerator::generateNull(IRNull* n) {
 }
 
 llvm::Value* LLVMGenerator::generateNullCoalescing(IRNullCoalescing* nc) {
-    llvm::Value* leftVal = namedValues[nc->left];
-    llvm::Value* rightVal = namedValues[nc->right];
-    if (!leftVal || !rightVal) {
+    auto leftIt = namedValues.find(nc->left);
+    auto rightIt = namedValues.find(nc->right);
+    if (leftIt == namedValues.end() || rightIt == namedValues.end() || !leftIt->second || !rightIt->second) {
         std::cerr << "Missing values for null coalescing\n";
         return nullptr;
     }
+    llvm::Value* leftVal = leftIt->second;
+    llvm::Value* rightVal = rightIt->second;
 
     llvm::Value* isNull = emiterBuilder.CreateICmpEQ(
         leftVal, llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(leftVal->getType())));
@@ -168,11 +182,12 @@ llvm::Value* LLVMGenerator::generateNullCoalescing(IRNullCoalescing* nc) {
 }
 
 llvm::Value* LLVMGenerator::generateNullCheck(IRNullCheck* nc) {
-    llvm::Value* val = namedValues[nc->value];
-    if (!val) {
+    auto valIt = namedValues.find(nc->value);
+    if (valIt == namedValues.end() || !valIt->second) {
         std::cerr << "Missing value for null check\n";
         return nullptr;
     }
+    llvm::Value* val = valIt->second;
 
     llvm::Function* func = emiterBuilder.GetInsertBlock()->getParent();
 
@@ -207,11 +222,12 @@ llvm::Value* LLVMGenerator::generateNullCheck(IRNullCheck* nc) {
 }
 
 llvm::Value* LLVMGenerator::generateSafeAccess(IRSafeAccess* sa) {
-    llvm::Value* obj = namedValues[sa->object];
-    if (!obj) {
+    auto objIt = namedValues.find(sa->object);
+    if (objIt == namedValues.end() || !objIt->second) {
         std::cerr << "Missing object for safe access\n";
         return nullptr;
     }
+    llvm::Value* obj = objIt->second;
 
     llvm::Function* func = emiterBuilder.GetInsertBlock()->getParent();
 
@@ -252,4 +268,137 @@ llvm::Value* LLVMGenerator::generateSafeAccess(IRSafeAccess* sa) {
 
     namedValues[sa] = phi;
     return phi;
+}
+
+llvm::Value* LLVMGenerator::generateSafeCall(IRSafeCall* sc) {
+    auto objIt = namedValues.find(sc->object);
+    if (objIt == namedValues.end() || !objIt->second) {
+        std::cerr << "Missing object for safe call\n";
+        return nullptr;
+    }
+    llvm::Value* obj = objIt->second;
+
+    llvm::Function* func = emiterBuilder.GetInsertBlock()->getParent();
+
+    llvm::BasicBlock* nullBB = llvm::BasicBlock::Create(emiterContext, "safe_call_null", func);
+    llvm::BasicBlock* callBB = llvm::BasicBlock::Create(emiterContext, "safe_call_call", func);
+    llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(emiterContext, "safe_call_merge", func);
+
+    llvm::Value* isNull =
+        emiterBuilder.CreateICmpEQ(obj, llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(obj->getType())));
+    emiterBuilder.CreateCondBr(isNull, nullBB, callBB);
+
+    emiterBuilder.SetInsertPoint(nullBB);
+    emiterBuilder.CreateBr(mergeBB);
+
+    emiterBuilder.SetInsertPoint(callBB);
+
+    llvm::Function* callee = emiterModule->getFunction(sc->funcName);
+    if (!callee) {
+        std::cerr << "Function not found in safe call: " << sc->funcName << "\n";
+        return nullptr;
+    }
+
+    std::vector<llvm::Value*> args;
+    for (auto argNode : sc->args) {
+        auto nvIt = namedValues.find(argNode);
+        if (nvIt == namedValues.end() || !nvIt->second) {
+            std::cerr << "Missing arg value in safe call: " << sc->funcName << "\n";
+            return nullptr;
+        }
+        args.push_back(nvIt->second);
+    }
+
+    std::string className;
+    bool isStatic = false;
+
+    if (builtinMethodClass.count(callee)) {
+        className = builtinMethodClass[callee];
+    } else {
+        auto ftIt = functionTable.find(callee);
+        if (ftIt == functionTable.end()) {
+            std::cerr << "Missing IR for function: " << sc->funcName << "\n";
+            return nullptr;
+        }
+        auto funcIr = dynamic_cast<IRFunction*>(ftIt->second);
+        if (!funcIr) {
+            std::cerr << "Missing IR for function: " << sc->funcName << "\n";
+            return nullptr;
+        }
+        className = funcIr->className;
+        isStatic = funcIr->isStatic;
+    }
+
+    llvm::FunctionType* fnType = callee->getFunctionType();
+    std::string methodName = getMethodName(sc->funcName);
+    auto clsVtIt = vTablePos.find(className);
+    if (clsVtIt == vTablePos.end()) {
+        std::cerr << "Missing vtable for class: " << className << "\n";
+        return nullptr;
+    }
+    auto mthIt = clsVtIt->second.find(methodName);
+    if (mthIt == clsVtIt->second.end()) {
+        std::cerr << "Missing method in vtable: " << className << "." << methodName << "\n";
+        return nullptr;
+    }
+    int idx = mthIt->second;
+
+    llvm::Value* idxVal = llvm::ConstantInt::get(llvm::Type::getInt32Ty(emiterContext), idx);
+
+    llvm::Type* i8PtrTy = llvm::Type::getInt8PtrTy(emiterContext);
+
+    auto typeInfoIt = structTypes.find("_BI_TypeInfo");
+    if (typeInfoIt == structTypes.end()) {
+        std::cerr << "Missing _BI_TypeInfo struct type\n";
+        return nullptr;
+    }
+    llvm::StructType* typeInfoTy = typeInfoIt->second;
+
+    llvm::Value* vtablePtr = nullptr;
+    if (isStatic) {
+        auto tiIt = typeInfos.find(className);
+        if (tiIt == typeInfos.end() || !tiIt->second) {
+            std::cerr << "Missing TypeInfo for static class: " << className << "\n";
+            return nullptr;
+        }
+        llvm::Value* typeInfoGV = tiIt->second;
+        llvm::Value* typeInfoPtr = emiterBuilder.CreateBitCast(typeInfoGV, typeInfoTy->getPointerTo());
+        llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(typeInfoTy, typeInfoPtr, 2);
+        vtablePtr = emiterBuilder.CreateLoad(i8PtrTy->getPointerTo(), vtablePtrPtr);
+    } else {
+        if (args.empty()) {
+            std::cerr << "Missing this pointer for instance method call\n";
+            return nullptr;
+        }
+        llvm::Value* thisPtr = args[0];
+        auto* classTy = llvm::cast<llvm::StructType>(mapLLVMType(className, false));
+        llvm::Value* typedThis = emiterBuilder.CreateBitCast(thisPtr, classTy->getPointerTo());
+        llvm::Value* typeInfoPtrPtr = emiterBuilder.CreateStructGEP(classTy, typedThis, 0);
+        llvm::Value* typeInfoPtr = emiterBuilder.CreateLoad(typeInfoTy->getPointerTo(), typeInfoPtrPtr);
+        llvm::Value* vtablePtrPtr = emiterBuilder.CreateStructGEP(typeInfoTy, typeInfoPtr, 2);
+        vtablePtr = emiterBuilder.CreateLoad(i8PtrTy->getPointerTo(), vtablePtrPtr);
+    }
+
+    llvm::Value* fnPtrPtr = emiterBuilder.CreateInBoundsGEP(i8PtrTy, vtablePtr, idxVal);
+    llvm::Value* fnPtr = emiterBuilder.CreateLoad(i8PtrTy, fnPtrPtr);
+    llvm::Value* typedFn = emiterBuilder.CreateBitCast(fnPtr, fnType->getPointerTo());
+    llvm::Value* callVal = emiterBuilder.CreateCall(fnType, typedFn, args);
+
+    emiterBuilder.CreateBr(mergeBB);
+
+    // Merge block
+    emiterBuilder.SetInsertPoint(mergeBB);
+
+    llvm::Type* retTy = fnType->getReturnType();
+    if (retTy->isVoidTy()) {
+        namedValues[sc] = callVal;
+    } else {
+        llvm::Value* nullVal = llvm::Constant::getNullValue(retTy);
+        llvm::PHINode* phi = emiterBuilder.CreatePHI(retTy, 2);
+        phi->addIncoming(nullVal, nullBB);
+        phi->addIncoming(callVal, callBB);
+        namedValues[sc] = phi;
+    }
+
+    return namedValues[sc];
 }

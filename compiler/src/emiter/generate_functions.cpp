@@ -16,7 +16,12 @@ llvm::Value* LLVMGenerator::generateFunction(IRFunction* f) {
 
     size_t idx = 0;
     for (auto& arg : func->args()) {
-        namedValues[f->args[idx++]] = &arg;
+        if (idx < f->args.size()) {
+            namedValues[f->args[idx++]] = &arg;
+        } else {
+            std::cerr << "More LLVM function args than IR args in: " << f->name << "\n";
+            break;
+        }
     }
 
     if (f->body.size() == 0) {

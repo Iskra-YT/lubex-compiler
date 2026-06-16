@@ -13,6 +13,7 @@ LLVMGenerator::LLVMGenerator(const std::string& moduleName) : emiterBuilder(emit
 
     generateBuildInStruct("_BI_Number", {"double"});
     generateBuildInFunction("_BI_Number_init", "_BI_Number", {"_BI_Number", "double"}, "_BI_Number");
+    generateBuildInFunction("_BI_Number_toString", "_BI_String", {"_BI_Number"}, "_BI_Number");
     generateBuildInFunction("_BI_Number_add", "_BI_Number", {"_BI_Number", "_BI_Number"}, "_BI_Number");
     generateBuildInFunction("_BI_Number_subtract", "_BI_Number", {"_BI_Number", "_BI_Number"}, "_BI_Number");
     generateBuildInFunction("_BI_Number_multiply", "_BI_Number", {"_BI_Number", "_BI_Number"}, "_BI_Number");
@@ -25,8 +26,6 @@ LLVMGenerator::LLVMGenerator(const std::string& moduleName) : emiterBuilder(emit
     generateBuildInFunction("_BI_String_init", "_BI_String", {"_BI_String", "i8*"}, "_BI_String");
 
     generateBuildInFunction("_BI_malloc", "void*", {"i64"}, "");
-
-    // Runtime panic function: __R_panic(message: i8*) -> never (void)
     generateBuildInFunction("__R_panic", "void", {"i8*"}, "");
 }
 

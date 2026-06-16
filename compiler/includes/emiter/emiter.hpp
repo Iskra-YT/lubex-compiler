@@ -69,6 +69,7 @@ class LLVMGenerator {
     llvm::Value* generateNullCoalescing(IRNullCoalescing* n);
     llvm::Value* generateNullCheck(IRNullCheck* n);
     llvm::Value* generateSafeAccess(IRSafeAccess* s);
+    llvm::Value* generateSafeCall(IRSafeCall* s);
 
     llvm::StructType* generateStruct(const std::string& name,
                                      const std::vector<llvm::Type*>& types,

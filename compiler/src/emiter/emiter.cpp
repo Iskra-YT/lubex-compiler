@@ -20,6 +20,7 @@ llvm::Value* LLVMGenerator::generate(IRValue* node) {
     if (auto n = dynamic_cast<IRNullCoalescing*>(node)) return generateNullCoalescing(n);
     if (auto n = dynamic_cast<IRNullCheck*>(node)) return generateNullCheck(n);
     if (auto s = dynamic_cast<IRSafeAccess*>(node)) return generateSafeAccess(s);
+    if (auto s = dynamic_cast<IRSafeCall*>(node)) return generateSafeCall(s);
 
     return nullptr;
 }

@@ -55,6 +55,7 @@ Symbol* StatementNode::evaluateSymbol(Context& ctx) {
 
 Symbol* NumberNode::evaluateSymbol(Context& ctx) {
     auto sym = ctx.lookup(&intType);
+    if (!sym) return nullptr;
     sym->type = sym;
     return sym;
 }
@@ -80,18 +81,23 @@ Symbol* BinaryNode::evaluateSymbol(Context& ctx) {
         auto L = left->evaluateSymbol(ctx);
         auto R = right->evaluateSymbol(ctx);
 
+        if (!L || !R || !L->type || !R->type) return nullptr;
+
         if (L->type->name->value != R->type->name->value) {
             ctx.errors.push_back(Error(position, "Type mismatch in binary expression", mainSource.filename().string()));
         }
 
-        auto getFunction = L->type->scope->lookup(getOperationFunction(op));
-        if (!getFunction) {
-            ctx.errors.emplace_back(position, "Type does not support operator '" + op + "'",
-                                    mainSource.filename().string());
+        if (L->type->scope) {
+            auto getFunction = L->type->scope->lookup(getOperationFunction(op));
+            if (!getFunction) {
+                ctx.errors.emplace_back(position, "Type does not support operator '" + op + "'",
+                                        mainSource.filename().string());
+            }
         }
 
         if (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=") {
-            return ctx.lookup(&intType);
+            auto sym = ctx.lookup(&intType);
+            return sym;
         }
 
         return L;
@@ -103,18 +109,23 @@ Symbol* UnaryNode::evaluateSymbol(Context& ctx) {
     if (ctx.phase == PassPhase::TYPE_CHECK) {
         auto V = value->evaluateSymbol(ctx);
 
+        if (!V || !V->type) return nullptr;
+
         if (V->type->name->value != "Number") {
             ctx.errors.push_back(
                 Error(position, "Unary operator '" + op + "' requires Number operand", mainSource.filename().string()));
         }
 
-        auto getFunction = V->type->scope->lookup(getOperationFunction(op));
-        if (!getFunction) {
-            ctx.errors.emplace_back(position, "Type does not support operator '" + op + "'",
-                                    mainSource.filename().string());
+        if (V->type->scope) {
+            auto getFunction = V->type->scope->lookup(getOperationFunction(op));
+            if (!getFunction) {
+                ctx.errors.emplace_back(position, "Type does not support operator '" + op + "'",
+                                        mainSource.filename().string());
+            }
         }
 
-        return ctx.lookup(&intType);
+        auto sym = ctx.lookup(&intType);
+        return sym;
     }
     return nullptr;
 }
@@ -196,7 +207,7 @@ Symbol* VariableAssigment::evaluateSymbol(Context& ctx) {
             }
         }
 
-        if (dynamic_cast<VariableDeclarationNode*>(n->node) &&
+        if (n->node && dynamic_cast<VariableDeclarationNode*>(n->node) &&
             dynamic_cast<VariableDeclarationNode*>(n->node)->isConst) {
             ctx.errors.push_back(Error(position, "Cannot assign to constant variable", mainSource.filename().string()));
         }
@@ -251,6 +262,7 @@ Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
 
     if (ctx.phase == PassPhase::MIDPASS) {
         auto fnSym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
+        if (!fnSym) return nullptr;
         fnSym->type = type->evaluateSymbol(ctx);
 
         Context* fnCtx = fnSym->scope;
@@ -266,7 +278,7 @@ Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
             auto parent = currentClass->classTypes[0];
             auto parentFn = lookupWithInheritance(parent, fnSym->name->value, ctx.lookup(&objectType));
 
-            if (parentFn && parentFn->kind == SymbolKind::FUNCTION) {
+            if (parentFn && parentFn->kind == SymbolKind::FUNCTION && parentFn->node) {
                 auto parentDecl = static_cast<FunctionDeclaration*>(parentFn->node);
 
                 if (parentDecl->parameters.size() != parameters.size()) {
@@ -292,7 +304,9 @@ Symbol* FunctionDeclaration::evaluateSymbol(Context& ctx) {
 
     if (ctx.phase == PassPhase::TYPE_CHECK) {
         auto fnSym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
+        if (!fnSym) return nullptr;
         Context* fnCtx = fnSym->scope;
+        if (!fnCtx) return nullptr;
         fnCtx->phase = ctx.phase;
 
         if (isStatic) {
@@ -330,7 +344,9 @@ Symbol* ClassDeclNode::evaluateSymbol(Context& ctx) {
     }
 
     auto classSym = ctx.lookup(static_cast<IdentyfierNode*>(name.get()));
+    if (!classSym) return nullptr;
     auto classCtx = classSym->scope;
+    if (!classCtx) return nullptr;
 
     if (ctx.phase == PassPhase::MIDPASS && parent) {
         classSym->classTypes.push_back(parent->evaluateSymbol(ctx));
@@ -407,10 +423,10 @@ Symbol* CallNode::evaluateSymbol(Context& ctx) {
     }
 
     if (called->name->value != "Int" && called->name->value != "Void") {
-        if (call->node && static_cast<FunctionDeclaration*>(call->node)->parameters.size() > args.size()) {
+        if (call && call->node && static_cast<FunctionDeclaration*>(call->node)->parameters.size() > args.size()) {
             ctx.errors.push_back(
                 Error(position, "Argument count mismatch in function call", mainSource.filename().string()));
-        } else if (!call->node && numberOfParameters[called->name->value][call->name->value] > args.size()) {
+        } else if (call && !call->node && numberOfParameters[called->name->value][call->name->value] > args.size()) {
             ctx.errors.push_back(
                 Error(position, "Argument count mismatch in function call", mainSource.filename().string()));
         }
@@ -471,8 +487,6 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
     }
 
     if (memberSym->kind == SymbolKind::FUNCTION) {
-        auto funcDecl = static_cast<FunctionDeclaration*>(memberSym->node);
-
         if (isStaticAccess) {
             if (!memberSym->isStatic) {
                 ctx.errors.push_back(Error(position, "Cannot access non-static member without instance",
@@ -487,11 +501,14 @@ Symbol* MemberAccessNode::evaluateSymbol(Context& ctx) {
             }
         }
 
-        if (funcDecl && funcDecl->visibility == VisibilityKind::PRIVATE) {
-            if (!ctx.generativeSymbol || obj->type->name->value != ctx.generativeSymbol->name->value) {
-                ctx.errors.push_back(Error(position, "Cannot access private member from outside the class",
-                                           mainSource.filename().string()));
-                return nullptr;
+        if (memberSym->node) {
+            auto funcDecl = static_cast<FunctionDeclaration*>(memberSym->node);
+            if (funcDecl->visibility == VisibilityKind::PRIVATE) {
+                if (!ctx.generativeSymbol || obj->type->name->value != ctx.generativeSymbol->name->value) {
+                    ctx.errors.push_back(Error(position, "Cannot access private member from outside the class",
+                                               mainSource.filename().string()));
+                    return nullptr;
+                }
             }
         }
     }
@@ -517,6 +534,7 @@ Symbol* ReturnNode::evaluateSymbol(Context& ctx) {
         }
 
         auto voidSym = ctx.lookup(&voidType);
+        if (!voidSym) return nullptr;
         voidSym->type = voidSym;
         return voidSym;
     }
@@ -561,6 +579,7 @@ Symbol* ImportNode::evaluateSymbol(Context& ctx) {
 
 Symbol* StringNode::evaluateSymbol(Context& ctx) {
     auto sym = ctx.lookup(&stringType);
+    if (!sym) return nullptr;
     sym->type = sym;
     return sym;
 }
@@ -577,6 +596,11 @@ Symbol* ThisNode::evaluateSymbol(Context& ctx) {
         return nullptr;
     }
 
+    if (!ctx.parent || !ctx.parent->generativeSymbol) {
+        ctx.errors.push_back(Error(position, "Cannot use 'this' without a parent class context", mainSource.filename().string()));
+        return nullptr;
+    }
+
     DEBUG_OUTPUT << "ctx.parent->generativeSymbol: "
                  << (ctx.parent && ctx.parent->generativeSymbol ? ctx.parent->generativeSymbol->name->value : "nullptr")
                  << "\n";
@@ -587,6 +611,7 @@ Symbol* ThisNode::evaluateSymbol(Context& ctx) {
 
 Symbol* NullNode::evaluateSymbol(Context& ctx) {
     auto sym = ctx.lookup(&nullType);
+    if (!sym) return nullptr;
     sym->type = sym;
     return sym;
 }
